@@ -292,6 +292,15 @@
                 <span>لب‌پنجه (1.5cm)</span>
               </div>
             </div>
+
+            <!-- 2.5 Press Sub-Cut Options & Pagination Container -->
+            <div style="margin-top:12px; border-top:1px solid var(--border-light); padding-top:10px;">
+              <div style="font-weight:800; font-size:0.78rem; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between;">
+                <span><i class="ph ph-list-bullets" style="color:var(--brand-primary);"></i> گزینه‌های چیدمان شیت دستگاه ۲.۵ ورقی و برش‌ها</span>
+                <span style="font-size:0.7rem; color:var(--text-muted);">کلیک جهت انتخاب آرایش شیت</span>
+              </div>
+              <div id="nesting-options-pagination"></div>
+            </div>
           </div>
         </div>
 
@@ -713,6 +722,40 @@
       <span>نرخ‌ها</span>
     </div>
   </nav>
+
+  <!-- Dimension Mapping Clarification Modal -->
+  <div class="modal-overlay" id="dim-mapping-modal">
+    <div class="modal-card" style="max-width:480px;">
+      <div class="modal-hdr">
+        <div style="font-weight:800; font-size:0.88rem; color:var(--graphite-text);" id="dim-modal-title">
+          <i class="ph ph-question" style="color:var(--brand-primary); margin-left:4px;"></i> تطبیق اندازه روی لایه‌های قالب برداری
+        </div>
+        <button class="btn-icon" onclick="DieCutImporter.closeDimModal()"><i class="ph ph-x"></i></button>
+      </div>
+      <div class="modal-body" style="font-size:0.82rem; line-height:1.6;">
+        <p style="color:var(--text-muted); margin-bottom:12px;">
+          شما یک فایل قالب اختصاصی وکتور فعال دارید. این اندازه جدید مربوط به کدام بخش قالب است؟
+        </p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <button class="btn btn-outline" style="justify-content:flex-start; text-align:right;" onclick="DieCutImporter.confirmDimensionMapping('entire_box')">
+            <i class="ph ph-bounding-box" style="color:var(--brand-primary);"></i>
+            <span><strong>کل گسترده جعبه (Flat Outer Dimensions)</strong> — مقیاس‌دهی تناسبی کل قالب</span>
+          </button>
+          <button class="btn btn-outline" style="justify-content:flex-start; text-align:right;" onclick="DieCutImporter.confirmDimensionMapping('glue_flap')">
+            <i class="ph ph-ruler" style="color:#059669;"></i>
+            <span><strong>لبه چسب (Glue Flap)</strong> — تغییر عرض نوار لب‌چسب</span>
+          </button>
+          <button class="btn btn-outline" style="justify-content:flex-start; text-align:right;" onclick="DieCutImporter.confirmDimensionMapping('tuck_flap')">
+            <i class="ph ph-arrow-fat-lines-up" style="color:#2563EB;"></i>
+            <span><strong>زبانه درپوش (Tuck Flap)</strong> — تغییر ارتفاع زبانه قفل بالا/پایین</span>
+          </button>
+        </div>
+      </div>
+      <div class="modal-ftr">
+        <button class="btn btn-outline btn-sm" onclick="DieCutImporter.closeDimModal()">انصراف</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Toast Element -->
   <div id="toast">پیام سیستم</div>

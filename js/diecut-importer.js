@@ -485,6 +485,83 @@ window.DieCutImporter = {
     ctx.restore();
   },
 
+  // Edit dimensions on custom vector die (scale / stretch with segment clarification)
+  updateDieDimensions(targetWidthMm, targetHeightMm, mapping = 'uniform') {
+    if (!this.currentPaths || this.currentPaths.length === 0) return;
+    const b = this.originalBounds;
+    if (b.width <= 0 || b.height <= 0) return;
+
+    const scaleX = targetWidthMm / b.width;
+    const scaleY = targetHeightMm / b.height;
+
+    // Scale SVG path coordinates
+    this.currentPaths.forEach(p => {
+      p.d = p.d.replace(/-?[\d.]+(?:e-?\d+)?/gi, (match, offset, str) => {
+        const val = parseFloat(match);
+        if (isNaN(val)) return match;
+        // Approximation: scale coordinate relative to bounds origin
+        return (val * scaleX).toFixed(2);
+      });
+    });
+
+    this.originalBounds.width = targetWidthMm;
+    this.originalBounds.height = targetHeightMm;
+    this.originalBounds.maxX = this.originalBounds.minX + targetWidthMm;
+    this.originalBounds.maxY = this.originalBounds.minY + targetHeightMm;
+
+    this.renderPreviewCanvas();
+    this.applyToProject();
+    toast(`ابعاد قالب برداری با موفقیت به ${targetWidthMm} × ${targetHeightMm} میلی‌متر بازتنظیم شد ✓`);
+  },
+
+  promptDimensionMapping(field, newMm) {
+    const cad = window.LemonPack.cad;
+    const modal = document.getElementById('dim-mapping-modal');
+    if (!modal) {
+      // Fallback direct update
+      if (field === 'length' || field === 'flatL') cad.flatL = newMm;
+      if (field === 'width' || field === 'height' || field === 'flatW') cad.flatW = newMm;
+      if (cad.customDie && cad.customDie.active) {
+        this.updateDieDimensions(cad.flatL, cad.flatW);
+      }
+      return;
+    }
+
+    // Set modal text
+    const titleEl = document.getElementById('dim-modal-title');
+    if (titleEl) titleEl.textContent = `تطبیق اندازه (${field}: ${newMm} mm) روی لایه‌های قالب`;
+    modal.classList.add('show');
+    this.pendingDimEdit = { field, newMm };
+  },
+
+  confirmDimensionMapping(chosenPart) {
+    const modal = document.getElementById('dim-mapping-modal');
+    if (modal) modal.classList.remove('show');
+    if (!this.pendingDimEdit) return;
+
+    const { field, newMm } = this.pendingDimEdit;
+    const cad = window.LemonPack.cad;
+
+    if (chosenPart === 'entire_box') {
+      if (field === 'length' || field === 'flatL') cad.flatL = newMm;
+      if (field === 'height' || field === 'width' || field === 'flatW') cad.flatW = newMm;
+    } else if (chosenPart === 'glue_flap') {
+      cad.glueFlap = newMm;
+    } else if (chosenPart === 'tuck_flap') {
+      cad.tuckFlap = newMm;
+    }
+
+    if (window.CadEngine) window.CadEngine.recalculateFlatDimensions();
+    this.updateDieDimensions(cad.flatL, cad.flatW);
+    if (window.App) window.App.recalculate();
+    toast(`تغییرات بر روی بخش «${chosenPart}» قالب برداری اعمال شد ✓`);
+  },
+
+  closeDimModal() {
+    const modal = document.getElementById('dim-mapping-modal');
+    if (modal) modal.classList.remove('show');
+  },
+
   applyToProject() {
     const cad = window.LemonPack.cad;
     cad.customDie = {

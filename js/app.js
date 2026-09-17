@@ -285,14 +285,29 @@ window.App = {
 
   onCadInputChange() {
     const cad = window.LemonPack.cad;
+    const prevL = cad.length;
+    const prevW = cad.width;
+    const prevH = cad.height;
+
     cad.length = Number(document.getElementById('inp-length').value) || 120;
     cad.width = Number(document.getElementById('inp-width').value) || 80;
     cad.height = Number(document.getElementById('inp-height').value) || 150;
     cad.orderQty = Number(document.getElementById('inp-order-qty').value) || 1000;
     cad.isDieInArchive = document.getElementById('chk-archive-die') ? document.getElementById('chk-archive-die').checked : false;
 
-    if (window.CadEngine) window.CadEngine.recalculateFlatDimensions();
-    this.recalculate();
+    // If custom SVG die is loaded and user changes dimensions, update or ask
+    if (cad.customDie && cad.customDie.active) {
+      if (cad.length !== prevL && window.DieCutImporter) {
+        window.DieCutImporter.promptDimensionMapping('طول (L)', cad.length);
+      } else if (cad.width !== prevW && window.DieCutImporter) {
+        window.DieCutImporter.promptDimensionMapping('عرض (W)', cad.width);
+      } else if (cad.height !== prevH && window.DieCutImporter) {
+        window.DieCutImporter.promptDimensionMapping('ارتفاع (H)', cad.height);
+      }
+    } else {
+      if (window.CadEngine) window.CadEngine.recalculateFlatDimensions();
+      this.recalculate();
+    }
   },
 
   setupPwa() {
