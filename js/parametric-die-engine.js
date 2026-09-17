@@ -47,6 +47,10 @@ window.ParametricDieEngine = {
   /* ============================================================
      1. GEOMETRY SYNTHESIS (Piecewise CAD Model)
      ============================================================ */
+  synthesizeModelFromParams() {
+    return this.synthesizeModel();
+  },
+
   synthesizeModel() {
     const p = this.params;
     const L = Math.max(10, Number(p.length) || 120);
