@@ -17,7 +17,12 @@ const DEFAULT_RATES = {
   spot_uv_base_run_cost_toman: 2500000,
   transport_and_logistics_fixed_toman: 1800000,
   consumables_glue_toman: 600000,
-  profit_margin_percentage: 30.0
+  profit_margin_percentage: 30.0,
+  talq_pvc_price_per_kg_toman: 220000,
+  talq_pet_price_per_kg_toman: 260000,
+  talq_patching_machine_setup_toman: 600000,
+  talq_patching_unit_cost_auto_toman: 280,
+  talq_patching_unit_cost_manual_toman: 650
 };
 
 window.LemonPack = {
@@ -41,9 +46,27 @@ window.LemonPack = {
     substrate: 'inderboard',
     gsm: 300,
     lamination: 'matte',
-    uv: 'spot',
     gluing: 'auto',
-    colors: 4
+    colors: 4,
+    windowPatch: {
+      enabled: false,
+      length: 70,
+      width: 45,
+      margin: 10,
+      material: 'pvc',
+      thicknessMicron: 150,
+      method: 'auto'
+    },
+    foilStamping: {
+      enabled: false,
+      color: 'gold',
+      lengthCm: 6,
+      widthCm: 4
+    },
+    spotUv: {
+      enabled: false,
+      type: 'spot'
+    }
   },
   nesting: {
     sheetL: 100,
@@ -87,6 +110,9 @@ window.App = {
     if (window.ParametricDieEngine) {
       window.ParametricDieEngine.init();
     }
+    this.updateTalqPriceCard();
+    this.updateFoilPriceCard();
+    this.updateUvPriceCard();
     this.recalculate();
     this.setupPwa();
     this.setupAccordion();
@@ -306,6 +332,9 @@ window.App = {
       window.DieCutImporter.updateDieDimensions(cad.flatL, cad.flatW, 'all');
     }
 
+    this.updateTalqPriceCard();
+    this.updateFoilPriceCard();
+    this.updateUvPriceCard();
     this.recalculate();
   },
 
@@ -322,6 +351,226 @@ window.App = {
     }
 
     this.recalculate();
+  },
+
+  // ==========================================
+  // FINISHING & WINDOW PATCHING (TALQ) HANDLERS
+  // ==========================================
+  onWindowPatchToggle() {
+    const chk = document.getElementById('chk-window-patch');
+    const isEnabled = chk ? chk.checked : false;
+    window.LemonPack.materials.windowPatch.enabled = isEnabled;
+
+    const item = document.getElementById('finishing-item-talq');
+    const body = document.getElementById('window-patch-details');
+    if (item) item.classList.toggle('active', isEnabled);
+    if (body) body.classList.toggle('show', isEnabled);
+
+    this.updateTalqPriceCard();
+    this.recalculate();
+    if (window.SoundEngine) window.SoundEngine.playClick();
+  },
+
+  toggleTalqFromHeader(event) {
+    const chk = document.getElementById('chk-window-patch');
+    if (chk) {
+      chk.checked = !chk.checked;
+      this.onWindowPatchToggle();
+    }
+  },
+
+  onWindowPatchChange() {
+    const win = window.LemonPack.materials.windowPatch;
+    win.length = Math.max(10, Number(document.getElementById('inp-win-length').value) || 70);
+    win.width = Math.max(10, Number(document.getElementById('inp-win-width').value) || 45);
+    win.margin = Math.max(5, Number(document.getElementById('inp-win-margin').value) || 10);
+
+    this.updateTalqPriceCard();
+    this.recalculate();
+  },
+
+  setWindowPreset(len, wid) {
+    if (len === 'auto') {
+      const cad = window.LemonPack.cad;
+      len = Math.max(20, Math.round(cad.length * 0.6));
+      wid = Math.max(20, Math.round(cad.height * 0.45));
+    }
+    const inpL = document.getElementById('inp-win-length');
+    const inpW = document.getElementById('inp-win-width');
+    if (inpL) inpL.value = len;
+    if (inpW) inpW.value = wid;
+
+    window.LemonPack.materials.windowPatch.length = len;
+    window.LemonPack.materials.windowPatch.width = wid;
+
+    this.updateTalqPriceCard();
+    this.recalculate();
+    if (window.SoundEngine) window.SoundEngine.playClick();
+  },
+
+  setTalqMaterial(mat) {
+    window.LemonPack.materials.windowPatch.material = mat;
+    document.querySelectorAll('#talq-mat-chips .chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.talqMat === mat);
+    });
+    this.updateTalqPriceCard();
+    this.recalculate();
+    if (window.SoundEngine) window.SoundEngine.playClick();
+  },
+
+  setTalqThickness(thick) {
+    window.LemonPack.materials.windowPatch.thicknessMicron = Number(thick);
+    document.querySelectorAll('#talq-thick-chips .chip').forEach(c => {
+      c.classList.toggle('active', Number(c.dataset.talqThick) === Number(thick));
+    });
+    this.updateTalqPriceCard();
+    this.recalculate();
+    if (window.SoundEngine) window.SoundEngine.playClick();
+  },
+
+  setTalqMethod(method) {
+    window.LemonPack.materials.windowPatch.method = method;
+    document.querySelectorAll('#talq-method-chips .chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.talqMethod === method);
+    });
+    this.updateTalqPriceCard();
+    this.recalculate();
+    if (window.SoundEngine) window.SoundEngine.playClick();
+  },
+
+  updateTalqPriceCard() {
+    if (!window.CostEngine) return;
+    const mat = window.LemonPack.materials;
+    const cad = window.LemonPack.cad;
+    const rates = window.LemonPack.rates;
+    const pUtils = window.PersianUtils || { e2p: function(v){ return v; }, fmtNum: function(v){ return v; }, fmtCurrency: function(v){ return v; } };
+    const cur = window.LemonPack.currency || 'toman';
+
+    const d = window.CostEngine.calculateTalqDetails(mat, cad, rates);
+
+    const badgeFilm = document.getElementById('talq-live-badge-film');
+    if (badgeFilm) badgeFilm.textContent = `شیت طلق: ${pUtils.e2p(d.filmW)}×${pUtils.e2p(d.filmH)} mm (${pUtils.e2p(d.weightPerPieceGrams)}g)`;
+
+    const setEl = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+    setEl('talq-live-mat-cost', pUtils.fmtCurrency(d.unitMatCost, cur));
+    setEl('talq-live-op-cost', pUtils.fmtCurrency(d.unitOpCost, cur));
+    setEl('talq-live-unit-add', '+' + pUtils.fmtCurrency(d.unitTotal, cur));
+    setEl('talq-live-order-qty', pUtils.fmtNum(cad.orderQty));
+    setEl('talq-live-total-cost', pUtils.fmtCurrency(d.totalCost, cur));
+  },
+
+  // Foil Stamping Methods
+  onFoilToggle() {
+    const chk = document.getElementById('chk-foil-stamp');
+    const isEnabled = chk ? chk.checked : false;
+    window.LemonPack.materials.foilStamping.enabled = isEnabled;
+
+    const item = document.getElementById('finishing-item-foil');
+    const body = document.getElementById('foil-details');
+    if (item) item.classList.toggle('active', isEnabled);
+    if (body) body.classList.toggle('show', isEnabled);
+
+    this.updateFoilPriceCard();
+    this.recalculate();
+    if (window.SoundEngine) window.SoundEngine.playClick();
+  },
+
+  toggleFoilFromHeader(event) {
+    const chk = document.getElementById('chk-foil-stamp');
+    if (chk) {
+      chk.checked = !chk.checked;
+      this.onFoilToggle();
+    }
+  },
+
+  onFoilChange() {
+    const f = window.LemonPack.materials.foilStamping;
+    f.lengthCm = Math.max(1, Number(document.getElementById('inp-foil-w').value) || 6);
+    f.widthCm = Math.max(1, Number(document.getElementById('inp-foil-h').value) || 4);
+    this.updateFoilPriceCard();
+    this.recalculate();
+  },
+
+  setFoilColor(col) {
+    window.LemonPack.materials.foilStamping.color = col;
+    document.querySelectorAll('#foil-color-chips .chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.foilColor === col);
+    });
+    this.recalculate();
+    if (window.SoundEngine) window.SoundEngine.playClick();
+  },
+
+  updateFoilPriceCard() {
+    if (!window.CostEngine) return;
+    const mat = window.LemonPack.materials;
+    const cad = window.LemonPack.cad;
+    const rates = window.LemonPack.rates;
+    const pUtils = window.PersianUtils || { e2p: function(v){ return v; }, fmtNum: function(v){ return v; }, fmtCurrency: function(v){ return v; } };
+    const cur = window.LemonPack.currency || 'toman';
+
+    const d = window.CostEngine.calculateFoilDetails(mat, cad, rates);
+    const badgePlate = document.getElementById('foil-live-plate-badge');
+    if (badgePlate) badgePlate.textContent = `کلیشه: ${pUtils.e2p(mat.foilStamping.lengthCm || 6)}×${pUtils.e2p(mat.foilStamping.widthCm || 4)} cm`;
+
+    const setEl = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+    setEl('foil-live-plate-cost', pUtils.fmtCurrency(d.plateCost, cur));
+    setEl('foil-live-run-cost', pUtils.fmtCurrency(250, cur));
+    setEl('foil-live-unit-add', '+' + pUtils.fmtCurrency(d.unitTotal, cur));
+    setEl('foil-live-order-qty', pUtils.fmtNum(cad.orderQty));
+    setEl('foil-live-total-cost', pUtils.fmtCurrency(d.totalCost, cur));
+  },
+
+  // Spot UV Methods
+  onSpotUvToggle() {
+    const chk = document.getElementById('chk-spot-uv');
+    const isEnabled = chk ? chk.checked : false;
+    window.LemonPack.materials.spotUv.enabled = isEnabled;
+
+    const item = document.getElementById('finishing-item-uv');
+    const body = document.getElementById('uv-details');
+    if (item) item.classList.toggle('active', isEnabled);
+    if (body) body.classList.toggle('show', isEnabled);
+
+    this.updateUvPriceCard();
+    this.recalculate();
+    if (window.SoundEngine) window.SoundEngine.playClick();
+  },
+
+  toggleUvFromHeader(event) {
+    const chk = document.getElementById('chk-spot-uv');
+    if (chk) {
+      chk.checked = !chk.checked;
+      this.onSpotUvToggle();
+    }
+  },
+
+  setUvType(type) {
+    window.LemonPack.materials.spotUv.type = type;
+    document.querySelectorAll('#uv-type-chips .chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.uvType === type);
+    });
+    this.updateUvPriceCard();
+    this.recalculate();
+    if (window.SoundEngine) window.SoundEngine.playClick();
+  },
+
+  updateUvPriceCard() {
+    const cad = window.LemonPack.cad;
+    const mat = window.LemonPack.materials;
+    const pUtils = window.PersianUtils || { e2p: function(v){ return v; }, fmtNum: function(v){ return v; }, fmtCurrency: function(v){ return v; } };
+    const cur = window.LemonPack.currency || 'toman';
+
+    const screenCost = 1200000;
+    const unitRun = (mat.spotUv && mat.spotUv.type === 'cylinder') ? 240 : 180;
+    const total = screenCost + (unitRun * cad.orderQty);
+    const unitTotal = Math.round(total / Math.max(1, cad.orderQty));
+
+    const setEl = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+    setEl('uv-live-screen-cost', pUtils.fmtCurrency(screenCost, cur));
+    setEl('uv-live-run-cost', pUtils.fmtCurrency(unitRun, cur));
+    setEl('uv-live-unit-add', '+' + pUtils.fmtCurrency(unitTotal, cur));
+    setEl('uv-live-order-qty', pUtils.fmtNum(cad.orderQty));
+    setEl('uv-live-total-cost', pUtils.fmtCurrency(total, cur));
   },
 
   setupPwa() {

@@ -228,6 +228,243 @@
                 <div class="chip" data-gluing="none">شیت خام</div>
               </div>
             </div>
+
+            <!-- Finishing & Window Patching Section (Compact & OFF by default) -->
+            <div class="finishing-section">
+              <div class="field-label" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                <span><i class="ph ph-sparkle" style="color:var(--brand-primary);"></i> خدمات تکمیلی و آپشن‌ها</span>
+                <span style="font-size:0.67rem; color:var(--text-muted);">خاموش به‌صورت پیش‌فرض (کم‌جا)</span>
+              </div>
+
+              <!-- 1. Window Patching (پنجره طلقی) -->
+              <div class="finishing-item" id="finishing-item-talq">
+                <div class="finishing-header" onclick="App.toggleTalqFromHeader(event)">
+                  <div class="finishing-title-wrap">
+                    <div class="finishing-icon" style="color:#0284C7; background:rgba(2,132,199,0.1);">
+                      <i class="ph ph-squares-four"></i>
+                    </div>
+                    <div>
+                      <div class="finishing-title">پنجره طلقی شفاف (ویندوپچ)</div>
+                      <div class="finishing-subtitle">برش پنجره و الصاق فیلم شفاف PVC / PET روی جعبه</div>
+                    </div>
+                  </div>
+                  <label class="switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="chk-window-patch" onchange="App.onWindowPatchToggle()">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+
+                <!-- Window Patch Details Container (Initially Hidden) -->
+                <div class="finishing-body" id="window-patch-details">
+                  <!-- Dimensions -->
+                  <div class="input-row" style="margin-bottom:8px;">
+                    <div class="input-col">
+                      <label class="field-label">طول پنجره طلق (mm)</label>
+                      <input type="number" class="input-box" id="inp-win-length" value="70" min="10" step="5" oninput="App.onWindowPatchChange()">
+                    </div>
+                    <div class="input-col">
+                      <label class="field-label">عرض پنجره طلق (mm)</label>
+                      <input type="number" class="input-box" id="inp-win-width" value="45" min="10" step="5" oninput="App.onWindowPatchChange()">
+                    </div>
+                  </div>
+
+                  <!-- Dimension Presets -->
+                  <div style="margin-bottom:10px;">
+                    <div style="font-size:0.68rem; color:var(--text-muted); margin-bottom:4px;">ابعاد سریع پنجره:</div>
+                    <div class="chips-grid" style="grid-template-columns: repeat(4, 1fr);">
+                      <div class="chip chip-sm" onclick="App.setWindowPreset(50, 35)">۵۰×۳۵</div>
+                      <div class="chip chip-sm active" id="chip-win-preset-std" onclick="App.setWindowPreset(70, 45)">۷۰×۴۵</div>
+                      <div class="chip chip-sm" onclick="App.setWindowPreset(100, 60)">۱۰۰×۶۰</div>
+                      <div class="chip chip-sm" onclick="App.setWindowPreset('auto')">متناسب جعبه</div>
+                    </div>
+                  </div>
+
+                  <!-- Material & Thickness -->
+                  <div class="field-group" style="margin-bottom:8px;">
+                    <label class="field-label">جنس فیلم طلق</label>
+                    <div class="chips-grid" id="talq-mat-chips">
+                      <div class="chip active" data-talq-mat="pvc" onclick="App.setTalqMaterial('pvc')">PVC شفاف (صنعتی)</div>
+                      <div class="chip" data-talq-mat="pet" onclick="App.setTalqMaterial('pet')">PET بهداشتی (فودگرید)</div>
+                    </div>
+                  </div>
+
+                  <div class="field-group" style="margin-bottom:8px;">
+                    <label class="field-label">ضخامت طلق (میکرون)</label>
+                    <div class="chips-grid" id="talq-thick-chips" style="grid-template-columns: repeat(4, 1fr);">
+                      <div class="chip" data-talq-thick="100" onclick="App.setTalqThickness(100)">۱۰۰ µm</div>
+                      <div class="chip active" data-talq-thick="150" onclick="App.setTalqThickness(150)">۱۵۰ µm</div>
+                      <div class="chip" data-talq-thick="200" onclick="App.setTalqThickness(200)">۲۰۰ µm</div>
+                      <div class="chip" data-talq-thick="250" onclick="App.setTalqThickness(250)">۲۵۰ µm</div>
+                    </div>
+                  </div>
+
+                  <!-- Method & Margin -->
+                  <div class="input-row" style="margin-bottom:8px; align-items:flex-end;">
+                    <div class="input-col" style="flex:1.4;">
+                      <label class="field-label">سیستم الصاق طلق</label>
+                      <div class="chips-grid" id="talq-method-chips" style="grid-template-columns: 1fr 1fr;">
+                        <div class="chip active" data-talq-method="auto" onclick="App.setTalqMethod('auto')">ویندوپچ اتوماتیک</div>
+                        <div class="chip" data-talq-method="manual" onclick="App.setTalqMethod('manual')">چسب دستی</div>
+                      </div>
+                    </div>
+                    <div class="input-col" style="flex:0.8;">
+                      <label class="field-label">حاشیه چسب (mm)</label>
+                      <input type="number" class="input-box" id="inp-win-margin" value="10" min="5" max="25" oninput="App.onWindowPatchChange()">
+                    </div>
+                  </div>
+
+                  <!-- Live Mini Price Breakdown Card (همون زیرش جزئیات قیمتی کوچیک) -->
+                  <div class="mini-price-card" id="talq-price-card">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; font-weight:800;">
+                      <span style="display:flex; align-items:center; gap:4px;">
+                        <i class="ph ph-receipt" style="color:#0284C7;"></i> آنالیز بهای تمام‌شده طلق
+                      </span>
+                      <span class="badge badge-subtle" id="talq-live-badge-film" style="font-size:0.67rem;">شیت طلق: ۹۰×۶۵ mm</span>
+                    </div>
+                    <div class="mini-price-row">
+                      <span>بهای متریال طلق مصرفی هر عدد:</span>
+                      <span class="tabular-nums" id="talq-live-mat-cost">۲۴۰ تومان</span>
+                    </div>
+                    <div class="mini-price-row">
+                      <span>اجرت برش و الصاق (ویندوپچ):</span>
+                      <span class="tabular-nums" id="talq-live-op-cost">۲۸۰ تومان</span>
+                    </div>
+                    <div class="mini-price-highlight">
+                      <span>اضافه هزینه به ازای هر عدد جعبه:</span>
+                      <span class="tabular-nums" id="talq-live-unit-add">+۵۲۰ تومان</span>
+                    </div>
+                    <div class="mini-price-row" style="margin-top:2px; font-size:0.68rem; color:var(--text-muted);">
+                      <span>مجموع در تیراژ سفارش (<span id="talq-live-order-qty">۱,۰۰۰</span> عدد):</span>
+                      <span class="tabular-nums font-bold" id="talq-live-total-cost" style="color:var(--graphite-text);">۵۲۰,۰۰۰ تومان</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Hot Foil Stamping (طلاکوب / نقره‌کوب حرارتی) -->
+              <div class="finishing-item" id="finishing-item-foil">
+                <div class="finishing-header" onclick="App.toggleFoilFromHeader(event)">
+                  <div class="finishing-title-wrap">
+                    <div class="finishing-icon" style="color:#D97706; background:rgba(217,119,6,0.1);">
+                      <i class="ph ph-sparkle"></i>
+                    </div>
+                    <div>
+                      <div class="finishing-title">طلاکوب / نقره‌کوب حرارتی</div>
+                      <div class="finishing-subtitle">اعمال فویل متالیک براق با کلیشه داغی برجسته</div>
+                    </div>
+                  </div>
+                  <label class="switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="chk-foil-stamp" onchange="App.onFoilToggle()">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+
+                <!-- Foil Details Container -->
+                <div class="finishing-body" id="foil-details">
+                  <div class="field-group" style="margin-bottom:8px;">
+                    <label class="field-label">رنگ فویل متالیک</label>
+                    <div class="chips-grid" id="foil-color-chips">
+                      <div class="chip active" data-foil-color="gold" onclick="App.setFoilColor('gold')">طلایی براق</div>
+                      <div class="chip" data-foil-color="silver" onclick="App.setFoilColor('silver')">نقره‌ای متالیک</div>
+                      <div class="chip" data-foil-color="rosegold" onclick="App.setFoilColor('rosegold')">مسی / رزگلد</div>
+                    </div>
+                  </div>
+
+                  <div class="input-row" style="margin-bottom:8px;">
+                    <div class="input-col">
+                      <label class="field-label">طول کلیشه طلاکوب (cm)</label>
+                      <input type="number" class="input-box" id="inp-foil-w" value="6" min="1" step="1" oninput="App.onFoilChange()">
+                    </div>
+                    <div class="input-col">
+                      <label class="field-label">عرض کلیشه طلاکوب (cm)</label>
+                      <input type="number" class="input-box" id="inp-foil-h" value="4" min="1" step="1" oninput="App.onFoilChange()">
+                    </div>
+                  </div>
+
+                  <!-- Foil Mini Price Card -->
+                  <div class="mini-price-card card-blue" id="foil-price-card">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; font-weight:800;">
+                      <span style="display:flex; align-items:center; gap:4px;">
+                        <i class="ph ph-receipt" style="color:#D97706;"></i> آنالیز بهای طلاکوب
+                      </span>
+                      <span class="badge badge-subtle" id="foil-live-plate-badge" style="font-size:0.67rem;">کلیشه: ۶×۴ cm</span>
+                    </div>
+                    <div class="mini-price-row">
+                      <span>ساخت کلیشه برنجی داغی (ثابت):</span>
+                      <span class="tabular-nums" id="foil-live-plate-cost">۱,۰۰۰,۰۰۰ تومان</span>
+                    </div>
+                    <div class="mini-price-row">
+                      <span>فویل مصرفی و ضرب هر عدد:</span>
+                      <span class="tabular-nums" id="foil-live-run-cost">۲۵۰ تومان</span>
+                    </div>
+                    <div class="mini-price-highlight" style="color:#B45309; border-top-color:#FDE68A;">
+                      <span>هزینه سهم هر عدد جعبه:</span>
+                      <span class="tabular-nums" id="foil-live-unit-add">+۱,۲۵۰ تومان</span>
+                    </div>
+                    <div class="mini-price-row" style="margin-top:2px; font-size:0.68rem; color:var(--text-muted);">
+                      <span>مجموع در تیراژ سفارش (<span id="foil-live-order-qty">۱,۰۰۰</span> عدد):</span>
+                      <span class="tabular-nums font-bold" id="foil-live-total-cost" style="color:var(--graphite-text);">۱,۲۵۰,۰۰۰ تومان</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. Spot UV (یووی موضعی برجسته) -->
+              <div class="finishing-item" id="finishing-item-uv">
+                <div class="finishing-header" onclick="App.toggleUvFromHeader(event)">
+                  <div class="finishing-title-wrap">
+                    <div class="finishing-icon" style="color:#7C3AED; background:rgba(124,58,237,0.1);">
+                      <i class="ph ph-drop"></i>
+                    </div>
+                    <div>
+                      <div class="finishing-title">یووی موضعی برجسته (Spot UV)</div>
+                      <div class="finishing-subtitle">ایجاد لایه براق و برجسته بر روی نشان یا لوگو</div>
+                    </div>
+                  </div>
+                  <label class="switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="chk-spot-uv" onchange="App.onSpotUvToggle()">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+
+                <!-- Spot UV Details Container -->
+                <div class="finishing-body" id="uv-details">
+                  <div class="field-group" style="margin-bottom:8px;">
+                    <label class="field-label">نوع پوشش یووی</label>
+                    <div class="chips-grid" id="uv-type-chips">
+                      <div class="chip active" data-uv-type="spot" onclick="App.setUvType('spot')">یووی موضعی شابلونی</div>
+                      <div class="chip" data-uv-type="cylinder" onclick="App.setUvType('cylinder')">یووی سیلندری کامل</div>
+                    </div>
+                  </div>
+
+                  <!-- UV Mini Price Card -->
+                  <div class="mini-price-card card-blue" id="uv-price-card">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; font-weight:800;">
+                      <span style="display:flex; align-items:center; gap:4px;">
+                        <i class="ph ph-receipt" style="color:#7C3AED;"></i> آنالیز بهای یووی موضعی
+                      </span>
+                      <span class="badge badge-subtle" style="font-size:0.67rem;">شابلون توری سیلک</span>
+                    </div>
+                    <div class="mini-price-row">
+                      <span>هزینه فیلم و ساخت توری شابلون:</span>
+                      <span class="tabular-nums" id="uv-live-screen-cost">۱,۲۰۰,۰۰۰ تومان</span>
+                    </div>
+                    <div class="mini-price-row">
+                      <span>اجرت مواد یووی و دستگاه هر عدد:</span>
+                      <span class="tabular-nums" id="uv-live-run-cost">۱۸۰ تومان</span>
+                    </div>
+                    <div class="mini-price-highlight" style="color:#6D28D9; border-top-color:#DDD6FE;">
+                      <span>هزینه سهم هر عدد جعبه:</span>
+                      <span class="tabular-nums" id="uv-live-unit-add">+۱,۳۸۰ تومان</span>
+                    </div>
+                    <div class="mini-price-row" style="margin-top:2px; font-size:0.68rem; color:var(--text-muted);">
+                      <span>مجموع در تیراژ سفارش (<span id="uv-live-order-qty">۱,۰۰۰</span> عدد):</span>
+                      <span class="tabular-nums font-bold" id="uv-live-total-cost" style="color:var(--graphite-text);">۱,۳۸۰,۰۰۰ تومان</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -356,6 +593,16 @@
                   <td class="tabular-nums" id="cogs-finish-sub">-</td>
                   <td class="td-cost tabular-nums" id="cogs-finish-val">-</td>
                 </tr>
+                <tr id="cogs-talq-row" style="display:none; background:rgba(2,132,199,0.06);">
+                  <td><i class="ph ph-squares-four" style="color:#0284C7;"></i> پنجره طلقی (ویندوپچ)</td>
+                  <td class="tabular-nums" id="cogs-talq-sub">-</td>
+                  <td class="td-cost tabular-nums" id="cogs-talq-val" style="color:#0284C7; font-weight:700;">-</td>
+                </tr>
+                <tr id="cogs-foil-row" style="display:none; background:rgba(217,119,6,0.06);">
+                  <td><i class="ph ph-sparkle" style="color:#D97706;"></i> طلاکوب حرارتی</td>
+                  <td class="tabular-nums" id="cogs-foil-sub">-</td>
+                  <td class="td-cost tabular-nums" id="cogs-foil-val" style="color:#D97706; font-weight:700;">-</td>
+                </tr>
                 <tr>
                   <td><strong>بهای تمام‌شده (COGS)</strong></td>
                   <td>بدون سود</td>
@@ -477,7 +724,7 @@
             <tbody>
               <tr>
                 <td class="tabular-nums">۱</td>
-                <td class="text-right">تولید صنعتی جعبه با مشخصات فنی فوق (شامل مقوا، زینک، چاپ ۴ رنگ، سلفون، لترپرس و جعبه‌چسبانی)</td>
+                <td class="text-right" id="inv-item-desc">تولید صنعتی جعبه با مشخصات فنی فوق (شامل مقوا، زینک، چاپ ۴ رنگ، سلفون، لترپرس و جعبه‌چسبانی)</td>
                 <td class="tabular-nums" id="inv-qty-val">۱,۰۰۰</td>
                 <td>عدد</td>
                 <td class="tabular-nums text-left" id="inv-unit-val">۷۱,۹۰۰</td>
@@ -825,40 +1072,6 @@
       <span>نرخ‌ها</span>
     </div>
   </nav>
-
-  <!-- Dimension Mapping Clarification Modal -->
-  <div class="modal-overlay" id="dim-mapping-modal">
-    <div class="modal-card" style="max-width:480px;">
-      <div class="modal-hdr">
-        <div style="font-weight:800; font-size:0.88rem; color:var(--graphite-text);" id="dim-modal-title">
-          <i class="ph ph-question" style="color:var(--brand-primary); margin-left:4px;"></i> تطبیق اندازه روی لایه‌های قالب برداری
-        </div>
-        <button class="btn-icon" onclick="DieCutImporter.closeDimModal()"><i class="ph ph-x"></i></button>
-      </div>
-      <div class="modal-body" style="font-size:0.82rem; line-height:1.6;">
-        <p style="color:var(--text-muted); margin-bottom:12px;">
-          شما یک فایل قالب اختصاصی وکتور فعال دارید. این اندازه جدید مربوط به کدام بخش قالب است؟
-        </p>
-        <div style="display:flex; flex-direction:column; gap:8px;">
-          <button class="btn btn-outline" style="justify-content:flex-start; text-align:right;" onclick="DieCutImporter.confirmDimensionMapping('entire_box')">
-            <i class="ph ph-bounding-box" style="color:var(--brand-primary);"></i>
-            <span><strong>کل گسترده جعبه (Flat Outer Dimensions)</strong> — مقیاس‌دهی تناسبی کل قالب</span>
-          </button>
-          <button class="btn btn-outline" style="justify-content:flex-start; text-align:right;" onclick="DieCutImporter.confirmDimensionMapping('glue_flap')">
-            <i class="ph ph-ruler" style="color:#059669;"></i>
-            <span><strong>لبه چسب (Glue Flap)</strong> — تغییر عرض نوار لب‌چسب</span>
-          </button>
-          <button class="btn btn-outline" style="justify-content:flex-start; text-align:right;" onclick="DieCutImporter.confirmDimensionMapping('tuck_flap')">
-            <i class="ph ph-arrow-fat-lines-up" style="color:#2563EB;"></i>
-            <span><strong>زبانه درپوش (Tuck Flap)</strong> — تغییر ارتفاع زبانه قفل بالا/پایین</span>
-          </button>
-        </div>
-      </div>
-      <div class="modal-ftr">
-        <button class="btn btn-outline btn-sm" onclick="DieCutImporter.closeDimModal()">انصراف</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Toast Element -->
   <div id="toast">پیام سیستم</div>

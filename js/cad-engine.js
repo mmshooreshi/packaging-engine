@@ -331,6 +331,50 @@ window.CadEngine = {
       }
     }
 
+    // Render Window Patch (پنجره طلقی) if enabled
+    if (window.LemonPack.materials && window.LemonPack.materials.windowPatch && window.LemonPack.materials.windowPatch.enabled) {
+      const win = window.LemonPack.materials.windowPatch;
+      const winLenMm = Math.min(Math.max(10, Number(win.length) || 70), cad.length - 8);
+      const winWidMm = Math.min(Math.max(10, Number(win.width) || 45), cad.height - 8);
+      const winDrawW = winLenMm * scale;
+      const winDrawH = winWidMm * scale;
+      const winX = (startX + G + W) + ((L - winDrawW) / 2);
+      const winY = (startY + T) + ((H - winDrawH) / 2);
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(14, 165, 233, 0.22)';
+      ctx.beginPath();
+      ctx.roundRect(winX, winY, winDrawW, winDrawH, 4);
+      ctx.fill();
+
+      ctx.strokeStyle = '#0284C7';
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([4, 2]);
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(winX + 6, winY + winDrawH - 6);
+      ctx.lineTo(winX + winDrawW - 6, winY + 6);
+      ctx.stroke();
+
+      ctx.fillStyle = '#0369A1';
+      ctx.font = 'bold 9px Peyda, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`پنجره طلق: ${pUtils.e2p(winLenMm)}×${pUtils.e2p(winWidMm)} mm`, winX + (winDrawW / 2), winY + (winDrawH / 2) - 3);
+      ctx.font = '8px Peyda, sans-serif';
+      ctx.fillText(`(${win.material.toUpperCase()} ${pUtils.e2p(win.thicknessMicron)}µm)`, winX + (winDrawW / 2), winY + (winDrawH / 2) + 9);
+      ctx.restore();
+
+      if (mouse && mouse.x >= winX && mouse.x <= winX + winDrawW && mouse.y >= winY && mouse.y <= winY + winDrawH) {
+        const filmW = winLenMm + (2 * (win.margin || 10));
+        const filmH = winWidMm + (2 * (win.margin || 10));
+        activeHoverText = `پنجره طلقی (Window): ${pUtils.e2p(winLenMm)}×${pUtils.e2p(winWidMm)} mm | طلق مصرفی: ${pUtils.e2p(filmW)}×${pUtils.e2p(filmH)} mm (${pUtils.e2p(win.thicknessMicron)} میکرون)`;
+      }
+    }
+
     // Top / Left Dimension Extension Lines
     ctx.strokeStyle = '#D97706';
     ctx.fillStyle = '#D97706';

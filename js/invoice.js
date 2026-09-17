@@ -71,9 +71,28 @@ window.InvoiceEngine = {
     setTxt('inv-flat-text', pUtils.e2p(cad.flatL) + ' × ' + pUtils.e2p(cad.flatW) + ' mm');
     setTxt('inv-paper-text', subText);
     setTxt('inv-lam-text', mat.lamination === 'matte' ? 'سلفون مات حرارتی' : (mat.lamination === 'gloss' ? 'سلفون براق' : (mat.lamination === 'velvet' ? 'سلفون مخملی' : 'بدون سلفون')));
-    setTxt('inv-uv-text', mat.uv === 'spot' ? 'یووی موضعی برجسته' : (mat.uv === 'cylinder' ? 'یووی سیلندری' : 'بدون یووی'));
+
+    // Finishing & Window specs
+    const finishList = [];
+    if (mat.windowPatch && mat.windowPatch.enabled) {
+      finishList.push(`پنجره طلقی ${pUtils.e2p(mat.windowPatch.length)}×${pUtils.e2p(mat.windowPatch.width)} mm (${mat.windowPatch.material.toUpperCase()} ${pUtils.e2p(mat.windowPatch.thicknessMicron)}µm)`);
+    }
+    if (mat.foilStamping && mat.foilStamping.enabled) {
+      finishList.push(`طلاکوب ${pUtils.e2p(mat.foilStamping.lengthCm)}×${pUtils.e2p(mat.foilStamping.widthCm)} cm`);
+    }
+    if (mat.spotUv && mat.spotUv.enabled) {
+      finishList.push(mat.spotUv.type === 'cylinder' ? 'یووی سیلندری' : 'یووی موضعی');
+    }
+    setTxt('inv-uv-text', finishList.length > 0 ? finishList.join(' + ') : 'بدون خدمات تکمیلی');
     setTxt('inv-gluing-text', mat.gluing === 'auto' ? 'لب‌چسب اتوماتیک' : (mat.gluing === 'manual' ? 'چسب دستی' : 'شیت تخت'));
     setTxt('inv-ups-text', pUtils.e2p(nest.ups) + ' کار در شیت (' + pUtils.e2p(nest.sheetL) + '×' + pUtils.e2p(nest.sheetW) + ' cm)');
+
+    let itemDesc = 'تولید صنعتی جعبه با مشخصات فنی فوق (شامل مقوا، زینک، چاپ ۴ رنگ، سلفون، لترپرس و جعبه‌چسبانی';
+    if (mat.windowPatch && mat.windowPatch.enabled) itemDesc += ' + پنجره طلقی ویندوپچ';
+    if (mat.foilStamping && mat.foilStamping.enabled) itemDesc += ' + طلاکوب حرارتی';
+    if (mat.spotUv && mat.spotUv.enabled) itemDesc += ' + یووی موضعی';
+    itemDesc += ')';
+    setTxt('inv-item-desc', itemDesc);
 
     // Financial Rows
     setTxt('inv-qty-val', pUtils.fmtNum(cad.orderQty));

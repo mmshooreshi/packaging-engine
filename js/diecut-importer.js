@@ -621,56 +621,19 @@ window.DieCutImporter = {
     this.recalculateBounds();
     this.renderPreviewCanvas();
     this.applyToProject();
-    toast(`ابعاد قالب با موفقیت به ${Math.round(this.originalBounds.width)} × ${Math.round(this.originalBounds.height)} میلی‌متر ویرایش شد ✓`);
   },
 
   promptDimensionMapping(field, newMm) {
     const cad = window.LemonPack.cad;
-    const modal = document.getElementById('dim-mapping-modal');
-    this.pendingDimEdit = { field, newMm };
-
-    if (!modal) {
-      if (field.includes('طول') || field.includes('L')) {
-        this.updateDieDimensions(newMm, cad.flatW || this.originalBounds.height, 'all');
-      } else if (field.includes('عرض') || field.includes('W') || field.includes('ارتفاع') || field.includes('H')) {
-        this.updateDieDimensions(cad.flatL || this.originalBounds.width, newMm, 'all');
-      }
-      return;
+    if (field.includes('طول') || field.includes('L')) {
+      this.updateDieDimensions(newMm, cad.flatW || this.originalBounds.height, 'all');
+    } else if (field.includes('عرض') || field.includes('W') || field.includes('ارتفاع') || field.includes('H')) {
+      this.updateDieDimensions(cad.flatL || this.originalBounds.width, newMm, 'all');
     }
-
-    const titleEl = document.getElementById('dim-modal-title');
-    if (titleEl) titleEl.innerHTML = `<i class="ph ph-question" style="color:var(--brand-primary); margin-left:4px;"></i> ویرایش ابعاد قالب برداری (${field}: ${newMm} mm)`;
-    modal.classList.add('show');
   },
 
   confirmDimensionMapping(chosenPart) {
-    const modal = document.getElementById('dim-mapping-modal');
-    if (modal) modal.classList.remove('show');
-    if (!this.pendingDimEdit) return;
-
-    const { field, newMm } = this.pendingDimEdit;
-    const cad = window.LemonPack.cad;
-    const curW = this.originalBounds.width || cad.flatL || 310;
-    const curH = this.originalBounds.height || cad.flatW || 220;
-
-    if (chosenPart === 'entire_box') {
-      if (field.includes('طول') || field.includes('L')) {
-        this.updateDieDimensions(newMm, curH, 'all');
-      } else {
-        this.updateDieDimensions(curW, newMm, 'all');
-      }
-    } else if (chosenPart === 'glue_flap') {
-      cad.glueFlap = newMm;
-      // Scale glue lines
-      this.updateDieDimensions(curW, curH, 'glue');
-    } else if (chosenPart === 'tuck_flap') {
-      cad.tuckFlap = newMm;
-      this.updateDieDimensions(curW, curH, 'crease');
-    }
-
-    if (window.CadEngine) window.CadEngine.recalculateFlatDimensions();
-    if (window.App) window.App.recalculate();
-    toast(`تغییرات بر روی بخش «${chosenPart}» قالب برداری اعمال شد ✓`);
+    // No-op kept for safety
   },
 
   closeDimModal() {
