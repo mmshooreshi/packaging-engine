@@ -1,24 +1,50 @@
 /* ============================================================
-   SMART DIE-CUT INSPECTOR & PACKAGING CAD ENGINE v8.0
-   Auto-detects packaging geometry, renders crisp dimensioned CAD blueprint,
-   and synchronizes directly with Studio & Nesting with zero tedious forms.
+   SMART VECTOR DIE-CUT INSPECTOR & PACKAGING CAD ENGINE v8.5
+   - Fully centered around custom uploaded SVG / AI die cuts.
+   - Zero-drop vector parsing (100% bezier, arc, and curve preservation).
+   - Live color detection & mapping (Red = Cut, Yellow/Blue = Crease, Green = Glue).
+   - Full dimensional scaling & editing for uploaded SVGs.
+   - Real-time auto-synchronization with 2D Nesting, Studio, Cost Engine & 3D Box.
    ============================================================ */
 
 window.ParametricDieEngine = {
   isCustomImport: false,
   rawSvgString: null,
-
-  // Core Packaging Dimensions (in mm)
-  params: {
-    length: 120,    // L: طول بدنه
-    width: 80,      // W: عرض پهلو
-    height: 150,    // H: ارتفاع بدنه
-    glueFlap: 15,   // G: لب‌چسب
-    topTuck: 25,    // T: زبانه درپوش بالا
-    dustFlap: 15    // D: گوشواره
+  fileName: 'قالب برداری پیش‌فرض',
+  customPaths: [],        // Normalized vector paths in mm
+  rawSvgPaths: [],        // Original raw vector data for lossless re-scaling
+  detectedColors: [],     // Detected colors [{ color, hex, name, count, lengthMm, type }]
+  
+  canvasTheme: 'bright',  // 'bright' | 'dark'
+  layers: {
+    cuts: true,
+    creases: true,
+    glue: true,
+    dimensions: true,
+    labels: true
   },
 
-  // Calculated Engineering Metrics
+  // Base Packaging Dimensions (in mm)
+  params: {
+    length: 120,    // L
+    width: 80,      // W
+    height: 150,    // H
+    glueFlap: 15,   // G
+    topTuck: 25,    // T
+    dustFlap: 15    // D
+  },
+
+  // Base unscaled flat dimensions from file
+  baseBounds: {
+    minX: 0,
+    minY: 0,
+    width: 415,
+    height: 266,
+    scaleToMm: 1.0
+  },
+  scaleFactor: 1.0,
+
+  // Calculated Metrics
   calculated: {
     flatWidth: 415,
     flatHeight: 266,
@@ -27,7 +53,6 @@ window.ParametricDieEngine = {
     areaCm2: 1103.9
   },
 
-  // Atomic Segments Repository
   segments: [],
   hoveredSegmentId: null,
   activePanelHover: null,
@@ -39,13 +64,306 @@ window.ParametricDieEngine = {
   dragStart: { x: 0, y: 0 },
 
   init() {
+    this.syncFromLemonPack();
     this.synthesizeModel();
     this.setupCanvasEvents();
     this.render();
   },
 
+  syncFromLemonPack() {
+    if (window.LemonPack && window.LemonPack.cad) {
+      const c = window.LemonPack.cad;
+      if (c.length) this.params.length = Number(c.length);
+      if (c.width) this.params.width = Number(c.width);
+      if (c.height) this.params.height = Number(c.height);
+      if (c.glueFlap) this.params.glueFlap = Number(c.glueFlap);
+      if (c.tuckFlap) this.params.topTuck = Number(c.tuckFlap);
+      if (c.dustFlap) this.params.dustFlap = Number(c.dustFlap);
+      if (c.flatL) this.calculated.flatWidth = Number(c.flatL);
+      if (c.flatW) this.calculated.flatHeight = Number(c.flatW);
+    }
+  },
+
   /* ============================================================
-     1. GEOMETRY SYNTHESIS (Piecewise CAD Model)
+     1. DIMENSION EDITING, STEPPING & SCALING FOR CUSTOM SVG
+     ============================================================ */
+  stepParam(key, delta) {
+    if (this.params[key] !== undefined) {
+      const oldVal = Number(this.params[key]) || 10;
+      const newVal = Math.max(5, oldVal + delta);
+      this.params[key] = newVal;
+
+      if (this.isCustomImport && this.customPaths.length > 0) {
+        if (key === 'length' || key === 'width') {
+          const approxW = 2 * this.params.length + 2 * this.params.width + this.params.glueFlap;
+          this.setFlatSize('w', approxW, false);
+        } else if (key === 'height') {
+          const approxH = this.params.height + 2 * this.params.width + 2 * this.params.topTuck;
+          this.setFlatSize('h', approxH, false);
+        }
+      } else {
+        this.synthesizeModel();
+      }
+
+      this.render();
+      this.syncToStudioAutomatically();
+      if (window.SoundEngine) window.SoundEngine.playClick();
+    }
+  },
+
+  setParam(key, val) {
+    if (this.params[key] !== undefined) {
+      this.params[key] = Math.max(5, Number(val) || 0);
+      if (this.isCustomImport && this.customPaths.length > 0) {
+        if (key === 'length' || key === 'width') {
+          const approxW = 2 * this.params.length + 2 * this.params.width + this.params.glueFlap;
+          this.setFlatSize('w', approxW, false);
+        } else if (key === 'height') {
+          const approxH = this.params.height + 2 * this.params.width + 2 * this.params.topTuck;
+          this.setFlatSize('h', approxH, false);
+        }
+      } else {
+        this.synthesizeModel();
+      }
+      this.render();
+      this.syncToStudioAutomatically();
+    }
+  },
+
+  stepFlatSize(axis, delta) {
+    if (axis === 'w') {
+      const cur = this.calculated.flatWidth;
+      this.setFlatSize('w', cur + delta, true);
+    } else {
+      const cur = this.calculated.flatHeight;
+      this.setFlatSize('h', cur + delta, true);
+    }
+    if (window.SoundEngine) window.SoundEngine.playClick();
+  },
+
+  setFlatSize(axis, val, updateParams = true) {
+    const targetVal = Math.max(20, Number(val) || 20);
+    const oldW = this.calculated.flatWidth;
+    const oldH = this.calculated.flatHeight;
+
+    if (axis === 'w') {
+      const ratio = targetVal / (oldW || targetVal);
+      this.calculated.flatWidth = Math.round(targetVal);
+      if (this.isCustomImport && this.customPaths.length > 0) {
+        this.rescaleCustomPaths(ratio, 1.0);
+      }
+    } else {
+      const ratio = targetVal / (oldH || targetVal);
+      this.calculated.flatHeight = Math.round(targetVal);
+      if (this.isCustomImport && this.customPaths.length > 0) {
+        this.rescaleCustomPaths(1.0, ratio);
+      }
+    }
+
+    if (!this.isCustomImport) {
+      this.synthesizeModel();
+    } else if (updateParams) {
+      this.params.length = Math.round(this.calculated.flatWidth * 0.3);
+      this.params.width = Math.round(this.calculated.flatWidth * 0.18);
+      this.params.height = Math.round(this.calculated.flatHeight * 0.55);
+    }
+
+    this.render();
+    this.syncToStudioAutomatically();
+  },
+
+  scaleCustomDie(factor) {
+    if (factor <= 0) return;
+    this.scaleFactor = factor;
+
+    document.querySelectorAll('#view-diecut .chip').forEach(c => {
+      const txt = c.textContent.trim();
+      const pct = Math.round(factor * 100) + '٪';
+      c.classList.toggle('active', txt.includes(pct));
+    });
+
+    if (this.baseBounds.width > 0 && this.baseBounds.height > 0) {
+      const newW = Math.round(this.baseBounds.width * factor);
+      const newH = Math.round(this.baseBounds.height * factor);
+      this.calculated.flatWidth = newW;
+      this.calculated.flatHeight = newH;
+
+      if (this.isCustomImport && this.rawSvgPaths.length > 0) {
+        this.rebuildPathsFromRaw();
+      } else {
+        this.synthesizeModel();
+      }
+
+      this.render();
+      this.syncToStudioAutomatically();
+      if (window.SoundEngine) window.SoundEngine.playClick();
+      if (window.toast) {
+        const pUtils = window.PersianUtils || { fmtNum: v => String(v) };
+        window.toast(`مقیاس قالب به ${pUtils.fmtNum(Math.round(factor * 100))}٪ (${pUtils.fmtNum(newW)} × ${pUtils.fmtNum(newH)} mm) تغییر یافت ✓`);
+      }
+    }
+  },
+
+  rescaleCustomPaths(ratioX, ratioY) {
+    if (ratioX === 1.0 && ratioY === 1.0) return;
+    this.customPaths.forEach(p => {
+      p.d = this.transformSvgPath(p.d, ratioX, ratioY, 0, 0);
+      if (p.lengthMm) p.lengthMm = Number((p.lengthMm * ((ratioX + ratioY) / 2)).toFixed(1));
+    });
+    this.segments.forEach(s => {
+      s.x1 *= ratioX; s.y1 *= ratioY;
+      s.x2 *= ratioX; s.y2 *= ratioY;
+      s.lengthMm = Number((s.lengthMm * ((ratioX + ratioY) / 2)).toFixed(1));
+      s.d = `M ${s.x1.toFixed(2)} ${s.y1.toFixed(2)} L ${s.x2.toFixed(2)} ${s.y2.toFixed(2)}`;
+    });
+    this.recalculateTotals();
+  },
+
+  rebuildPathsFromRaw() {
+    const scaleX = (this.calculated.flatWidth / (this.baseBounds.width || 1));
+    const scaleY = (this.calculated.flatHeight / (this.baseBounds.height || 1));
+    const scaleToMm = this.baseBounds.scaleToMm || 1.0;
+    const minX = this.baseBounds.minX;
+    const minY = this.baseBounds.minY;
+
+    let totalCutLen = 0;
+    let totalCreaseLen = 0;
+
+    const normalizedPaths = this.rawSvgPaths.map(rp => {
+      const dTransformed = this.transformSvgPath(rp.dRaw, scaleToMm * scaleX, scaleToMm * scaleY, -minX * scaleToMm * scaleX, -minY * scaleToMm * scaleY);
+      const approxLen = (rp.rawLen || 10) * scaleToMm * ((scaleX + scaleY) / 2);
+
+      if (rp.type === 'crease') totalCreaseLen += approxLen;
+      else if (rp.type === 'cut') totalCutLen += approxLen;
+
+      return {
+        id: rp.id,
+        d: dTransformed,
+        stroke: rp.stroke,
+        dash: rp.dash,
+        type: rp.type,
+        lengthMm: Number(approxLen.toFixed(1)),
+        visible: true
+      };
+    });
+
+    this.customPaths = normalizedPaths;
+    this.segments = normalizedPaths.map(p => ({
+      id: p.id,
+      x1: 0, y1: 0, x2: this.calculated.flatWidth, y2: this.calculated.flatHeight,
+      d: p.d,
+      type: p.type,
+      lengthMm: p.lengthMm
+    }));
+
+    this.calculated.totalBladeLengthMm = Math.round(totalCutLen || this.calculated.flatWidth * 2 + this.calculated.flatHeight * 2);
+    this.calculated.totalCreaseLengthMm = Math.round(totalCreaseLen || this.calculated.flatWidth);
+    this.calculated.areaCm2 = Number(((this.calculated.flatWidth * this.calculated.flatHeight) / 100).toFixed(1));
+  },
+
+  transformSvgPath(dStr, sx, sy, tx = 0, ty = 0) {
+    if (!dStr) return '';
+    return dStr.replace(/([a-df-z])|(-?[\d.]+(?:e-?\d+)?)/gi, (token, cmd, num) => {
+      if (cmd) return cmd;
+      const val = parseFloat(num);
+      if (isNaN(val)) return num;
+      return (val * sx + tx).toFixed(2);
+    });
+  },
+
+  /* ============================================================
+     2. THEME & LAYER VISIBILITY CONTROLS
+     ============================================================ */
+  toggleCanvasTheme() {
+    this.canvasTheme = this.canvasTheme === 'bright' ? 'dark' : 'bright';
+    const icon = document.getElementById('die-theme-icon');
+    const btn = document.getElementById('btn-die-theme');
+    if (btn) {
+      if (this.canvasTheme === 'bright') {
+        btn.innerHTML = '<i class="ph ph-moon" id="die-theme-icon"></i> تم تیره';
+      } else {
+        btn.innerHTML = '<i class="ph ph-sun" id="die-theme-icon"></i> تم روشن';
+      }
+    }
+    this.renderCanvas();
+    if (window.SoundEngine) window.SoundEngine.playClick();
+  },
+
+  toggleLayer(layerKey) {
+    if (this.layers[layerKey] !== undefined) {
+      this.layers[layerKey] = !this.layers[layerKey];
+      this.renderCanvas();
+      if (window.SoundEngine) window.SoundEngine.playClick();
+    }
+  },
+
+  /* ============================================================
+     3. FULL REAL-TIME AUTO-SYNCHRONIZATION
+     ============================================================ */
+  syncToStudioAutomatically() {
+    if (!window.LemonPack) return;
+    const cad = window.LemonPack.cad;
+    const p = this.params;
+
+    cad.length = p.length;
+    cad.width = p.width;
+    cad.height = p.height;
+    cad.glueFlap = p.glueFlap;
+    cad.tuckFlap = p.topTuck;
+    cad.dustFlap = p.dustFlap;
+    cad.flatL = this.calculated.flatWidth;
+    cad.flatW = this.calculated.flatHeight;
+
+    const pathsToSend = this.isCustomImport && this.customPaths.length > 0 ? this.customPaths : this.segments.map(s => ({
+      id: s.id,
+      d: s.d,
+      originalStroke: s.type === 'crease' ? '#2563EB' : (s.type === 'glue' ? '#10B981' : '#DC2626'),
+      strokeDash: s.type === 'crease' ? '4,3' : '',
+      type: s.type,
+      visible: true
+    }));
+
+    cad.customDie = {
+      active: true,
+      fileName: this.fileName,
+      widthMm: cad.flatL,
+      heightMm: cad.flatW,
+      paths: pathsToSend,
+      bounds: { minX: 0, minY: 0, width: cad.flatL, height: cad.flatW }
+    };
+
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    setVal('inp-length', p.length);
+    setVal('inp-width', p.width);
+    setVal('inp-height', p.height);
+    setVal('inp-glue-flap', p.glueFlap);
+    setVal('inp-tuck-flap', p.topTuck);
+    setVal('inp-dust-flap', p.dustFlap);
+    setVal('inp-flat-l', cad.flatL);
+    setVal('inp-flat-w', cad.flatW);
+
+    this.updateParamInputs();
+
+    if (window.CadEngine && typeof window.CadEngine.recalculateFlatDimensions === 'function') {
+      window.CadEngine.recalculateFlatDimensions();
+    }
+    if (window.App && typeof window.App.recalculate === 'function') {
+      window.App.recalculate();
+    }
+  },
+
+  updateParamInputs() {
+    const p = this.params;
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+    setVal('die-param-l', p.length);
+    setVal('die-param-w', p.width);
+    setVal('die-param-h', p.height);
+    setVal('die-flat-w', this.calculated.flatWidth);
+    setVal('die-flat-h', this.calculated.flatHeight);
+  },
+
+  /* ============================================================
+     4. GEOMETRY SYNTHESIS (Default Standard Box CAD Model)
      ============================================================ */
   synthesizeModelFromParams() {
     return this.synthesizeModel();
@@ -79,6 +397,7 @@ window.ParametricDieEngine = {
 
     this.calculated.flatWidth = Math.round(x5);
     this.calculated.flatHeight = Math.round(y5);
+    this.baseBounds = { minX: 0, minY: 0, width: x5, height: y5, scaleToMm: 1.0 };
 
     const segs = [];
     let nextId = 1;
@@ -88,7 +407,7 @@ window.ParametricDieEngine = {
       const len = Math.hypot(x2n - x1n, y2n - y1n);
       segs.push({
         id: `seg_${nextId++}`,
-        type: type, // 'cut' | 'crease' | 'glue'
+        type: type,
         x1: x1n, y1: y1n, x2: x2n, y2: y2n,
         d: `M ${x1n.toFixed(2)} ${y1n.toFixed(2)} L ${x2n.toFixed(2)} ${y2n.toFixed(2)}`,
         lengthMm: Number(len.toFixed(1)),
@@ -97,11 +416,9 @@ window.ParametricDieEngine = {
       });
     };
 
-    // Main horizontal creases (Body score lines)
+    // Crease lines (Body score lines)
     add('crease', x1, y2, x5, y2, 'H', 'خط‌تا افقی بالای بدنه');
     add('crease', x1, y3, x5, y3, 'H', 'خط‌تا افقی پایین بدنه');
-
-    // Main vertical creases (Body panel division lines)
     add('crease', x1, y2, x1, y3, 'G', 'خط‌تا عمودی لب‌چسب');
     add('crease', x2, y2, x2, y3, 'W', 'خط‌تا عمودی پهلو چپ / جلو');
     add('crease', x3, y2, x3, y3, 'L', 'خط‌تا عمودی جلو / پهلو راست');
@@ -111,15 +428,12 @@ window.ParametricDieEngine = {
     add('cut', x0, y2 + 4, x0, y3 - 4, 'G', 'لبه خارجی لب‌چسب');
     add('cut', x0, y2 + 4, x1, y2, 'G', 'پخ بالای لب‌چسب');
     add('cut', x0, y3 - 4, x1, y3, 'G', 'پخ پایین لب‌چسب');
-
-    // Body right outer edge
     add('cut', x5, y2, x5, y3, 'L', 'لبه انتهایی بدنه پشت');
 
     // Top Dust Flaps
     add('cut', x1, y2 - D, x2, y2 - D, 'W', 'لبه بالایی گوشواره ۱');
     add('cut', x1, y2, x1, y2 - D, 'W', 'برش کناری گوشواره ۱');
     add('cut', x2, y2, x2, y2 - D, 'W', 'برش کناری گوشواره ۱');
-
     add('cut', x3, y2 - D, x4, y2 - D, 'W', 'لبه بالایی گوشواره ۲');
     add('cut', x3, y2, x3, y2 - D, 'W', 'برش کناری گوشواره ۲');
     add('cut', x4, y2, x4, y2 - D, 'W', 'برش کناری گوشواره ۲');
@@ -136,7 +450,6 @@ window.ParametricDieEngine = {
     add('cut', x1, y3 + D, x2, y3 + D, 'W', 'لبه پایینی گوشواره پایین ۱');
     add('cut', x1, y3, x1, y3 + D, 'W', 'برش کناری گوشواره پایین ۱');
     add('cut', x2, y3, x2, y3 + D, 'W', 'برش کناری گوشواره پایین ۱');
-
     add('cut', x3, y3 + D, x4, y3 + D, 'W', 'لبه پایینی گوشواره پایین ۲');
     add('cut', x3, y3, x3, y3 + D, 'W', 'برش کناری گوشواره پایین ۲');
     add('cut', x4, y3, x4, y3 + D, 'W', 'برش کناری گوشواره پایین ۲');
@@ -149,7 +462,6 @@ window.ParametricDieEngine = {
     add('cut', x4, y3, x4, y4, 'T', 'برش کناری درپوش پایین');
     add('cut', x5, y3, x5, y4, 'T', 'برش کناری درپوش پایین');
 
-    // Top/Bottom flat edges
     add('cut', x4, y2, x5, y2, 'L', 'لبه بالایی بدنه پشت');
     add('cut', x2, y3, x3, y3, 'L', 'لبه پایینی بدنه جلو');
 
@@ -160,15 +472,15 @@ window.ParametricDieEngine = {
   recalculateTotals() {
     let blade = 0;
     let crease = 0;
-    this.segments.forEach(s => {
-      if (s.type === 'crease') crease += s.lengthMm;
-      else blade += s.lengthMm;
+    const paths = this.isCustomImport && this.customPaths.length > 0 ? this.customPaths : this.segments;
+    paths.forEach(s => {
+      if (s.type === 'crease') crease += (s.lengthMm || 0);
+      else if (s.type === 'cut') blade += (s.lengthMm || 0);
     });
-    this.calculated.totalBladeLengthMm = Math.round(blade);
-    this.calculated.totalCreaseLengthMm = Math.round(crease);
+    this.calculated.totalBladeLengthMm = Math.round(blade || this.calculated.flatWidth * 2 + this.calculated.flatHeight * 2);
+    this.calculated.totalCreaseLengthMm = Math.round(crease || this.calculated.flatWidth);
     this.calculated.areaCm2 = Number(((this.calculated.flatWidth * this.calculated.flatHeight) / 100).toFixed(1));
 
-    // Update HUD metrics
     const pUtils = window.PersianUtils || { fmtNum: (v, d) => String(v) };
     const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     setVal('hud-box-dims', `${pUtils.fmtNum(this.params.length)} × ${pUtils.fmtNum(this.params.width)} × ${pUtils.fmtNum(this.params.height)} mm`);
@@ -179,11 +491,14 @@ window.ParametricDieEngine = {
   },
 
   /* ============================================================
-     2. SVG UPLOAD, FULL PARSER & CAD ANALYSIS
+     5. ZERO-DROP SVG PARSER & COLOR LAYERS ENGINE
      ============================================================ */
   handleFileSelect(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
+    this.fileName = file.name || 'قالب اختصاصی';
+    const label = document.getElementById('diecut-filename-label');
+    if (label) label.textContent = this.fileName;
     this.processFile(file);
     event.target.value = '';
   },
@@ -192,6 +507,9 @@ window.ParametricDieEngine = {
     event.preventDefault();
     const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
     if (!file) return;
+    this.fileName = file.name || 'قالب اختصاصی';
+    const label = document.getElementById('diecut-filename-label');
+    if (label) label.textContent = this.fileName;
     this.processFile(file);
   },
 
@@ -299,17 +617,33 @@ window.ParametricDieEngine = {
     return '';
   },
 
-  classifyType(stroke, dash, name) {
+  classifyTypeByColor(stroke, dash, name) {
     const s = (stroke || '').toLowerCase();
     const isDash = !!dash && dash !== 'none' && dash !== '0';
-    if (s.includes('yellow') || s.includes('ffff00') || s.includes('ffd700')) return 'guide';
-    if (isDash || s.includes('blue') || s.includes('cyan') || s.includes('2563eb') || s.includes('0000ff') || (name && (name.includes('crease') || name.includes('fold') || name.includes('ta')))) {
+
+    if (s.includes('yellow') || s.includes('ffff00') || s.includes('ffd700') || s.includes('ffea00') || s.includes('gold') || s.includes('orange') || s.includes('ea580c') || s.includes('rgb(255, 255, 0)')) {
+      return 'crease';
+    }
+    if (isDash || s.includes('blue') || s.includes('cyan') || s.includes('00ffff') || s.includes('06b6d4') || s.includes('0000ff') || s.includes('2563eb') || s.includes('1d4ed8') || (name && (name.includes('crease') || name.includes('fold') || name.includes('ta')))) {
       return 'crease';
     }
     if (s.includes('green') || s.includes('059669') || s.includes('10b981') || (name && (name.includes('glue') || name.includes('chasb')))) {
       return 'glue';
     }
     return 'cut';
+  },
+
+  getColorNamePersian(colorHex) {
+    const s = (colorHex || '').toLowerCase();
+    if (s.includes('dc2626') || s.includes('red') || s.includes('ef4444') || s.includes('ff0000')) return 'قرمز (تیغ برش)';
+    if (s.includes('ffff00') || s.includes('ffd700') || s.includes('yellow') || s.includes('gold')) return 'زرد / طلایی (خط‌تا)';
+    if (s.includes('ea580c') || s.includes('orange')) return 'نارنجی (خط‌تا)';
+    if (s.includes('2563eb') || s.includes('blue') || s.includes('0000ff')) return 'آبی (خط‌تا)';
+    if (s.includes('00ffff') || s.includes('cyan')) return 'فیروزه‌ای / سایان (خط‌تا)';
+    if (s.includes('059669') || s.includes('10b981') || s.includes('green')) return 'سبز (لب‌چسب)';
+    if (s.includes('ff00ff') || s.includes('magenta')) return 'ماژنتا / سرخابی';
+    if (s.includes('000000') || s.includes('black')) return 'مشکی';
+    return colorHex;
   },
 
   parseSvgString(svgText) {
@@ -324,7 +658,6 @@ window.ParametricDieEngine = {
 
     const cssMap = this.extractCssRules(doc);
 
-    // Determine scale to millimeters
     let scaleToMm = 1.0;
     const widthAttr = svgEl.getAttribute('width') || '';
     const heightAttr = svgEl.getAttribute('height') || '';
@@ -358,10 +691,10 @@ window.ParametricDieEngine = {
       scaleToMm = 25.4 / 72;
     }
 
-    // Extract all vector paths & geometry
     const elements = doc.querySelectorAll('path, line, rect, polyline, polygon, circle, ellipse');
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     const rawPaths = [];
+    const colorMap = {};
     let pIdx = 1;
 
     elements.forEach(el => {
@@ -396,6 +729,12 @@ window.ParametricDieEngine = {
         const cy = parseFloat(el.getAttribute('cy') || 0);
         const r = parseFloat(el.getAttribute('r') || 0);
         d = `M ${cx - r} ${cy} A ${r} ${r} 0 1 0 ${cx + r} ${cy} A ${r} ${r} 0 1 0 ${cx - r} ${cy} Z`;
+      } else if (tag === 'ellipse') {
+        const cx = parseFloat(el.getAttribute('cx') || 0);
+        const cy = parseFloat(el.getAttribute('cy') || 0);
+        const rx = parseFloat(el.getAttribute('rx') || 0);
+        const ry = parseFloat(el.getAttribute('ry') || 0);
+        d = `M ${cx - rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx + rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx - rx} ${cy} Z`;
       }
 
       if (!d.trim()) return;
@@ -413,15 +752,37 @@ window.ParametricDieEngine = {
       const stroke = this.resolveStroke(el, cssMap);
       const dash = this.resolveDash(el, cssMap);
       const name = el.getAttribute('id') || (el.parentElement ? el.parentElement.getAttribute('id') : '');
-      const type = this.classifyType(stroke, dash, name);
+      const type = this.classifyTypeByColor(stroke, dash, name);
+
+      let approxLen = 0;
+      if (nums.length >= 4) {
+        for (let i = 0; i < nums.length - 3; i += 2) {
+          approxLen += Math.hypot(nums[i+2] - nums[i], nums[i+3] - nums[i+1]);
+        }
+      } else {
+        approxLen = Math.max(5, (maxX - minX + (maxY - minY)) * 0.5);
+      }
 
       rawPaths.push({
         id: `custom_${pIdx++}`,
         dRaw: d,
+        rawLen: approxLen,
         stroke,
         dash,
         type
       });
+
+      if (!colorMap[stroke]) {
+        colorMap[stroke] = {
+          color: stroke,
+          name: this.getColorNamePersian(stroke),
+          count: 0,
+          rawLenTotal: 0,
+          type: type
+        };
+      }
+      colorMap[stroke].count++;
+      colorMap[stroke].rawLenTotal += approxLen;
     });
 
     if (minX === Infinity || rawPaths.length === 0) {
@@ -431,122 +792,34 @@ window.ParametricDieEngine = {
 
     const rawW = maxX - minX;
     const rawH = maxY - minY;
-
-    const normalizedPaths = [];
-    let totalCutLen = 0;
-    let totalCreaseLen = 0;
-    const segs = [];
-    let sIdx = 1;
-
-    rawPaths.forEach(rp => {
-      let approxLen = 0;
-      let prevPt = null;
-      const cmdRegex = /([a-df-z])([^a-df-z]*)/gi;
-      let m;
-      let newD = '';
-
-      while ((m = cmdRegex.exec(rp.dRaw)) !== null) {
-        const cmd = m[1];
-        const coords = (m[2].match(/-?[\d.]+(?:e-?\d+)?/gi) || []).map(Number);
-        newD += cmd + ' ';
-
-        for (let i = 0; i < coords.length; i += 2) {
-          if (i + 1 < coords.length) {
-            let px = coords[i];
-            let py = coords[i+1];
-            if (cmd === cmd.toUpperCase()) {
-              px = (px - minX) * scaleToMm;
-              py = (py - minY) * scaleToMm;
-            } else {
-              px = px * scaleToMm;
-              py = py * scaleToMm;
-            }
-            newD += `${px.toFixed(2)},${py.toFixed(2)} `;
-
-            if (prevPt) {
-              const dDist = Math.hypot(px - prevPt.x, py - prevPt.y);
-              approxLen += dDist;
-              segs.push({
-                id: `seg_${sIdx++}`,
-                x1: prevPt.x,
-                y1: prevPt.y,
-                x2: px,
-                y2: py,
-                d: `M ${prevPt.x.toFixed(2)} ${prevPt.y.toFixed(2)} L ${px.toFixed(2)} ${py.toFixed(2)}`,
-                type: rp.type,
-                lengthMm: Number(dDist.toFixed(1)),
-                isHoriz: Math.abs(py - prevPt.y) < 1.0,
-                isVert: Math.abs(px - prevPt.x) < 1.0
-              });
-            }
-            prevPt = { x: px, y: py };
-          } else {
-            newD += `${(coords[i] * scaleToMm).toFixed(2)} `;
-          }
-        }
-      }
-
-      if (rp.type === 'crease') totalCreaseLen += approxLen;
-      else totalCutLen += approxLen;
-
-      normalizedPaths.push({
-        id: rp.id,
-        d: newD.trim() || rp.dRaw,
-        type: rp.type,
-        stroke: rp.type === 'crease' ? '#2563EB' : (rp.type === 'glue' ? '#10B981' : '#DC2626'),
-        strokeDash: rp.type === 'crease' ? '4,3' : '',
-        lengthMm: Number(approxLen.toFixed(1)),
-        visible: true
-      });
-    });
-
     const flatW = Math.max(10, Math.round(rawW * scaleToMm));
     const flatH = Math.max(10, Math.round(rawH * scaleToMm));
 
+    this.baseBounds = { minX, minY, width: flatW, height: flatH, scaleToMm };
     this.calculated.flatWidth = flatW;
     this.calculated.flatHeight = flatH;
-    this.calculated.totalBladeLengthMm = Math.round(totalCutLen || flatW * 2 + flatH * 2);
-    this.calculated.totalCreaseLengthMm = Math.round(totalCreaseLen || flatW);
-    this.calculated.areaCm2 = Number(((flatW * flatH) / 100).toFixed(1));
+    this.rawSvgPaths = rawPaths;
 
-    this.customPaths = normalizedPaths;
-    this.segments = segs.length > 0 ? segs : normalizedPaths.map(p => ({
-      id: p.id,
-      x1: 0, y1: 0, x2: flatW, y2: flatH,
-      d: p.d,
-      type: p.type,
-      lengthMm: p.lengthMm
+    this.detectedColors = Object.values(colorMap).map(c => ({
+      color: c.color,
+      name: c.name,
+      count: c.count,
+      lengthMm: Number((c.rawLenTotal * scaleToMm).toFixed(1)),
+      type: c.type
     }));
 
-    const vertCreases = segs.filter(s => s.type === 'crease' && s.isVert && s.lengthMm > 15);
-    const horizCreases = segs.filter(s => s.type === 'crease' && s.isHoriz && s.lengthMm > 15);
+    this.rebuildPathsFromRaw();
 
-    if (horizCreases.length >= 2) {
-      const ys = horizCreases.map(s => s.y1).sort((a,b)=>a-b);
-      this.params.height = Math.max(10, Math.round(ys[ys.length-1] - ys[0]));
-      this.params.topTuck = Math.max(10, Math.round(ys[0]));
-    } else {
-      this.params.height = Math.round(flatH * 0.55);
-      this.params.topTuck = 25;
-    }
+    this.params.length = Math.round(flatW * 0.3);
+    this.params.width = Math.round(flatW * 0.18);
+    this.params.height = Math.round(flatH * 0.55);
+    this.params.glueFlap = 15;
+    this.params.topTuck = 25;
 
-    if (vertCreases.length >= 4) {
-      const xs = vertCreases.map(s => s.x1).sort((a,b)=>a-b);
-      const w1 = Math.round(xs[1] - xs[0]);
-      const l1 = Math.round(xs[2] - xs[1]);
-      this.params.glueFlap = Math.max(8, Math.round(xs[0]));
-      this.params.length = Math.max(20, Math.max(w1, l1));
-      this.params.width = Math.max(15, Math.min(w1, l1));
-    } else {
-      this.params.glueFlap = 15;
-      this.params.length = Math.round((flatW - 15) * 0.32);
-      this.params.width = Math.round(((flatW - 15) - 2 * this.params.length) / 2);
-    }
-
-    document.querySelectorAll('[data-die-template]').forEach(btn => btn.classList.remove('active'));
-
+    this.renderColorLayersBar();
     this.resetView();
     this.render();
+    this.syncToStudioAutomatically();
 
     const pUtils = window.PersianUtils || { fmtNum: v => String(v) };
     if (window.SoundEngine) window.SoundEngine.playClick();
@@ -555,76 +828,88 @@ window.ParametricDieEngine = {
     }
   },
 
-  loadTemplate(type) {
-    this.isCustomImport = false;
-    this.customPaths = [];
-    if (type === 'tuck_end') {
-      this.params = { length: 120, width: 80, height: 150, glueFlap: 15, topTuck: 25, dustFlap: 15 };
-    } else if (type === 'mailer_0427') {
-      this.params = { length: 200, width: 150, height: 60, glueFlap: 0, topTuck: 22, dustFlap: 25 };
-    } else if (type === 'lock_bottom') {
-      this.params = { length: 140, width: 90, height: 180, glueFlap: 16, topTuck: 25, dustFlap: 16 };
-    }
-    this.synthesizeModel();
-    this.resetView();
-    this.render();
+  /* ============================================================
+     6. COLOR LAYERS BAR RENDERING & INTERACTIVE RE-MAPPING
+     ============================================================ */
+  renderColorLayersBar() {
+    const bar = document.getElementById('diecut-color-layers-bar');
+    if (!bar) return;
 
-    document.querySelectorAll('[data-die-template]').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.dieTemplate === type);
+    if (!this.detectedColors || this.detectedColors.length === 0) {
+      bar.style.display = 'none';
+      return;
+    }
+
+    bar.style.display = 'block';
+    const pUtils = window.PersianUtils || { fmtNum: (v, d) => String(v) };
+
+    let html = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+        <div style="font-weight:800; font-size:0.84rem; display:flex; align-items:center; gap:6px; color:var(--graphite-text);">
+          <i class="ph ph-palette" style="color:var(--brand-primary); font-size:1.1rem;"></i>
+          <span>لایه‌ها و رنگ‌های شناسایی‌شده در فایل SVG (تغییر نقش تیغ، خط‌تا و چسب):</span>
+        </div>
+        <span style="font-size:0.72rem; color:var(--text-muted);">
+          ${pUtils.fmtNum(this.detectedColors.length)} رنگ مجزا
+        </span>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:10px;">
+    `;
+
+    this.detectedColors.forEach(c => {
+      const isCut = c.type === 'cut';
+      const isCrease = c.type === 'crease';
+      const isGlue = c.type === 'glue';
+      const isIgnore = c.type === 'ignore';
+
+      html += `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:var(--surface-base); border:1px solid var(--border-color); border-radius:8px; gap:8px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="width:16px; height:16px; border-radius:50%; background:${c.color}; display:inline-block; border:1px solid rgba(0,0,0,0.3); flex-shrink:0;"></span>
+            <div style="display:flex; flex-direction:column;">
+              <span style="font-weight:700; font-size:0.78rem; color:var(--graphite-text);">${c.name}</span>
+              <span style="font-size:0.68rem; color:var(--text-muted);">${pUtils.fmtNum(c.count)} قطعه | ${pUtils.fmtNum(Math.round(c.lengthMm))} mm</span>
+            </div>
+          </div>
+          <select class="input-box" style="width:auto; padding:3px 8px; font-size:0.75rem; font-weight:700; height:28px; border-radius:6px;" onchange="ParametricDieEngine.setColorType('${c.color}', this.value)">
+            <option value="cut" ${isCut ? 'selected' : ''}>✂️ تیغ برش (Cut)</option>
+            <option value="crease" ${isCrease ? 'selected' : ''}>〰️ خط‌تا (Crease)</option>
+            <option value="glue" ${isGlue ? 'selected' : ''}>🧴 لبه چسب (Glue)</option>
+            <option value="ignore" ${isIgnore ? 'selected' : ''}>🚫 نادیده گرفتن (Ignore)</option>
+          </select>
+        </div>
+      `;
     });
 
-    if (window.SoundEngine) window.SoundEngine.playClick();
-    if (window.toast) window.toast('الگوی استاندارد بارگذاری شد ✓');
+    html += `</div>`;
+    bar.innerHTML = html;
   },
 
+  setColorType(colorHex, newType) {
+    const cObj = this.detectedColors.find(c => c.color === colorHex);
+    if (cObj) cObj.type = newType;
+
+    this.rawSvgPaths.forEach(p => {
+      if (p.stroke === colorHex) p.type = newType;
+    });
+    this.customPaths.forEach(p => {
+      if (p.stroke === colorHex) p.type = newType;
+    });
+
+    this.rebuildPathsFromRaw();
+    this.renderColorLayersBar();
+    this.render();
+    this.syncToStudioAutomatically();
+    if (window.SoundEngine) window.SoundEngine.playClick();
+  },
+
+  /* ============================================================
+     7. EXPORT CLEAN SVG
+     ============================================================ */
   applyToStudio() {
-    if (!window.LemonPack) return;
-    const cad = window.LemonPack.cad;
-    const p = this.params;
-
-    cad.length = p.length;
-    cad.width = p.width;
-    cad.height = p.height;
-    cad.glueFlap = p.glueFlap;
-    cad.tuckFlap = p.topTuck;
-    cad.flatL = this.calculated.flatWidth;
-    cad.flatW = this.calculated.flatHeight;
-
-    const pathsToSend = this.isCustomImport && this.customPaths.length > 0 ? this.customPaths : this.segments.map(s => ({
-      id: s.id,
-      d: s.d,
-      originalStroke: s.type === 'crease' ? '#2563EB' : '#DC2626',
-      strokeDash: s.type === 'crease' ? '4,3' : '',
-      type: s.type,
-      visible: true
-    }));
-
-    cad.customDie = {
-      active: true,
-      widthMm: cad.flatL,
-      heightMm: cad.flatW,
-      paths: pathsToSend,
-      bounds: { minX: 0, minY: 0, width: cad.flatL, height: cad.flatW }
-    };
-
-    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-    setVal('inp-length', p.length);
-    setVal('inp-width', p.width);
-    setVal('inp-height', p.height);
-    setVal('inp-glue-flap', p.glueFlap);
-    setVal('inp-tuck-flap', p.topTuck);
-    setVal('inp-flat-l', cad.flatL);
-    setVal('inp-flat-w', cad.flatW);
-
-    if (window.App && window.App.recalculate) {
-      window.App.recalculate();
-    }
-    if (window.go) {
-      window.go('studio');
-    }
-    if (window.toast) {
-      window.toast('قالب به استودیو و شیت‌بندی ۲بعدی اعمال شد ✓');
-    }
+    this.syncToStudioAutomatically();
+    if (window.go) window.go('studio');
+    if (window.toast) window.toast('قالب به استودیو و شیت‌بندی ۲بعدی اعمال شد ✓');
   },
 
   exportCleanSvg() {
@@ -633,29 +918,26 @@ window.ParametricDieEngine = {
     let svg = `<?xml version="1.0" encoding="UTF-8"?>\n`;
     svg += `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${flatW} ${flatH}" width="${flatW}mm" height="${flatH}mm">\n`;
 
-    if (this.isCustomImport && this.customPaths.length > 0) {
-      svg += `  <g id="crease-matrix" stroke="#2563EB" stroke-width="0.6" stroke-dasharray="3,2" fill="none">\n`;
-      this.customPaths.filter(p => p.type === 'crease').forEach(p => {
-        svg += `    <path d="${p.d}" />\n`;
-      });
-      svg += `  </g>\n`;
-      svg += `  <g id="cut-blades" stroke="#DC2626" stroke-width="0.8" fill="none">\n`;
-      this.customPaths.filter(p => p.type !== 'crease').forEach(p => {
-        svg += `    <path d="${p.d}" />\n`;
-      });
-      svg += `  </g>\n`;
-    } else {
-      svg += `  <g id="crease-matrix" stroke="#2563EB" stroke-width="0.6" stroke-dasharray="3,2" fill="none">\n`;
-      this.segments.filter(s => s.type === 'crease').forEach(s => {
-        svg += `    <path d="${s.d}" />\n`;
-      });
-      svg += `  </g>\n`;
-      svg += `  <g id="cut-blades" stroke="#DC2626" stroke-width="0.8" fill="none">\n`;
-      this.segments.filter(s => s.type !== 'crease').forEach(s => {
-        svg += `    <path d="${s.d}" />\n`;
-      });
-      svg += `  </g>\n`;
-    }
+    const paths = this.isCustomImport && this.customPaths.length > 0 ? this.customPaths : this.segments;
+    
+    svg += `  <g id="crease-matrix" stroke="#2563EB" stroke-width="0.6" stroke-dasharray="3,2" fill="none">\n`;
+    paths.filter(p => p.type === 'crease').forEach(p => {
+      svg += `    <path d="${p.d}" />\n`;
+    });
+    svg += `  </g>\n`;
+
+    svg += `  <g id="glue-flaps" stroke="#10B981" stroke-width="0.7" fill="none">\n`;
+    paths.filter(p => p.type === 'glue').forEach(p => {
+      svg += `    <path d="${p.d}" />\n`;
+    });
+    svg += `  </g>\n`;
+
+    svg += `  <g id="cut-blades" stroke="#DC2626" stroke-width="0.8" fill="none">\n`;
+    paths.filter(p => p.type === 'cut').forEach(p => {
+      svg += `    <path d="${p.d}" />\n`;
+    });
+    svg += `  </g>\n`;
+
     svg += `</svg>`;
 
     const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
@@ -671,18 +953,17 @@ window.ParametricDieEngine = {
   },
 
   /* ============================================================
-     3. INTERACTIVE CAD CANVAS VIEWPORT
+     8. INTERACTIVE HIGH-CONTRAST CAD CANVAS
      ============================================================ */
   setupCanvasEvents() {
     const canvas = document.getElementById('diecut-preview-canvas');
     if (!canvas) return;
 
-    // Auto-fit canvas to container on resize
     const resizeCanvas = () => {
       const container = canvas.parentElement;
       if (container) {
         canvas.width = container.clientWidth || 900;
-        canvas.height = container.clientHeight || 560;
+        canvas.height = container.clientHeight || 520;
         this.renderCanvas();
       }
     };
@@ -713,29 +994,11 @@ window.ParametricDieEngine = {
       }
 
       const pt = this.canvasPxToMm(clientX, clientY);
-      const p = this.params;
       const pUtils = window.PersianUtils || { fmtNum: v => String(v) };
 
-      // Identify panel under cursor
-      const x1 = p.glueFlap;
-      const x2 = p.glueFlap + p.width;
-      const x3 = p.glueFlap + p.width + p.length;
-      const x4 = p.glueFlap + p.width + p.length + p.width;
-      const x5 = p.glueFlap + p.width + p.length + p.width + p.length;
-      const y2 = p.topTuck + p.width;
-      const y3 = p.topTuck + p.width + p.height;
-
       let hoverPanel = null;
-      if (pt.y >= y2 && pt.y <= y3) {
-        if (pt.x >= 0 && pt.x < x1) hoverPanel = `لبه چسب (G): ${pUtils.fmtNum(p.glueFlap)} mm`;
-        else if (pt.x >= x1 && pt.x < x2) hoverPanel = `پهلو چپ (W): ${pUtils.fmtNum(p.width)} × ${pUtils.fmtNum(p.height)} mm`;
-        else if (pt.x >= x2 && pt.x < x3) hoverPanel = `بدنه جلو (L): ${pUtils.fmtNum(p.length)} × ${pUtils.fmtNum(p.height)} mm`;
-        else if (pt.x >= x3 && pt.x < x4) hoverPanel = `پهلو راست (W): ${pUtils.fmtNum(p.width)} × ${pUtils.fmtNum(p.height)} mm`;
-        else if (pt.x >= x4 && pt.x <= x5) hoverPanel = `بدنه پشت (L): ${pUtils.fmtNum(p.length)} × ${pUtils.fmtNum(p.height)} mm`;
-      } else if (pt.y < y2 && pt.x >= x2 && pt.x <= x3) {
-        hoverPanel = `درب بالا (T): ارتفاع ${pUtils.fmtNum(p.topTuck)} mm`;
-      } else if (pt.y > y3 && pt.x >= x4 && pt.x <= x5) {
-        hoverPanel = `درب پایین (T): ارتفاع ${pUtils.fmtNum(p.topTuck)} mm`;
+      if (pt.x >= 0 && pt.x <= this.calculated.flatWidth && pt.y >= 0 && pt.y <= this.calculated.flatHeight) {
+        hoverPanel = `موقعیت: X=${pUtils.fmtNum(Math.round(pt.x))} mm, Y=${pUtils.fmtNum(Math.round(pt.y))} mm`;
       }
 
       const hoverTag = document.getElementById('canvas-hover-tag');
@@ -750,8 +1013,6 @@ window.ParametricDieEngine = {
         this.activePanelHover = null;
         if (hoverTag) hoverTag.style.display = 'none';
       }
-
-      this.renderCanvas();
     });
 
     canvas.addEventListener('mouseleave', () => {
@@ -759,7 +1020,6 @@ window.ParametricDieEngine = {
       this.activePanelHover = null;
       const hoverTag = document.getElementById('canvas-hover-tag');
       if (hoverTag) hoverTag.style.display = 'none';
-      this.renderCanvas();
     });
 
     canvas.addEventListener('wheel', (e) => {
@@ -806,8 +1066,9 @@ window.ParametricDieEngine = {
     const h = canvas.height;
     const pUtils = window.PersianUtils || { fmtNum: (v, d) => String(v), e2p: s => String(s) };
 
+    const isBright = this.canvasTheme === 'bright';
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#0B1120';
+    ctx.fillStyle = isBright ? '#F8FAFC' : '#0B1120';
     ctx.fillRect(0, 0, w, h);
 
     const flatW = this.calculated.flatWidth;
@@ -821,8 +1082,8 @@ window.ParametricDieEngine = {
     ctx.scale(scale, scale);
     ctx.translate(-flatW / 2, -flatH / 2);
 
-    // Subtle background engineering grid
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.035)';
+    // Subtle background grid
+    ctx.strokeStyle = isBright ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.035)';
     ctx.lineWidth = 0.5 / scale;
     for (let x = -40; x <= flatW + 40; x += 20) {
       ctx.beginPath(); ctx.moveTo(x, -40); ctx.lineTo(x, flatH + 40); ctx.stroke();
@@ -831,115 +1092,59 @@ window.ParametricDieEngine = {
       ctx.beginPath(); ctx.moveTo(-40, y); ctx.lineTo(flatW + 40, y); ctx.stroke();
     }
 
-    if (!this.isCustomImport) {
-      const p = this.params;
-      const x1 = p.glueFlap;
-      const x2 = p.glueFlap + p.width;
-      const x3 = p.glueFlap + p.width + p.length;
-      const x4 = p.glueFlap + p.width + p.length + p.width;
-      const x5 = p.glueFlap + p.width + p.length + p.width + p.length;
-      const y2 = p.topTuck + p.width;
-      const y3 = p.topTuck + p.width + p.height;
+    const pathsToDraw = this.isCustomImport && this.customPaths.length > 0 ? this.customPaths : this.segments;
+    
+    pathsToDraw.forEach(p => {
+      if (p.type === 'ignore') return;
+      if (p.type === 'cut' && !this.layers.cuts) return;
+      if (p.type === 'crease' && !this.layers.creases) return;
+      if (p.type === 'glue' && !this.layers.glue) return;
 
-      // Draw Panel Backgrounds & Persian Typography
-      const drawPanel = (px, py, pw, ph, label, dimText) => {
-        ctx.save();
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.025)';
-        ctx.fillRect(px + 1, py + 1, pw - 2, ph - 2);
+      ctx.save();
+      if (p.type === 'cut') {
+        ctx.strokeStyle = isBright ? '#DC2626' : '#EF4444';
+        ctx.lineWidth = 1.8 / scale;
+        ctx.setLineDash([]);
+      } else if (p.type === 'crease') {
+        ctx.strokeStyle = isBright ? '#2563EB' : '#3B82F6';
+        ctx.lineWidth = 1.4 / scale;
+        ctx.setLineDash([4 / scale, 3 / scale]);
+      } else if (p.type === 'glue') {
+        ctx.strokeStyle = isBright ? '#059669' : '#10B981';
+        ctx.lineWidth = 1.6 / scale;
+        ctx.setLineDash([]);
+      } else {
+        ctx.strokeStyle = '#D97706';
+        ctx.lineWidth = 1.2 / scale;
+        ctx.setLineDash([2 / scale, 2 / scale]);
+      }
 
-        ctx.font = `bold ${Math.max(10, Math.min(14, pw * 0.14))}px Peyda, sans-serif`;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(label, px + pw / 2, py + ph / 2 - 6);
-
-        ctx.font = `bold ${Math.max(9, Math.min(12, pw * 0.12))}px Peyda, sans-serif`;
-        ctx.fillStyle = '#D97706';
-        ctx.fillText(dimText, px + pw / 2, py + ph / 2 + 10);
-        ctx.restore();
-      };
-
-      drawPanel(0, y2, x1, p.height, 'لبچسب G', `${pUtils.fmtNum(p.glueFlap)} mm`);
-      drawPanel(x1, y2, p.width, p.height, 'پهلو چپ (W)', `${pUtils.fmtNum(p.width)} × ${pUtils.fmtNum(p.height)}`);
-      drawPanel(x2, y2, p.length, p.height, 'بدنه جلو (L)', `${pUtils.fmtNum(p.length)} × ${pUtils.fmtNum(p.height)}`);
-      drawPanel(x3, y2, p.width, p.height, 'پهلو راست (W)', `${pUtils.fmtNum(p.width)} × ${pUtils.fmtNum(p.height)}`);
-      drawPanel(x4, y2, p.length, p.height, 'بدنه پشت (L)', `${pUtils.fmtNum(p.length)} × ${pUtils.fmtNum(p.height)}`);
-      drawPanel(x2, 0, p.length, p.topTuck, 'درب بالا (T)', `${pUtils.fmtNum(p.topTuck)} mm`);
-      drawPanel(x4, y3 + p.width, p.length, p.topTuck, 'درب پایین (T)', `${pUtils.fmtNum(p.topTuck)} mm`);
-
-      // Draw Line Segments
-      this.segments.forEach(s => {
-        ctx.save();
-        if (s.type === 'cut') {
-          ctx.strokeStyle = '#EF4444';
-          ctx.lineWidth = 1.8 / scale;
-          ctx.setLineDash([]);
-        } else if (s.type === 'crease') {
-          ctx.strokeStyle = '#3B82F6';
-          ctx.lineWidth = 1.4 / scale;
-          ctx.setLineDash([4 / scale, 3 / scale]);
-        } else {
-          ctx.strokeStyle = '#10B981';
-          ctx.lineWidth = 1.6 / scale;
-          ctx.setLineDash([]);
-        }
-
-        ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
-        ctx.restore();
-      });
-
-      // Draw Crisp CAD Dimension Leader Lines (L, W, H, Total Flat)
-      this.drawDimension(ctx, x2, y3 + 12, x3, y3 + 12, `طول L: ${pUtils.fmtNum(p.length)} mm`, '#F59E0B', scale);
-      this.drawDimension(ctx, x1, y3 + 26, x2, y3 + 26, `عرض W: ${pUtils.fmtNum(p.width)} mm`, '#38BDF8', scale);
-      this.drawDimension(ctx, x5 + 14, y2, x5 + 14, y3, `ارتفاع H: ${pUtils.fmtNum(p.height)} mm`, '#34D399', scale);
-      this.drawDimension(ctx, 0, -14, x5, -14, `عرض شیت گسترده: ${pUtils.fmtNum(flatW)} mm`, '#A78BFA', scale);
-    } else {
-      // CUSTOM IMPORTED SVG DIE RENDERING
-      const pathsToDraw = this.customPaths.length > 0 ? this.customPaths : this.segments;
-      pathsToDraw.forEach(p => {
-        ctx.save();
-        if (p.type === 'cut') {
-          ctx.strokeStyle = '#EF4444';
-          ctx.lineWidth = 1.8 / scale;
-          ctx.setLineDash([]);
-        } else if (p.type === 'crease') {
-          ctx.strokeStyle = '#3B82F6';
-          ctx.lineWidth = 1.4 / scale;
-          ctx.setLineDash([4 / scale, 3 / scale]);
-        } else if (p.type === 'glue') {
-          ctx.strokeStyle = '#10B981';
-          ctx.lineWidth = 1.6 / scale;
-          ctx.setLineDash([]);
-        } else {
-          ctx.strokeStyle = '#F59E0B';
-          ctx.lineWidth = 1.2 / scale;
-          ctx.setLineDash([2 / scale, 2 / scale]);
-        }
-
-        if (p.d) {
-          try {
-            const p2d = new Path2D(p.d);
-            ctx.stroke(p2d);
-          } catch (e) {
-            if (p.x1 !== undefined && p.x2 !== undefined) {
-              ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke();
-            }
+      if (p.d) {
+        try {
+          const p2d = new Path2D(p.d);
+          ctx.stroke(p2d);
+        } catch (e) {
+          if (p.x1 !== undefined && p.x2 !== undefined) {
+            ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke();
           }
-        } else if (p.x1 !== undefined && p.x2 !== undefined) {
-          ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke();
         }
-        ctx.restore();
-      });
+      } else if (p.x1 !== undefined && p.x2 !== undefined) {
+        ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke();
+      }
+      ctx.restore();
+    });
 
-      // Outer Bounding Box Dimensions
-      this.drawDimension(ctx, 0, flatH + 14, flatW, flatH + 14, `عرض گسترده قالب: ${pUtils.fmtNum(flatW)} mm`, '#A78BFA', scale);
-      this.drawDimension(ctx, flatW + 14, 0, flatW + 14, flatH, `طول گسترده قالب: ${pUtils.fmtNum(flatH)} mm`, '#38BDF8', scale);
+    if (this.layers.dimensions) {
+      const dimColorW = isBright ? '#7C3AED' : '#A78BFA';
+      const dimColorH = isBright ? '#0284C7' : '#38BDF8';
+      this.drawDimension(ctx, 0, flatH + 14, flatW, flatH + 14, `عرض گسترده: ${pUtils.fmtNum(flatW)} mm`, dimColorW, scale, isBright);
+      this.drawDimension(ctx, flatW + 14, 0, flatW + 14, flatH, `طول گسترده: ${pUtils.fmtNum(flatH)} mm`, dimColorH, scale, isBright);
     }
 
     ctx.restore();
   },
 
-  drawDimension(ctx, x1, y1, x2, y2, text, color, scale) {
+  drawDimension(ctx, x1, y1, x2, y2, text, color, scale, isBright = false) {
     ctx.save();
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
@@ -952,7 +1157,7 @@ window.ParametricDieEngine = {
       ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 + sz, y1 - sz * 0.7); ctx.lineTo(x1 + sz, y1 + sz * 0.7); ctx.fill();
       ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - sz, y2 - sz * 0.7); ctx.lineTo(x2 - sz, y2 + sz * 0.7); ctx.fill();
     } else {
-      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - sz * 0.7, y1 + sz); ctx.lineTo(x1 + sz * 0.7, y1 + sz); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - sz * 0.7, y1 + sz); ctx.lineTo(x1 + sz, y1 + sz * 0.7); ctx.fill();
       ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - sz * 0.7, y2 - sz); ctx.lineTo(x2 + sz * 0.7, y2 - sz); ctx.fill();
     }
 

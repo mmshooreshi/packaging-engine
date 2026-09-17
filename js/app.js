@@ -143,6 +143,8 @@ window.App = {
       window.NestingEngine.optimize();
       if (window.LemonPack.activeCanvasTab === 'nesting') {
         window.NestingEngine.renderCanvas();
+      } else if (window.LemonPack.activeCanvasTab === '3d') {
+        if (window.Cad3DEngine) window.Cad3DEngine.render();
       } else if (window.CadEngine) {
         window.CadEngine.renderBlueprint();
       }
@@ -160,16 +162,32 @@ window.App = {
     document.querySelectorAll('.canvas-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
     const nestCanvas = document.getElementById('nesting-canvas');
     const blueCanvas = document.getElementById('blueprint-canvas');
+    const canvas3d = document.getElementById('canvas-3d');
+    const controls3d = document.getElementById('controls-3d');
     const legend = document.getElementById('canvas-legend-wrap');
 
     if (tab === 'nesting') {
       if (nestCanvas) nestCanvas.style.display = 'block';
       if (blueCanvas) blueCanvas.style.display = 'none';
+      if (canvas3d) canvas3d.style.display = 'none';
+      if (controls3d) controls3d.style.display = 'none';
       if (legend) legend.style.display = 'flex';
       if (window.NestingEngine) window.NestingEngine.renderCanvas();
+    } else if (tab === '3d') {
+      if (nestCanvas) nestCanvas.style.display = 'none';
+      if (blueCanvas) blueCanvas.style.display = 'none';
+      if (canvas3d) canvas3d.style.display = 'block';
+      if (controls3d) controls3d.style.display = 'block';
+      if (legend) legend.style.display = 'none';
+      if (window.Cad3DEngine) {
+        window.Cad3DEngine.init();
+        window.Cad3DEngine.render();
+      }
     } else {
       if (nestCanvas) nestCanvas.style.display = 'none';
       if (blueCanvas) blueCanvas.style.display = 'block';
+      if (canvas3d) canvas3d.style.display = 'none';
+      if (controls3d) controls3d.style.display = 'none';
       if (legend) legend.style.display = 'none';
       if (window.CadEngine) window.CadEngine.renderBlueprint();
     }
@@ -326,6 +344,7 @@ window.App = {
         document.querySelectorAll('[data-gsm]').forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
         window.LemonPack.materials.gsm = Number(chip.dataset.gsm);
+        if (window.CadEngine) window.CadEngine.recalculateFlatDimensions();
         this.recalculate();
         if (window.SoundEngine) window.SoundEngine.playClick();
       });

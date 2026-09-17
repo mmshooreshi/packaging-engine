@@ -1648,4 +1648,84 @@ input:checked + .slider:before {
   border-top: 1px solid var(--border-color);
 }
 
+/* Stepper Controller Bar */
+.stepper-wrap {
+  display: inline-flex;
+  align-items: center;
+  background: var(--surface-base);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
+  gap: 3px;
+}
 
+.stepper-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--brand-primary);
+  padding: 0 4px;
+}
+
+.btn-stepper {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: var(--surface-card);
+  color: var(--graphite-text);
+  font-weight: 800;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.btn-stepper:hover {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #FFFFFF;
+}
+
+.stepper-input {
+  width: 44px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--graphite-text);
+  text-align: center;
+  outline: none;
+  direction: ltr;
+}
+
+/* ============================================================
+   ADMIN COCKPIT RECOMMENDATION CARDS & SMART ALERTS
+   ============================================================ */
+.cockpit-rec-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.cockpit-rec-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.smart-alert-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  animation: fadeInDown 0.25s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -210,19 +210,11 @@ window.DieCutImporter = {
     const l = (layerName || '').toLowerCase();
     const isDash = !!strokeDash && strokeDash !== 'none';
 
-    // Yellow / Gold / Orange -> Guide / Bleed / Spot / Custom
-    if (s.includes('yellow') || s.includes('ffff00') || s.includes('ffd700') || s.includes('ffea00') || s.includes('rgb(255, 255, 0)')) {
-      return 'guide';
-    }
-    if (s.includes('magenta') || s.includes('ff00ff') || s.includes('ec4899')) {
-      return 'cut';
-    }
-    if (s.includes('cyan') || s.includes('00ffff') || s.includes('06b6d4')) {
+    // Crease: Yellow / Gold / Orange / Blue / Cyan / Dashed / fold layer name
+    if (s.includes('yellow') || s.includes('ffff00') || s.includes('ffd700') || s.includes('ffea00') || s.includes('gold') || s.includes('orange') || s.includes('ea580c') || s.includes('rgb(255, 255, 0)')) {
       return 'crease';
     }
-
-    // Crease: Blue / dashed / crease layer name
-    if (isDash || s.includes('blue') || s.includes('0000ff') || s.includes('2563eb') || s.includes('1d4ed8') || l.includes('crease') || l.includes('fold') || l.includes('ta')) {
+    if (isDash || s.includes('blue') || s.includes('cyan') || s.includes('00ffff') || s.includes('06b6d4') || s.includes('0000ff') || s.includes('2563eb') || s.includes('1d4ed8') || l.includes('crease') || l.includes('fold') || l.includes('ta')) {
       return 'crease';
     }
 
@@ -231,8 +223,8 @@ window.DieCutImporter = {
       return 'glue';
     }
 
-    // Cut: Red / default
-    if (s.includes('red') || s.includes('dc2626') || s.includes('ef4444') || s.includes('ff0000') || l.includes('cut') || l.includes('die') || l.includes('tigh')) {
+    // Cut: Red / Magenta / Black / default
+    if (s.includes('red') || s.includes('dc2626') || s.includes('ef4444') || s.includes('ff0000') || s.includes('magenta') || s.includes('ff00ff') || s.includes('ec4899') || l.includes('cut') || l.includes('die') || l.includes('tigh')) {
       return 'cut';
     }
 

@@ -105,6 +105,10 @@
     
     <!-- VIEW 1: DESKTOP ALL-IN-ONE STUDIO COMMAND CENTER -->
     <div class="main-tab-view" id="view-studio" style="display:block;">
+      
+      <!-- Smart Assistant Diagnostic Alerts Container -->
+      <div id="smart-assistant-container" style="display:none;"></div>
+
       <div class="studio-grid">
         
         <!-- Panel 1: CAD Parameters, Margins & Materials -->
@@ -118,17 +122,17 @@
             </div>
 
             <div class="field-group">
-              <label class="field-label">مدل جعبه</label>
-              <div class="chips-grid" id="cad-models-studio">
-                <div class="chip active" data-model="tuck_end"><i class="ph ph-package"></i> دارویی</div>
-                <div class="chip" data-model="mailer_0427"><i class="ph ph-envelope-simple"></i> کیبوردی 0427</div>
-                <div class="chip" data-model="lock_bottom"><i class="ph ph-lock-key"></i> ته قفلی</div>
-                <div class="chip" data-model="rigid_box"><i class="ph ph-cube"></i> هاردباکس</div>
+              <label class="field-label">مدل جعبه صنعتی</label>
+              <div class="chips-grid" id="cad-models-studio" style="grid-template-columns: 1fr 1fr;">
+                <div class="chip active" data-model="fefco_0215_tuck_bottom"><i class="ph ph-package"></i> دارویی / ته قفلی 0215</div>
+                <div class="chip" data-model="fefco_0427_mailer"><i class="ph ph-envelope-simple"></i> کیبوردی پستی 0427</div>
+                <div class="chip" data-model="shopping_bag_luxury"><i class="ph ph-bag"></i> ساک دستی لوکس</div>
+                <div class="chip" data-model="rigid_box_two_piece"><i class="ph ph-cube"></i> هاردباکس دو تکه</div>
               </div>
             </div>
 
             <div class="field-group">
-              <label class="field-label">ابعاد خارجی (طول × عرض × ارتفاع)</label>
+              <label class="field-label">ابعاد خارجی جعبه (طول × عرض × عمق/ارتفاع)</label>
               <div class="input-row">
                 <div class="input-col input-wrap">
                   <input type="number" class="input-box" id="inp-length" value="120" oninput="App.onCadInputChange()">
@@ -140,7 +144,7 @@
                 </div>
                 <div class="input-col input-wrap">
                   <input type="number" class="input-box" id="inp-height" value="150" oninput="App.onCadInputChange()">
-                  <span class="input-unit">H</span>
+                  <span class="input-unit">D</span>
                 </div>
               </div>
             </div>
@@ -164,11 +168,11 @@
                 <div class="input-row" style="margin-bottom:8px;">
                   <div class="input-col">
                     <label class="field-label">لبه چسب (mm)</label>
-                    <input type="number" class="input-box" id="inp-glue-flap" value="15" oninput="App.onCadMarginChange('glueFlap', Number(this.value))">
+                    <input type="number" class="input-box" id="inp-glue-flap" value="14" oninput="App.onCadMarginChange('glueFlap', Number(this.value))">
                   </div>
                   <div class="input-col">
                     <label class="field-label">زبانه درپوش (mm)</label>
-                    <input type="number" class="input-box" id="inp-tuck-flap" value="18" oninput="App.onCadMarginChange('tuckFlap', Number(this.value))">
+                    <input type="number" class="input-box" id="inp-tuck-flap" value="15" oninput="App.onCadMarginChange('tuckFlap', Number(this.value))">
                   </div>
                 </div>
 
@@ -225,9 +229,15 @@
             </div>
 
             <div class="field-group">
-              <label class="field-label">گرماژ مقوا (GSM)</label>
-              <div class="chips-grid" id="mat-gsm">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label class="field-label" style="margin-bottom:0;">گرماژ مقوا (GSM)</label>
+                <span class="badge badge-subtle" id="caliper-badge-disp" style="font-size:0.68rem; font-weight:700;">ضخامت (t): ۰.۴۵ mm</span>
+              </div>
+              <div class="chips-grid" id="mat-gsm" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="chip" data-gsm="200">۲۰۰ گرم</div>
+                <div class="chip" data-gsm="230">۲۳۰ گرم</div>
                 <div class="chip" data-gsm="250">۲۵۰ گرم</div>
+                <div class="chip" data-gsm="270">۲۷۰ گرم</div>
                 <div class="chip active" data-gsm="300">۳۰۰ گرم</div>
                 <div class="chip" data-gsm="350">۳۵۰ گرم</div>
                 <div class="chip" data-gsm="400">۴۰۰ گرم</div>
@@ -502,16 +512,22 @@
                 <div class="canvas-tab" data-tab="blueprint" onclick="App.switchCanvasTab('blueprint')">
                   <i class="ph ph-blueprint"></i> بلوپرینت فنی گسترده
                 </div>
+                <div class="canvas-tab" data-tab="3d" onclick="App.switchCanvasTab('3d')">
+                  <i class="ph ph-cube"></i> پیش‌نمایش ۳بعدی جعبه
+                </div>
               </div>
 
               <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                <div class="chips-grid" id="nest-sheet-sizes">
-                  <div class="chip active" data-sheet="auto"><i class="ph ph-sparkle"></i> سایز بهینه</div>
+                <div class="chips-grid" id="nest-sheet-sizes" style="gap:4px;">
+                  <div class="chip active" data-sheet="auto" title="محاسبه هوشمند بهینه‌ترین سایز"><i class="ph ph-sparkle"></i> بهینه</div>
                   <div class="chip" data-sheet="100x70">۱۰۰×۷۰</div>
                   <div class="chip" data-sheet="90x60">۹۰×۶۰</div>
+                  <div class="chip" data-sheet="70x50">۷۰×۵۰</div>
+                  <div class="chip" data-sheet="60x45">۶۰×۴۵</div>
+                  <div class="chip" data-sheet="50x35">۵۰×۳۵</div>
                 </div>
                 <button class="btn btn-primary btn-sm" onclick="App.refreshSheetNesting()" title="محاسبه مجدد شیت‌بندی و تولید فرم" style="padding: 4px 10px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 5px; height: 32px; white-space: nowrap;">
-                  <i class="ph ph-arrows-clockwise font-bold"></i> تولید مجدد شیت
+                  <i class="ph ph-arrows-clockwise font-bold"></i> محاسبه مجدد
                 </button>
               </div>
             </div>
@@ -537,9 +553,32 @@
             </div>
 
             <!-- Viewport -->
-            <div class="canvas-viewport">
-              <canvas id="nesting-canvas" width="650" height="420"></canvas>
-              <canvas id="blueprint-canvas" width="650" height="420" style="display:none;"></canvas>
+            <div class="canvas-viewport" style="min-height:460px; height:460px;">
+              <canvas id="nesting-canvas" width="650" height="460"></canvas>
+              <canvas id="blueprint-canvas" width="650" height="460" style="display:none;"></canvas>
+              <canvas id="canvas-3d" width="650" height="460" style="display:none; cursor:grab;"></canvas>
+            </div>
+
+            <!-- 3D Controls Bar (Visible only on 3D Tab) -->
+            <div id="controls-3d" style="display:none; margin-top:10px; background:var(--surface-base); padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:12px; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:220px;">
+                  <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); white-space:nowrap;"><i class="ph ph-package"></i> میزان تا شدن:</span>
+                  <input type="range" id="slider-fold-progress" min="0" max="1" step="0.01" value="1" style="flex:1; cursor:pointer;" oninput="Cad3DEngine.setFoldProgress(this.value)">
+                  <span id="fold-progress-val" style="font-weight:900; font-size:0.85rem; color:var(--brand-primary); min-width:36px; text-align:left;">۱۰۰٪</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <button class="btn btn-outline btn-sm" style="padding:4px 8px; font-size:0.72rem;" onclick="Cad3DEngine.resetView('isometric')">ایزومتریک</button>
+                  <button class="btn btn-outline btn-sm" style="padding:4px 8px; font-size:0.72rem;" onclick="Cad3DEngine.resetView('front')">روبرو</button>
+                  <button class="btn btn-outline btn-sm" style="padding:4px 8px; font-size:0.72rem;" onclick="Cad3DEngine.resetView('back')">پشت</button>
+                  <button class="btn btn-outline btn-sm" id="btn-3d-autorotate" style="padding:4px 8px; font-size:0.72rem;" onclick="Cad3DEngine.toggleAutoRotate()">
+                    <i class="ph ph-arrows-clockwise"></i> چرخش خودکار
+                  </button>
+                </div>
+              </div>
+              <div style="font-size:0.68rem; color:var(--text-muted); text-align:center;">
+                <i class="ph ph-hand-pointing"></i> برای چرخش ۳۶۰ درجه ماوس یا لمس را روی جعبه بکشید | اسکرول برای زوم
+              </div>
             </div>
 
             <!-- Legend -->
@@ -558,11 +597,14 @@
               </div>
             </div>
 
-            <!-- 2.5 Press Sub-Cut Options & Pagination Container -->
+            <!-- Admin Cockpit Recommendation Cards (Gold Pick & Machine Comparison) -->
+            <div id="recommendations-cockpit-container"></div>
+
+            <!-- Press Imposition Options & Pagination Container -->
             <div style="margin-top:12px; border-top:1px solid var(--border-light); padding-top:10px;">
               <div style="font-weight:800; font-size:0.78rem; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between;">
-                <span><i class="ph ph-list-bullets" style="color:var(--brand-primary);"></i> گزینه‌های چیدمان شیت دستگاه ۲.۵ ورقی و برش‌ها</span>
-                <span style="font-size:0.7rem; color:var(--text-muted);">کلیک جهت انتخاب آرایش شیت</span>
+                <span><i class="ph ph-list-bullets" style="color:var(--brand-primary);"></i> فهرست کلیه آرایش‌های شیت و ماشین</span>
+                <span style="font-size:0.7rem; color:var(--text-muted);">کلیک جهت انتخاب و پیش‌نمایش</span>
               </div>
               <div id="nesting-options-pagination"></div>
             </div>
@@ -880,25 +922,22 @@
     <div class="main-tab-view" id="view-diecut" style="display:none;">
       <div style="max-width:1240px; margin:16px auto; padding:0 16px;">
         
-        <!-- Modern Smart Action Toolbar -->
+        <!-- Modern Smart Action Toolbar Centered on Custom SVG -->
         <div class="card" style="margin-bottom:12px; padding:10px 14px;">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-              <button class="btn btn-outline btn-sm" onclick="document.getElementById('file-diecut-main').click()" style="font-weight:700;">
-                <i class="ph ph-upload-simple" style="color:var(--brand-primary); font-size:1.05rem;"></i> بارگذاری فایل SVG / AI
+              <button class="btn btn-primary btn-sm" onclick="document.getElementById('file-diecut-main').click()" style="font-weight:800; padding:6px 14px; font-size:0.82rem;">
+                <i class="ph ph-upload-simple" style="font-size:1.1rem;"></i> بارگذاری فایل قالب SVG / AI
               </button>
               <input type="file" id="file-diecut-main" accept=".svg,.ai,.eps,.pdf" style="display:none;" onchange="ParametricDieEngine.handleFileSelect(event)">
               
-              <div style="display:inline-flex; align-items:center; gap:4px; margin-right:4px;">
-                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">الگوهای آماده:</span>
-                <button class="btn btn-outline btn-sm" data-die-template="tuck_end" style="font-size:0.72rem; padding:3px 8px;" onclick="ParametricDieEngine.loadTemplate('tuck_end')">دارویی Tuck-End</button>
-                <button class="btn btn-outline btn-sm" data-die-template="mailer_0427" style="font-size:0.72rem; padding:3px 8px;" onclick="ParametricDieEngine.loadTemplate('mailer_0427')">کیبوردی 0427</button>
-                <button class="btn btn-outline btn-sm" data-die-template="lock_bottom" style="font-size:0.72rem; padding:3px 8px;" onclick="ParametricDieEngine.loadTemplate('lock_bottom')">ته‌قفلی خودکار</button>
-              </div>
+              <span id="diecut-file-status" style="font-size:0.75rem; color:var(--text-muted); display:inline-flex; align-items:center; gap:4px; background:var(--surface-subtle); padding:4px 10px; border-radius:6px; border:1px solid var(--border-color);">
+                <i class="ph ph-file-svg" style="color:var(--brand-primary);"></i> <span id="diecut-filename-label">قالب برداری فعال</span>
+              </span>
             </div>
 
             <div style="display:flex; align-items:center; gap:8px;">
-              <button class="btn btn-outline btn-sm" onclick="ParametricDieEngine.exportCleanSvg()">
+              <button class="btn btn-outline btn-sm" onclick="ParametricDieEngine.exportCleanSvg()" title="دانلود خروجی استاندارد و بهینه SVG">
                 <i class="ph ph-download-simple"></i> دانلود SVG تمیز
               </button>
               <button class="btn btn-primary btn-sm" style="font-weight:800;" onclick="ParametricDieEngine.applyToStudio()">
@@ -906,6 +945,85 @@
               </button>
             </div>
           </div>
+        </div>
+
+        <!-- Interactive Direct Dimension Steppers & Scaling Bar -->
+        <div class="card" style="margin-bottom:12px; padding:12px 14px; background:var(--surface-base);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div style="font-weight:800; font-size:0.88rem; display:flex; align-items:center; gap:6px; color:var(--graphite-text);">
+              <i class="ph ph-arrows-out-cardinal" style="color:var(--brand-primary); font-size:1.15rem;"></i>
+              <span>تنظیم ابعاد، مقیاس و پارامترهای قالب برداری (میلی‌متر)</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <button class="btn btn-outline btn-sm" id="btn-die-theme" onclick="ParametricDieEngine.toggleCanvasTheme()" style="padding:4px 10px; font-size:0.75rem;">
+                <i class="ph ph-sun" id="die-theme-icon"></i> تم روشن
+              </button>
+              <div style="display:inline-flex; align-items:center; gap:8px; font-size:0.75rem; color:var(--text-muted); background:var(--surface-card); padding:3px 8px; border-radius:6px; border:1px solid var(--border-color);">
+                <label style="display:flex; align-items:center; gap:3px; cursor:pointer;"><input type="checkbox" id="chk-layer-cuts" checked onchange="ParametricDieEngine.toggleLayer('cuts')"> تیغ برش</label>
+                <label style="display:flex; align-items:center; gap:3px; cursor:pointer;"><input type="checkbox" id="chk-layer-creases" checked onchange="ParametricDieEngine.toggleLayer('creases')"> خط‌تا</label>
+                <label style="display:flex; align-items:center; gap:3px; cursor:pointer;"><input type="checkbox" id="chk-layer-dims" checked onchange="ParametricDieEngine.toggleLayer('dimensions')"> اندازه‌گذاری</label>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-top:12px;">
+            <div class="stepper-wrap">
+              <div class="stepper-label">عرض شیت (W):</div>
+              <div style="display:flex; align-items:center; gap:4px;">
+                <button class="btn-stepper" onclick="ParametricDieEngine.stepFlatSize('w', -5)">-</button>
+                <input type="number" id="die-flat-w" class="stepper-input" value="415" onchange="ParametricDieEngine.setFlatSize('w', this.value)">
+                <button class="btn-stepper" onclick="ParametricDieEngine.stepFlatSize('w', 5)">+</button>
+              </div>
+            </div>
+            <div class="stepper-wrap">
+              <div class="stepper-label">طول شیت (H):</div>
+              <div style="display:flex; align-items:center; gap:4px;">
+                <button class="btn-stepper" onclick="ParametricDieEngine.stepFlatSize('h', -5)">-</button>
+                <input type="number" id="die-flat-h" class="stepper-input" value="266" onchange="ParametricDieEngine.setFlatSize('h', this.value)">
+                <button class="btn-stepper" onclick="ParametricDieEngine.stepFlatSize('h', 5)">+</button>
+              </div>
+            </div>
+            <div class="stepper-wrap">
+              <div class="stepper-label">طول L:</div>
+              <div style="display:flex; align-items:center; gap:4px;">
+                <button class="btn-stepper" onclick="ParametricDieEngine.stepParam('length', -5)">-</button>
+                <input type="number" id="die-param-l" class="stepper-input" value="120" onchange="ParametricDieEngine.setParam('length', this.value)">
+                <button class="btn-stepper" onclick="ParametricDieEngine.stepParam('length', 5)">+</button>
+              </div>
+            </div>
+            <div class="stepper-wrap">
+              <div class="stepper-label">عرض W:</div>
+              <div style="display:flex; align-items:center; gap:4px;">
+                <button class="btn-stepper" onclick="ParametricDieEngine.stepParam('width', -5)">-</button>
+                <input type="number" id="die-param-w" class="stepper-input" value="80" onchange="ParametricDieEngine.setParam('width', this.value)">
+                <button class="btn-stepper" onclick="ParametricDieEngine.stepParam('width', 5)">+</button>
+              </div>
+            </div>
+            <div class="stepper-wrap">
+              <div class="stepper-label">ارتفاع H:</div>
+              <div style="display:flex; align-items:center; gap:4px;">
+                <button class="btn-stepper" onclick="ParametricDieEngine.stepParam('height', -5)">-</button>
+                <input type="number" id="die-param-h" class="stepper-input" value="150" onchange="ParametricDieEngine.setParam('height', this.value)">
+                <button class="btn-stepper" onclick="ParametricDieEngine.stepParam('height', 5)">+</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Scale Chips Strip -->
+          <div style="display:flex; align-items:center; gap:6px; margin-top:10px; flex-wrap:wrap;">
+            <span style="font-size:0.73rem; font-weight:700; color:var(--text-muted);">مقیاس سریع کل قالب SVG:</span>
+            <button class="chip chip-sm" onclick="ParametricDieEngine.scaleCustomDie(0.85)">۸۵٪</button>
+            <button class="chip chip-sm" onclick="ParametricDieEngine.scaleCustomDie(0.90)">۹۰٪</button>
+            <button class="chip chip-sm active" onclick="ParametricDieEngine.scaleCustomDie(1.0)">۱۰۰٪ (اصلی)</button>
+            <button class="chip chip-sm" onclick="ParametricDieEngine.scaleCustomDie(1.10)">۱۱۰٪</button>
+            <button class="chip chip-sm" onclick="ParametricDieEngine.scaleCustomDie(1.25)">۱۲۵٪</button>
+            <button class="chip chip-sm" onclick="ParametricDieEngine.scaleCustomDie(1.50)">۱۵۰٪</button>
+          </div>
+        </div>
+
+        <!-- Detected Color Layers Bar for Uploaded SVG -->
+        <div id="diecut-color-layers-bar" style="display:none; margin-bottom:12px; padding:12px 14px;" class="card">
+          <!-- Dynamically populated by ParametricDieEngine -->
         </div>
 
         <!-- Full-Featured Interactive Blueprint Canvas Viewport -->
