@@ -1,19 +1,18 @@
 /* ============================================================
-   SMART VECTOR DIE-CUT INSPECTOR & PACKAGING CAD ENGINE v8.5
-   - Fully centered around custom uploaded SVG / AI die cuts.
-   - Zero-drop vector parsing (100% bezier, arc, and curve preservation).
-   - Live color detection & mapping (Red = Cut, Yellow/Blue = Crease, Green = Glue).
-   - Full dimensional scaling & editing for uploaded SVGs.
-   - Real-time auto-synchronization with 2D Nesting, Studio, Cost Engine & 3D Box.
+   SMART VECTOR DIE-CUT INSPECTOR & PACKAGING CAD ENGINE v9.0
+   - 100% Zero-Drop Vector SVG parsing with native Path2D matrix transforms.
+   - Preserves 100% of raw SVG path data without destructive regex replacements.
+   - Live interactive color mapping (Red = Cut, Yellow/Blue = Crease, Green = Glue).
+   - Real-time continuous 2-way sync with 2D Nesting, CAD, Studio & 3D Folding Box.
+   - Interactive scaling and dimension steppers with instant keystroke reactivity.
    ============================================================ */
 
 window.ParametricDieEngine = {
   isCustomImport: false,
   rawSvgString: null,
-  fileName: 'قالب برداری پیش‌فرض',
-  customPaths: [],        // Normalized vector paths in mm
-  rawSvgPaths: [],        // Original raw vector data for lossless re-scaling
-  detectedColors: [],     // Detected colors [{ color, hex, name, count, lengthMm, type }]
+  fileName: 'قالب برداری اختصاصی',
+  rawPaths: [],           // Raw SVG paths: [{ id, dRaw, stroke, dash, type, visible }]
+  detectedColors: [],     // Unique detected colors [{ color, name, count, lengthMm, type }]
   
   canvasTheme: 'bright',  // 'bright' | 'dark'
   layers: {
@@ -24,22 +23,22 @@ window.ParametricDieEngine = {
     labels: true
   },
 
-  // Base Packaging Dimensions (in mm)
+  // Packaging Dimensions (in mm)
   params: {
-    length: 120,    // L
-    width: 80,      // W
-    height: 150,    // H
-    glueFlap: 15,   // G
-    topTuck: 25,    // T
-    dustFlap: 15    // D
+    length: 120,
+    width: 80,
+    height: 150,
+    glueFlap: 15,
+    topTuck: 25,
+    dustFlap: 15
   },
 
-  // Base unscaled flat dimensions from file
-  baseBounds: {
+  // Base bounding box from SVG in physical mm
+  bounds: {
     minX: 0,
     minY: 0,
-    width: 415,
-    height: 266,
+    rawWidth: 415,
+    rawHeight: 266,
     scaleToMm: 1.0
   },
   scaleFactor: 1.0,
@@ -53,8 +52,8 @@ window.ParametricDieEngine = {
     areaCm2: 1103.9
   },
 
+  // Fallback parametric segments if no SVG uploaded
   segments: [],
-  hoveredSegmentId: null,
   activePanelHover: null,
 
   // Canvas Viewport Controls
@@ -93,7 +92,7 @@ window.ParametricDieEngine = {
       const newVal = Math.max(5, oldVal + delta);
       this.params[key] = newVal;
 
-      if (this.isCustomImport && this.customPaths.length > 0) {
+      if (this.isCustomImport && this.rawPaths.length > 0) {
         if (key === 'length' || key === 'width') {
           const approxW = 2 * this.params.length + 2 * this.params.width + this.params.glueFlap;
           this.setFlatSize('w', approxW, false);
@@ -114,7 +113,7 @@ window.ParametricDieEngine = {
   setParam(key, val) {
     if (this.params[key] !== undefined) {
       this.params[key] = Math.max(5, Number(val) || 0);
-      if (this.isCustomImport && this.customPaths.length > 0) {
+      if (this.isCustomImport && this.rawPaths.length > 0) {
         if (key === 'length' || key === 'width') {
           const approxW = 2 * this.params.length + 2 * this.params.width + this.params.glueFlap;
           this.setFlatSize('w', approxW, false);
@@ -143,21 +142,11 @@ window.ParametricDieEngine = {
 
   setFlatSize(axis, val, updateParams = true) {
     const targetVal = Math.max(20, Number(val) || 20);
-    const oldW = this.calculated.flatWidth;
-    const oldH = this.calculated.flatHeight;
 
     if (axis === 'w') {
-      const ratio = targetVal / (oldW || targetVal);
       this.calculated.flatWidth = Math.round(targetVal);
-      if (this.isCustomImport && this.customPaths.length > 0) {
-        this.rescaleCustomPaths(ratio, 1.0);
-      }
     } else {
-      const ratio = targetVal / (oldH || targetVal);
       this.calculated.flatHeight = Math.round(targetVal);
-      if (this.isCustomImport && this.customPaths.length > 0) {
-        this.rescaleCustomPaths(1.0, ratio);
-      }
     }
 
     if (!this.isCustomImport) {
@@ -168,6 +157,7 @@ window.ParametricDieEngine = {
       this.params.height = Math.round(this.calculated.flatHeight * 0.55);
     }
 
+    this.recalculateTotals();
     this.render();
     this.syncToStudioAutomatically();
   },
@@ -182,93 +172,25 @@ window.ParametricDieEngine = {
       c.classList.toggle('active', txt.includes(pct));
     });
 
-    if (this.baseBounds.width > 0 && this.baseBounds.height > 0) {
-      const newW = Math.round(this.baseBounds.width * factor);
-      const newH = Math.round(this.baseBounds.height * factor);
-      this.calculated.flatWidth = newW;
-      this.calculated.flatHeight = newH;
+    const baseW = (this.bounds.rawWidth * this.bounds.scaleToMm) || 415;
+    const baseH = (this.bounds.rawHeight * this.bounds.scaleToMm) || 266;
 
-      if (this.isCustomImport && this.rawSvgPaths.length > 0) {
-        this.rebuildPathsFromRaw();
-      } else {
-        this.synthesizeModel();
-      }
+    this.calculated.flatWidth = Math.round(baseW * factor);
+    this.calculated.flatHeight = Math.round(baseH * factor);
 
-      this.render();
-      this.syncToStudioAutomatically();
-      if (window.SoundEngine) window.SoundEngine.playClick();
-      if (window.toast) {
-        const pUtils = window.PersianUtils || { fmtNum: v => String(v) };
-        window.toast(`مقیاس قالب به ${pUtils.fmtNum(Math.round(factor * 100))}٪ (${pUtils.fmtNum(newW)} × ${pUtils.fmtNum(newH)} mm) تغییر یافت ✓`);
-      }
+    if (!this.isCustomImport) {
+      this.synthesizeModel();
     }
-  },
 
-  rescaleCustomPaths(ratioX, ratioY) {
-    if (ratioX === 1.0 && ratioY === 1.0) return;
-    this.customPaths.forEach(p => {
-      p.d = this.transformSvgPath(p.d, ratioX, ratioY, 0, 0);
-      if (p.lengthMm) p.lengthMm = Number((p.lengthMm * ((ratioX + ratioY) / 2)).toFixed(1));
-    });
-    this.segments.forEach(s => {
-      s.x1 *= ratioX; s.y1 *= ratioY;
-      s.x2 *= ratioX; s.y2 *= ratioY;
-      s.lengthMm = Number((s.lengthMm * ((ratioX + ratioY) / 2)).toFixed(1));
-      s.d = `M ${s.x1.toFixed(2)} ${s.y1.toFixed(2)} L ${s.x2.toFixed(2)} ${s.y2.toFixed(2)}`;
-    });
     this.recalculateTotals();
-  },
+    this.render();
+    this.syncToStudioAutomatically();
 
-  rebuildPathsFromRaw() {
-    const scaleX = (this.calculated.flatWidth / (this.baseBounds.width || 1));
-    const scaleY = (this.calculated.flatHeight / (this.baseBounds.height || 1));
-    const scaleToMm = this.baseBounds.scaleToMm || 1.0;
-    const minX = this.baseBounds.minX;
-    const minY = this.baseBounds.minY;
-
-    let totalCutLen = 0;
-    let totalCreaseLen = 0;
-
-    const normalizedPaths = this.rawSvgPaths.map(rp => {
-      const dTransformed = this.transformSvgPath(rp.dRaw, scaleToMm * scaleX, scaleToMm * scaleY, -minX * scaleToMm * scaleX, -minY * scaleToMm * scaleY);
-      const approxLen = (rp.rawLen || 10) * scaleToMm * ((scaleX + scaleY) / 2);
-
-      if (rp.type === 'crease') totalCreaseLen += approxLen;
-      else if (rp.type === 'cut') totalCutLen += approxLen;
-
-      return {
-        id: rp.id,
-        d: dTransformed,
-        stroke: rp.stroke,
-        dash: rp.dash,
-        type: rp.type,
-        lengthMm: Number(approxLen.toFixed(1)),
-        visible: true
-      };
-    });
-
-    this.customPaths = normalizedPaths;
-    this.segments = normalizedPaths.map(p => ({
-      id: p.id,
-      x1: 0, y1: 0, x2: this.calculated.flatWidth, y2: this.calculated.flatHeight,
-      d: p.d,
-      type: p.type,
-      lengthMm: p.lengthMm
-    }));
-
-    this.calculated.totalBladeLengthMm = Math.round(totalCutLen || this.calculated.flatWidth * 2 + this.calculated.flatHeight * 2);
-    this.calculated.totalCreaseLengthMm = Math.round(totalCreaseLen || this.calculated.flatWidth);
-    this.calculated.areaCm2 = Number(((this.calculated.flatWidth * this.calculated.flatHeight) / 100).toFixed(1));
-  },
-
-  transformSvgPath(dStr, sx, sy, tx = 0, ty = 0) {
-    if (!dStr) return '';
-    return dStr.replace(/([a-df-z])|(-?[\d.]+(?:e-?\d+)?)/gi, (token, cmd, num) => {
-      if (cmd) return cmd;
-      const val = parseFloat(num);
-      if (isNaN(val)) return num;
-      return (val * sx + tx).toFixed(2);
-    });
+    if (window.SoundEngine) window.SoundEngine.playClick();
+    if (window.toast) {
+      const pUtils = window.PersianUtils || { fmtNum: v => String(v) };
+      window.toast(`مقیاس قالب به ${pUtils.fmtNum(Math.round(factor * 100))}٪ (${pUtils.fmtNum(this.calculated.flatWidth)} × ${pUtils.fmtNum(this.calculated.flatHeight)} mm) تغییر یافت ✓`);
+    }
   },
 
   /* ============================================================
@@ -276,7 +198,6 @@ window.ParametricDieEngine = {
      ============================================================ */
   toggleCanvasTheme() {
     this.canvasTheme = this.canvasTheme === 'bright' ? 'dark' : 'bright';
-    const icon = document.getElementById('die-theme-icon');
     const btn = document.getElementById('btn-die-theme');
     if (btn) {
       if (this.canvasTheme === 'bright') {
@@ -298,7 +219,7 @@ window.ParametricDieEngine = {
   },
 
   /* ============================================================
-     3. FULL REAL-TIME AUTO-SYNCHRONIZATION
+     3. FULL REAL-TIME CONTINUOUS AUTO-SYNCHRONIZATION
      ============================================================ */
   syncToStudioAutomatically() {
     if (!window.LemonPack) return;
@@ -314,11 +235,10 @@ window.ParametricDieEngine = {
     cad.flatL = this.calculated.flatWidth;
     cad.flatW = this.calculated.flatHeight;
 
-    const pathsToSend = this.isCustomImport && this.customPaths.length > 0 ? this.customPaths : this.segments.map(s => ({
+    const pathsToSend = this.isCustomImport && this.rawPaths.length > 0 ? this.rawPaths : this.segments.map(s => ({
       id: s.id,
-      d: s.d,
-      originalStroke: s.type === 'crease' ? '#2563EB' : (s.type === 'glue' ? '#10B981' : '#DC2626'),
-      strokeDash: s.type === 'crease' ? '4,3' : '',
+      dRaw: s.d,
+      stroke: s.type === 'crease' ? '#2563EB' : (s.type === 'glue' ? '#10B981' : '#DC2626'),
       type: s.type,
       visible: true
     }));
@@ -328,8 +248,14 @@ window.ParametricDieEngine = {
       fileName: this.fileName,
       widthMm: cad.flatL,
       heightMm: cad.flatW,
-      paths: pathsToSend,
-      bounds: { minX: 0, minY: 0, width: cad.flatL, height: cad.flatW }
+      bounds: {
+        minX: this.bounds.minX,
+        minY: this.bounds.minY,
+        rawWidth: this.bounds.rawWidth,
+        rawHeight: this.bounds.rawHeight,
+        scaleToMm: this.bounds.scaleToMm
+      },
+      paths: pathsToSend
     };
 
     const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
@@ -397,7 +323,7 @@ window.ParametricDieEngine = {
 
     this.calculated.flatWidth = Math.round(x5);
     this.calculated.flatHeight = Math.round(y5);
-    this.baseBounds = { minX: 0, minY: 0, width: x5, height: y5, scaleToMm: 1.0 };
+    this.bounds = { minX: 0, minY: 0, rawWidth: x5, rawHeight: y5, scaleToMm: 1.0 };
 
     const segs = [];
     let nextId = 1;
@@ -410,9 +336,11 @@ window.ParametricDieEngine = {
         type: type,
         x1: x1n, y1: y1n, x2: x2n, y2: y2n,
         d: `M ${x1n.toFixed(2)} ${y1n.toFixed(2)} L ${x2n.toFixed(2)} ${y2n.toFixed(2)}`,
+        dRaw: `M ${x1n.toFixed(2)} ${y1n.toFixed(2)} L ${x2n.toFixed(2)} ${y2n.toFixed(2)}`,
         lengthMm: Number(len.toFixed(1)),
         partKey: partKey,
-        label: label
+        label: label,
+        visible: true
       });
     };
 
@@ -472,11 +400,16 @@ window.ParametricDieEngine = {
   recalculateTotals() {
     let blade = 0;
     let crease = 0;
-    const paths = this.isCustomImport && this.customPaths.length > 0 ? this.customPaths : this.segments;
+    const paths = this.isCustomImport && this.rawPaths.length > 0 ? this.rawPaths : this.segments;
+    const scaleRatio = (this.calculated.flatWidth / ((this.bounds.rawWidth * this.bounds.scaleToMm) || 1));
+
     paths.forEach(s => {
-      if (s.type === 'crease') crease += (s.lengthMm || 0);
-      else if (s.type === 'cut') blade += (s.lengthMm || 0);
+      if (s.type === 'ignore' || !s.visible) return;
+      const len = (s.lengthMm || 0) * scaleRatio;
+      if (s.type === 'crease') crease += len;
+      else if (s.type === 'cut') blade += len;
     });
+
     this.calculated.totalBladeLengthMm = Math.round(blade || this.calculated.flatWidth * 2 + this.calculated.flatHeight * 2);
     this.calculated.totalCreaseLengthMm = Math.round(crease || this.calculated.flatWidth);
     this.calculated.areaCm2 = Number(((this.calculated.flatWidth * this.calculated.flatHeight) / 100).toFixed(1));
@@ -766,10 +699,11 @@ window.ParametricDieEngine = {
       rawPaths.push({
         id: `custom_${pIdx++}`,
         dRaw: d,
-        rawLen: approxLen,
+        lengthMm: Number((approxLen * scaleToMm).toFixed(1)),
         stroke,
         dash,
-        type
+        type,
+        visible: true
       });
 
       if (!colorMap[stroke]) {
@@ -795,10 +729,10 @@ window.ParametricDieEngine = {
     const flatW = Math.max(10, Math.round(rawW * scaleToMm));
     const flatH = Math.max(10, Math.round(rawH * scaleToMm));
 
-    this.baseBounds = { minX, minY, width: flatW, height: flatH, scaleToMm };
+    this.bounds = { minX, minY, rawWidth: rawW, rawHeight: rawH, scaleToMm };
     this.calculated.flatWidth = flatW;
     this.calculated.flatHeight = flatH;
-    this.rawSvgPaths = rawPaths;
+    this.rawPaths = rawPaths;
 
     this.detectedColors = Object.values(colorMap).map(c => ({
       color: c.color,
@@ -808,14 +742,13 @@ window.ParametricDieEngine = {
       type: c.type
     }));
 
-    this.rebuildPathsFromRaw();
-
     this.params.length = Math.round(flatW * 0.3);
     this.params.width = Math.round(flatW * 0.18);
     this.params.height = Math.round(flatH * 0.55);
     this.params.glueFlap = 15;
     this.params.topTuck = 25;
 
+    this.recalculateTotals();
     this.renderColorLayersBar();
     this.resetView();
     this.render();
@@ -889,14 +822,11 @@ window.ParametricDieEngine = {
     const cObj = this.detectedColors.find(c => c.color === colorHex);
     if (cObj) cObj.type = newType;
 
-    this.rawSvgPaths.forEach(p => {
-      if (p.stroke === colorHex) p.type = newType;
-    });
-    this.customPaths.forEach(p => {
+    this.rawPaths.forEach(p => {
       if (p.stroke === colorHex) p.type = newType;
     });
 
-    this.rebuildPathsFromRaw();
+    this.recalculateTotals();
     this.renderColorLayersBar();
     this.render();
     this.syncToStudioAutomatically();
@@ -918,23 +848,23 @@ window.ParametricDieEngine = {
     let svg = `<?xml version="1.0" encoding="UTF-8"?>\n`;
     svg += `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${flatW} ${flatH}" width="${flatW}mm" height="${flatH}mm">\n`;
 
-    const paths = this.isCustomImport && this.customPaths.length > 0 ? this.customPaths : this.segments;
+    const paths = this.isCustomImport && this.rawPaths.length > 0 ? this.rawPaths : this.segments;
     
     svg += `  <g id="crease-matrix" stroke="#2563EB" stroke-width="0.6" stroke-dasharray="3,2" fill="none">\n`;
-    paths.filter(p => p.type === 'crease').forEach(p => {
-      svg += `    <path d="${p.d}" />\n`;
+    paths.filter(p => p.type === 'crease' && p.visible).forEach(p => {
+      svg += `    <path d="${p.dRaw || p.d}" />\n`;
     });
     svg += `  </g>\n`;
 
     svg += `  <g id="glue-flaps" stroke="#10B981" stroke-width="0.7" fill="none">\n`;
-    paths.filter(p => p.type === 'glue').forEach(p => {
-      svg += `    <path d="${p.d}" />\n`;
+    paths.filter(p => p.type === 'glue' && p.visible).forEach(p => {
+      svg += `    <path d="${p.dRaw || p.d}" />\n`;
     });
     svg += `  </g>\n`;
 
     svg += `  <g id="cut-blades" stroke="#DC2626" stroke-width="0.8" fill="none">\n`;
-    paths.filter(p => p.type === 'cut').forEach(p => {
-      svg += `    <path d="${p.d}" />\n`;
+    paths.filter(p => p.type === 'cut' && p.visible).forEach(p => {
+      svg += `    <path d="${p.dRaw || p.d}" />\n`;
     });
     svg += `  </g>\n`;
 
@@ -1079,66 +1009,108 @@ window.ParametricDieEngine = {
 
     ctx.save();
     ctx.translate(w / 2 + this.panOffset.x, h / 2 + this.panOffset.y);
-    ctx.scale(scale, scale);
-    ctx.translate(-flatW / 2, -flatH / 2);
 
-    // Subtle background grid
-    ctx.strokeStyle = isBright ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.035)';
-    ctx.lineWidth = 0.5 / scale;
-    for (let x = -40; x <= flatW + 40; x += 20) {
-      ctx.beginPath(); ctx.moveTo(x, -40); ctx.lineTo(x, flatH + 40); ctx.stroke();
-    }
-    for (let y = -40; y <= flatH + 40; y += 20) {
-      ctx.beginPath(); ctx.moveTo(-40, y); ctx.lineTo(flatW + 40, y); ctx.stroke();
-    }
+    if (this.isCustomImport && this.rawPaths.length > 0) {
+      const b = this.bounds;
+      const rawW = b.rawWidth || flatW;
+      const rawH = b.rawHeight || flatH;
+      const scaleToMm = b.scaleToMm || 1.0;
 
-    const pathsToDraw = this.isCustomImport && this.customPaths.length > 0 ? this.customPaths : this.segments;
-    
-    pathsToDraw.forEach(p => {
-      if (p.type === 'ignore') return;
-      if (p.type === 'cut' && !this.layers.cuts) return;
-      if (p.type === 'crease' && !this.layers.creases) return;
-      if (p.type === 'glue' && !this.layers.glue) return;
+      const sx = scale * (flatW / (rawW * scaleToMm)) * scaleToMm;
+      const sy = scale * (flatH / (rawH * scaleToMm)) * scaleToMm;
 
-      ctx.save();
-      if (p.type === 'cut') {
-        ctx.strokeStyle = isBright ? '#DC2626' : '#EF4444';
-        ctx.lineWidth = 1.8 / scale;
-        ctx.setLineDash([]);
-      } else if (p.type === 'crease') {
-        ctx.strokeStyle = isBright ? '#2563EB' : '#3B82F6';
-        ctx.lineWidth = 1.4 / scale;
-        ctx.setLineDash([4 / scale, 3 / scale]);
-      } else if (p.type === 'glue') {
-        ctx.strokeStyle = isBright ? '#059669' : '#10B981';
-        ctx.lineWidth = 1.6 / scale;
-        ctx.setLineDash([]);
-      } else {
-        ctx.strokeStyle = '#D97706';
-        ctx.lineWidth = 1.2 / scale;
-        ctx.setLineDash([2 / scale, 2 / scale]);
+      ctx.scale(sx, sy);
+      ctx.translate(-b.minX - rawW / 2, -b.minY - rawH / 2);
+
+      // Subtle grid
+      ctx.strokeStyle = isBright ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.035)';
+      ctx.lineWidth = 0.5 / sx;
+      for (let x = b.minX - 40; x <= b.minX + rawW + 40; x += 20 / scaleToMm) {
+        ctx.beginPath(); ctx.moveTo(x, b.minY - 40); ctx.lineTo(x, b.minY + rawH + 40); ctx.stroke();
+      }
+      for (let y = b.minY - 40; y <= b.minY + rawH + 40; y += 20 / scaleToMm) {
+        ctx.beginPath(); ctx.moveTo(b.minX - 40, y); ctx.lineTo(b.minX + rawW + 40, y); ctx.stroke();
       }
 
-      if (p.d) {
-        try {
-          const p2d = new Path2D(p.d);
-          ctx.stroke(p2d);
-        } catch (e) {
-          if (p.x1 !== undefined && p.x2 !== undefined) {
-            ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke();
-          }
+      this.rawPaths.forEach(p => {
+        if (p.type === 'ignore' || !p.visible) return;
+        if (p.type === 'cut' && !this.layers.cuts) return;
+        if (p.type === 'crease' && !this.layers.creases) return;
+        if (p.type === 'glue' && !this.layers.glue) return;
+
+        ctx.save();
+        if (p.type === 'cut') {
+          ctx.strokeStyle = isBright ? '#DC2626' : '#EF4444';
+          ctx.lineWidth = 1.8 / sx;
+          ctx.setLineDash([]);
+        } else if (p.type === 'crease') {
+          ctx.strokeStyle = isBright ? '#2563EB' : '#3B82F6';
+          ctx.lineWidth = 1.4 / sx;
+          ctx.setLineDash([4 / sx, 3 / sx]);
+        } else if (p.type === 'glue') {
+          ctx.strokeStyle = isBright ? '#059669' : '#10B981';
+          ctx.lineWidth = 1.6 / sx;
+          ctx.setLineDash([]);
+        } else {
+          ctx.strokeStyle = '#D97706';
+          ctx.lineWidth = 1.2 / sx;
+          ctx.setLineDash([2 / sx, 2 / sx]);
         }
-      } else if (p.x1 !== undefined && p.x2 !== undefined) {
-        ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke();
-      }
-      ctx.restore();
-    });
 
+        try {
+          ctx.stroke(new Path2D(p.dRaw));
+        } catch (e) {}
+        ctx.restore();
+      });
+
+    } else {
+      ctx.scale(scale, scale);
+      ctx.translate(-flatW / 2, -flatH / 2);
+
+      // Subtle grid
+      ctx.strokeStyle = isBright ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.035)';
+      ctx.lineWidth = 0.5 / scale;
+      for (let x = -40; x <= flatW + 40; x += 20) {
+        ctx.beginPath(); ctx.moveTo(x, -40); ctx.lineTo(x, flatH + 40); ctx.stroke();
+      }
+      for (let y = -40; y <= flatH + 40; y += 20) {
+        ctx.beginPath(); ctx.moveTo(-40, y); ctx.lineTo(flatW + 40, y); ctx.stroke();
+      }
+
+      this.segments.forEach(s => {
+        if (s.type === 'cut' && !this.layers.cuts) return;
+        if (s.type === 'crease' && !this.layers.creases) return;
+        if (s.type === 'glue' && !this.layers.glue) return;
+
+        ctx.save();
+        if (s.type === 'cut') {
+          ctx.strokeStyle = isBright ? '#DC2626' : '#EF4444';
+          ctx.lineWidth = 1.8 / scale;
+          ctx.setLineDash([]);
+        } else if (s.type === 'crease') {
+          ctx.strokeStyle = isBright ? '#2563EB' : '#3B82F6';
+          ctx.lineWidth = 1.4 / scale;
+          ctx.setLineDash([4 / scale, 3 / scale]);
+        } else {
+          ctx.strokeStyle = isBright ? '#059669' : '#10B981';
+          ctx.lineWidth = 1.6 / scale;
+          ctx.setLineDash([]);
+        }
+
+        ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
+        ctx.restore();
+      });
+    }
+
+    // Outer Bounding Box Dimension Leaders
     if (this.layers.dimensions) {
+      ctx.save();
+      ctx.translate(-flatW / 2, -flatH / 2);
       const dimColorW = isBright ? '#7C3AED' : '#A78BFA';
       const dimColorH = isBright ? '#0284C7' : '#38BDF8';
       this.drawDimension(ctx, 0, flatH + 14, flatW, flatH + 14, `عرض گسترده: ${pUtils.fmtNum(flatW)} mm`, dimColorW, scale, isBright);
       this.drawDimension(ctx, flatW + 14, 0, flatW + 14, flatH, `طول گسترده: ${pUtils.fmtNum(flatH)} mm`, dimColorH, scale, isBright);
+      ctx.restore();
     }
 
     ctx.restore();
@@ -1158,7 +1130,7 @@ window.ParametricDieEngine = {
       ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - sz, y2 - sz * 0.7); ctx.lineTo(x2 - sz, y2 + sz * 0.7); ctx.fill();
     } else {
       ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - sz * 0.7, y1 + sz); ctx.lineTo(x1 + sz, y1 + sz * 0.7); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - sz * 0.7, y2 - sz); ctx.lineTo(x2 + sz * 0.7, y2 - sz); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - sz, y2 - sz * 0.7); ctx.lineTo(x2 + sz, y2 - sz); ctx.fill();
     }
 
     ctx.font = `bold ${10 / scale}px Peyda, sans-serif`;

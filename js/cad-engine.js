@@ -268,49 +268,56 @@ window.CadEngine = {
 
     // 1. CUSTOM IMPORTED SVG DIE BLUEPRINT
     if (cad.customDie && cad.customDie.active && cad.customDie.paths && cad.customDie.paths.length > 0) {
-      const b = cad.customDie.bounds || { minX: 0, minY: 0, width: cad.flatL, height: cad.flatW };
-      const scale = Math.min((w - padding * 2) / b.width, (h - padding * 2) / b.height);
-      const boxW = b.width * scale;
-      const boxH = b.height * scale;
+      const b = cad.customDie.bounds || { minX: 0, minY: 0, rawWidth: cad.flatL, rawHeight: cad.flatW, scaleToMm: 1 };
+      const rawW = b.rawWidth || cad.flatL;
+      const rawH = b.rawHeight || cad.flatW;
+      const scaleToMm = b.scaleToMm || 1.0;
+      const flatW = cad.flatL || 415;
+      const flatH = cad.flatW || 266;
+
+      const scale = Math.min((w - padding * 2) / flatW, (h - padding * 2) / flatH);
+      const boxW = flatW * scale;
+      const boxH = flatH * scale;
       const startX = (w - boxW) / 2;
       const startY = (h - boxH) / 2;
 
       ctx.fillStyle = '#FAF8F5';
       ctx.fillRect(startX, startY, boxW, boxH);
+      ctx.strokeStyle = '#CBD5E1';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(startX, startY, boxW, boxH);
+
+      const sx = scale * (flatW / (rawW * scaleToMm)) * scaleToMm;
+      const sy = scale * (flatH / (rawH * scaleToMm)) * scaleToMm;
 
       ctx.save();
       ctx.translate(w / 2, h / 2);
-      ctx.scale(scale, scale);
-      ctx.translate(-b.minX - b.width / 2, -b.minY - b.height / 2);
+      ctx.scale(sx, sy);
+      ctx.translate(-b.minX - rawW / 2, -b.minY - rawH / 2);
 
       cad.customDie.paths.forEach(p => {
         if (!p.visible || p.type === 'ignore') return;
 
         if (p.type === 'cut') {
           ctx.strokeStyle = '#DC2626';
-          ctx.lineWidth = 1.8 / scale;
+          ctx.lineWidth = 1.8 / sx;
           ctx.setLineDash([]);
         } else if (p.type === 'crease') {
           ctx.strokeStyle = '#2563EB';
-          ctx.lineWidth = 1.4 / scale;
-          ctx.setLineDash([4 / scale, 3 / scale]);
+          ctx.lineWidth = 1.4 / sx;
+          ctx.setLineDash([4 / sx, 3 / sx]);
         } else if (p.type === 'glue') {
           ctx.strokeStyle = '#059669';
-          ctx.lineWidth = 1.8 / scale;
+          ctx.lineWidth = 1.8 / sx;
           ctx.setLineDash([]);
-        } else if (p.type === 'guide') {
-          ctx.strokeStyle = '#EAB308';
-          ctx.lineWidth = 1.2 / scale;
-          ctx.setLineDash([3 / scale, 3 / scale]);
         } else {
           ctx.strokeStyle = '#94A3B8';
-          ctx.lineWidth = 1 / scale;
+          ctx.lineWidth = 1 / sx;
           ctx.setLineDash([]);
         }
 
         try {
-          const path2d = new Path2D(p.d);
-          ctx.stroke(path2d);
+          ctx.stroke(new Path2D(p.dRaw || p.d));
         } catch (e) {}
       });
 
@@ -879,6 +886,12 @@ window.Cad3DEngine = {
     ctx.fillStyle = '#0284C7';
     const hMidPt = rot({ x: L/2 + 20, y: 0, z: 0 });
     ctx.fillText('ارتفاع H: ' + pUtils.fmtNum(H) + ' mm', hMidPt.x, hMidPt.y);
+
+    // Active Die Top Banner Badge
+    const dieTitle = (cad.customDie && cad.customDie.active && cad.customDie.fileName) ? `قالب اختصاصی: ${cad.customDie.fileName}` : 'پیش‌نمایش سه‌بعدی هندسی جعبه';
+    ctx.font = 'bold 11px Peyda, sans-serif';
+    ctx.fillStyle = isDark ? '#94A3B8' : '#64748B';
+    ctx.fillText(`${dieTitle} (${pUtils.fmtNum(L)} × ${pUtils.fmtNum(W)} × ${pUtils.fmtNum(H)} mm)`, w / 2, 22);
     ctx.restore();
   }
 };

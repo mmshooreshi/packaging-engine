@@ -1,6 +1,6 @@
 /* ============================================================
-   LEMONPACK PRO v2.0.0-refined-production
-   INDUSTRIAL IMPOSITION, PRESS ROUTING & 180° TUMBLE NESTING ENGINE
+   LEMONPACK PRO v2.5.0
+   INDUSTRIAL IMPOSITION, ZERO-OVERLAP NESTING & DIE-CUT RENDERER
    ============================================================ */
 
 window.NestingEngine = {
@@ -76,13 +76,6 @@ window.NestingEngine = {
     }
   ],
 
-  ARCHIVE_DIES: [
-    { id: 'arc_1', name: 'قالب دارویی استاندارد A', model: 'fefco_0215_tuck_bottom', L: 120, W: 80, D: 150 },
-    { id: 'arc_2', name: 'قالب دارویی کوچک B', model: 'fefco_0215_tuck_bottom', L: 90, W: 60, D: 120 },
-    { id: 'arc_3', name: 'قالب کیبوردی متوسط پستی', model: 'fefco_0427_mailer', L: 200, W: 150, D: 70 },
-    { id: 'arc_4', name: 'قالب ساک دستی متوسط', model: 'shopping_bag_luxury', L: 250, W: 100, D: 350 }
-  ],
-
   allOptions: [],
   topRecommendations: [],
   smartAssistantAlerts: [],
@@ -120,16 +113,12 @@ window.NestingEngine = {
     const orderQty = Math.max(1, Number(cad.orderQty) || 1000);
     const paperRatePerKg = Number(rates.paper_price_per_kg_toman) || 520000;
 
-    const flatL_mm = cad.flatL || 310;
-    const flatW_mm = cad.flatW || 220;
+    const flatL_mm = Math.max(20, Number(cad.flatL) || 310);
+    const flatW_mm = Math.max(20, Number(cad.flatW) || 220);
     const gutter_mm = this.CLEARANCES_MM.interDieGutterMm;
     const gripper_mm = this.CLEARANCES_MM.gripperMarginMm;
     const tail_mm = this.CLEARANCES_MM.tailMarginMm;
     const side_mm = this.CLEARANCES_MM.sideMarginLeftMm + this.CLEARANCES_MM.sideMarginRightMm;
-
-    const tumbleGain_mm = cad.tumblePitchGain || 0;
-    const allows180 = !!cad.allows180Tumble;
-    const grainCriticality = cad.grainCriticality || 'high';
 
     const candidates = [];
 
@@ -170,7 +159,6 @@ window.NestingEngine = {
       const upsRot = Math.max(0, colsRot * rowsRot);
 
       if (upsRot > 0) {
-        const isGrainCompliant = (grainCriticality !== 'high');
         candidates.push(this.buildOption({
           parentSheet, isSlit, blankL_cm, blankW_cm,
           layoutMode: 'orthogonal_rotated',
@@ -179,35 +167,9 @@ window.NestingEngine = {
           upsPerBlank: upsRot,
           flatL_mm, flatW_mm,
           targetMachine: targetMachineId,
-          grainCompliant: isGrainCompliant,
-          advisoryNote: !isGrainCompliant ? 'هشدار شکستگی خط‌تا خلاف جهت الیاف کاغذ' : undefined,
+          grainCompliant: true,
           orderQty, paperRatePerKg, gsm: mat.gsm || 300
         }));
-      }
-
-      // Mode 3: Interlocking 180° Tumble
-      if (allows180 && tumbleGain_mm > 0) {
-        const pairPitchLength_mm = (2 * flatL_mm) + gutter_mm - tumbleGain_mm;
-        if (pairPitchLength_mm > 0) {
-          const pairCols = Math.floor((usableL_mm + gutter_mm) / pairPitchLength_mm);
-          const rowsTumble = Math.floor((usableW_mm + gutter_mm) / (flatW_mm + gutter_mm));
-          const upsTumble = (pairCols * 2) * rowsTumble;
-
-          if (upsTumble > 0) {
-            candidates.push(this.buildOption({
-              parentSheet, isSlit, blankL_cm, blankW_cm,
-              layoutMode: 'interlocking_tumble',
-              layoutModeFa: 'چیدمان کله‌به‌کله ۱۸۰ درجه (Tumble)',
-              cols: pairCols * 2, rows: rowsTumble, pairCols: pairCols,
-              upsPerBlank: upsTumble,
-              flatL_mm, flatW_mm,
-              targetMachine: targetMachineId,
-              grainCompliant: true,
-              advisoryNote: `صرفه‌جویی گام با اینترلاک: ${Math.round(tumbleGain_mm)} میلیمتر`,
-              orderQty, paperRatePerKg, gsm: mat.gsm || 300
-            }));
-          }
-        }
       }
     };
 
@@ -220,83 +182,70 @@ window.NestingEngine = {
       }
     });
 
-    const uniqueMap = {};
-    candidates.forEach(c => {
-      const key = `${c.parentSheetName}-${c.isSlitToHalf}-${c.blankLength_cm}x${c.blankWidth_cm}-${c.layoutMode}-${c.upsPerBlank}`;
-      if (!uniqueMap[key] || uniqueMap[key].arbitrationCost > c.arbitrationCost) {
-        uniqueMap[key] = c;
-      }
-    });
+    candidates.sort((a, b) => a.totalCogs_toman - b.totalCogs_toman);
 
-    const sorted = Object.values(uniqueMap).sort((a, b) => {
-      if (a.grainCompliant !== b.grainCompliant) return a.grainCompliant ? -1 : 1;
-      return a.arbitrationCost - b.arbitrationCost;
-    });
-
-    if (sorted.length > 0) {
-      sorted[0].isBestValue = true;
-      sorted[0].badgeText = 'پیشنهاد طلایی (Gold Pick)';
-      if (sorted[1]) sorted[1].badgeText = 'گزینه اقتصادی ۲';
-      if (sorted[2]) sorted[2].badgeText = 'گزینه جایگزین ۳';
+    if (candidates.length > 0) {
+      candidates[0].isBestValue = true;
+      candidates[0].badgeText = 'پیشنهاد طلایی (بهینه‌ترین)';
     }
 
-    this.allOptions = sorted.length > 0 ? sorted : [this.getFallbackOption(orderQty, paperRatePerKg, mat.gsm || 300)];
+    this.allOptions = candidates.length > 0 ? candidates : [this.getFallbackOption(orderQty, paperRatePerKg, mat.gsm || 300)];
     this.topRecommendations = this.allOptions.slice(0, 3);
-
+    
+    // Auto-select best option
     if (this.selectedOptionIndex >= this.allOptions.length) {
       this.selectedOptionIndex = 0;
     }
-
     this.applyOption(this.selectedOptionIndex);
-    this.evaluateSmartAssistantTriggers();
     this.renderPaginationUI();
     this.renderRecommendationCards();
   },
 
-  buildOption(params) {
-    const {
-      parentSheet, isSlit, blankL_cm, blankW_cm,
-      layoutMode, layoutModeFa, cols, rows, pairCols,
-      upsPerBlank, flatL_mm, flatW_mm,
-      targetMachine, grainCompliant, advisoryNote,
-      orderQty, paperRatePerKg, gsm
-    } = params;
+  buildOption(p) {
+    const parentSheet = p.parentSheet;
+    const isSlit = p.isSlit;
+    const blankL_cm = p.blankL_cm;
+    const blankW_cm = p.blankW_cm;
+    const layoutMode = p.layoutMode;
+    const layoutModeFa = p.layoutModeFa;
+    const cols = p.cols;
+    const rows = p.rows;
+    const pairCols = p.pairCols || 0;
+    const upsPerBlank = p.upsPerBlank;
+    const flatL_mm = p.flatL_mm;
+    const flatW_mm = p.flatW_mm;
+    const targetMachine = p.targetMachine;
+    const grainCompliant = p.grainCompliant;
+    const orderQty = p.orderQty;
+    const paperRatePerKg = p.paperRatePerKg;
+    const gsm = p.gsm;
 
     const machine = this.PRESS_PORTFOLIO[targetMachine];
     const multiplier = isSlit ? 2 : 1;
     const upsPerParentSheet = upsPerBlank * multiplier;
 
-    const blankArea_cm2 = blankL_cm * blankW_cm;
-    const usefulArea_cm2 = (upsPerBlank * flatL_mm * flatW_mm) / 100;
-    const wastePercentage = Math.max(0, Number((100 - ((usefulArea_cm2 / blankArea_cm2) * 100)).toFixed(1)));
-
-    const weightPerParentSheetKg = (parentSheet.lengthCm * parentSheet.widthCm * gsm) / 10000000;
-    let rawParentSheetsNeeded = 0;
-    let impressions = 0;
-
-    if (targetMachine === 'press_4_5') {
-      rawParentSheetsNeeded = Math.ceil(orderQty / Math.max(1, upsPerBlank));
-      impressions = rawParentSheetsNeeded;
-    } else {
-      const blanksNeeded = Math.ceil(orderQty / Math.max(1, upsPerBlank));
-      rawParentSheetsNeeded = Math.ceil(blanksNeeded / multiplier);
-      impressions = blanksNeeded;
-    }
-
-    const procuredParentSheets = Math.ceil(rawParentSheetsNeeded / 100) * 100;
-    const totalPaperKg = procuredParentSheets * weightPerParentSheetKg;
-    const paperCost_toman = Math.round(totalPaperKg * paperRatePerKg);
+    const blankAreaCm2 = blankL_cm * blankW_cm;
+    const cartonAreaCm2 = (flatL_mm * flatW_mm) / 100;
+    const totalCartonAreaCm2 = upsPerBlank * cartonAreaCm2;
+    const wastePercentage = Math.max(0, Math.min(100, Number((((blankAreaCm2 - totalCartonAreaCm2) / blankAreaCm2) * 100).toFixed(1))));
 
     const plateCost_toman = machine.cmykPlatesCostToman;
-    const pressRunsCount = Math.max(1, Math.ceil(impressions / 5000));
-    const pressRunCost_toman = pressRunsCount * machine.runRatePer5000Toman;
+    const impressions = Math.ceil(orderQty / upsPerBlank);
+    const pressRuns5000 = Math.ceil(impressions / 5000) || 1;
+    const pressRunCost_toman = pressRuns5000 * machine.runRatePer5000Toman;
 
-    const arbitrationCost = paperCost_toman + plateCost_toman + pressRunCost_toman;
+    const requiredBlanks = impressions;
+    const requiredParentSheets = Math.ceil(requiredBlanks / multiplier);
+    const wasteSheets = Math.max(150, Math.ceil(requiredParentSheets * 0.08));
+    const procuredParentSheets = requiredParentSheets + wasteSheets;
 
-    const laminationCost_toman = Math.round(blankL_cm * blankW_cm * 3.3 * (isSlit ? procuredParentSheets * 2 : procuredParentSheets));
-    const dieCuttingCost_toman = (window.LemonPack.cad.isDieInArchive ? 0 : 3500000) + 4000000;
-    const finishingCost_toman = (orderQty * 350) + 1800000 + 600000;
-    const totalCogs_toman = arbitrationCost + laminationCost_toman + dieCuttingCost_toman + finishingCost_toman;
+    const parentSheetAreaM2 = (parentSheet.lengthCm / 100) * (parentSheet.widthCm / 100);
+    const singleSheetWeightKg = parentSheetAreaM2 * (gsm / 1000);
+    const totalPaperWeightKg = procuredParentSheets * singleSheetWeightKg;
+    const paperCost_toman = Math.round(totalPaperWeightKg * paperRatePerKg);
+
+    const arbitrationCost = 0;
+    const totalCogs_toman = plateCost_toman + pressRunCost_toman + paperCost_toman + arbitrationCost;
     const finalInvoice_toman = Math.round(totalCogs_toman * 1.30);
     const unitPrice_toman = Math.round(finalInvoice_toman / orderQty);
 
@@ -307,29 +256,28 @@ window.NestingEngine = {
       isSlitToHalf: isSlit,
       blankLength_cm: blankL_cm,
       blankWidth_cm: blankW_cm,
-      layoutMode: layoutMode,
-      layoutModeFa: layoutModeFa,
-      cols: cols,
-      rows: rows,
-      pairCols: pairCols,
-      upsPerBlank: upsPerBlank,
-      upsPerParentSheet: upsPerParentSheet,
-      wastePercentage: wastePercentage,
-      targetMachine: targetMachine,
+      layoutMode,
+      layoutModeFa,
+      cols,
+      rows,
+      pairCols,
+      upsPerBlank,
+      upsPerParentSheet,
+      wastePercentage,
+      targetMachine,
       targetMachineName: machine.name,
       targetMachineShort: machine.shortName,
-      plateCost_toman: plateCost_toman,
-      pressRunCost_toman: pressRunCost_toman,
-      procuredParentSheets: procuredParentSheets,
-      impressions: impressions,
-      paperCost_toman: paperCost_toman,
-      arbitrationCost: arbitrationCost,
-      totalCogs_toman: totalCogs_toman,
-      finalInvoice_toman: finalInvoice_toman,
-      unitPrice_toman: unitPrice_toman,
-      grainCompliant: grainCompliant,
-      isBestValue: false,
-      advisoryNote: advisoryNote
+      plateCost_toman,
+      pressRunCost_toman,
+      procuredParentSheets,
+      impressions,
+      paperCost_toman,
+      arbitrationCost,
+      totalCogs_toman,
+      finalInvoice_toman,
+      unitPrice_toman,
+      grainCompliant,
+      isBestValue: false
     };
   },
 
@@ -357,13 +305,13 @@ window.NestingEngine = {
       procuredParentSheets: 300,
       impressions: 600,
       paperCost_toman: 24000000,
-      arbitrationCost: 42600000,
+      arbitrationCost: 0,
       totalCogs_toman: 55000000,
       finalInvoice_toman: 71500000,
       unitPrice_toman: 71500,
       grainCompliant: true,
       isBestValue: true,
-      badgeText: 'پیشنهاد طلایی (Gold Pick)'
+      badgeText: 'پیشنهاد طلایی'
     };
   },
 
@@ -406,176 +354,11 @@ window.NestingEngine = {
     if (window.SoundEngine) window.SoundEngine.playClick();
   },
 
-  evaluateSmartAssistantTriggers() {
-    const cad = window.LemonPack.cad;
-    const currentOpt = this.allOptions[this.selectedOptionIndex] || this.allOptions[0];
-    const alerts = [];
-
-    if (!currentOpt) return;
-
-    if (currentOpt.wastePercentage > 20) {
-      const flatL = cad.flatL;
-      const flatW = cad.flatW;
-      const usableL_mm = (currentOpt.blankLength_cm * 10) - 20;
-      const usableW_mm = (currentOpt.blankWidth_cm * 10) - 10;
-      const gutter = 4;
-
-      let foundOptimization = null;
-      for (let delta = 1; delta <= 8; delta++) {
-        const testFlatW = flatW - delta;
-        const testRows = Math.floor((usableW_mm + gutter) / (testFlatW + gutter));
-        if (testRows > currentOpt.rows) {
-          const newUps = testRows * currentOpt.cols;
-          const savingsPct = Math.round(((newUps - currentOpt.upsPerBlank) / newUps) * 100);
-          foundOptimization = {
-            dimension: 'عمق/عرض',
-            deltaMm: delta,
-            newUps: newUps,
-            savingsPct: Math.max(8, savingsPct)
-          };
-          break;
-        }
-      }
-
-      if (foundOptimization) {
-        alerts.push({
-          type: 'dimension_optimization',
-          icon: 'ph-trend-down',
-          color: '#D97706',
-          title: 'پیشنهاد بهینه‌سازی مهندسی ابعاد (کاهش دورریز)',
-          message: `کاهش ابعاد جعبه به میزان ${foundOptimization.deltaMm} میلیمتر، یک ردیف به شیت اضافه کرده و قیمت واحد را حدود ${foundOptimization.savingsPct}٪ کاهش می‌دهد.`,
-          actionLabel: `اعمال کاهش ${foundOptimization.deltaMm}mm ابعاد`,
-          deltaMm: foundOptimization.deltaMm
-        });
-      }
-    }
-
-    const boxL = Number(cad.length) || 0;
-    const boxW = Number(cad.width) || 0;
-    const boxD = Number(cad.height || cad.depth) || 0;
-
-    const matchedArchive = this.ARCHIVE_DIES.find(a =>
-      Math.abs(a.L - boxL) <= 2 &&
-      Math.abs(a.W - boxW) <= 2 &&
-      Math.abs(a.D - boxD) <= 2
-    );
-
-    if (matchedArchive && !cad.isDieInArchive) {
-      alerts.push({
-        type: 'archive_die_match',
-        icon: 'ph-check-circle',
-        color: '#10B981',
-        title: 'قالب آماده مشابه در انبار یافت شد!',
-        message: `قالب کد ${matchedArchive.name} با ابعاد ${matchedArchive.L}×${matchedArchive.W}×${matchedArchive.D} در بایگانی موجود است. ۳,۵۰۰,۰۰۰ تومان صرفه‌جویی در هزینه ساخت قالب لیزری.`,
-        actionLabel: 'استفاده از قالب آرشیو (حذف هزینه)',
-        archiveId: matchedArchive.id
-      });
-    }
-
-    this.smartAssistantAlerts = alerts;
-    this.renderSmartAssistantUI();
-  },
-
-  applyDimensionOptimization(deltaMm) {
-    const cad = window.LemonPack.cad;
-    if (cad.height) cad.height = Math.max(10, cad.height - deltaMm);
-    if (cad.depth) cad.depth = Math.max(10, cad.depth - deltaMm);
-    const inpH = document.getElementById('inp-height');
-    if (inpH) inpH.value = cad.height || cad.depth;
-
-    if (window.CadEngine) window.CadEngine.recalculateFlatDimensions();
-    if (window.App) window.App.recalculate();
-    toast(`ابعاد با موفقیت ${deltaMm} میلیمتر کاهش یافت و شیت بهینه شد ✓`);
-  },
-
-  applyArchiveDie() {
-    const cad = window.LemonPack.cad;
-    cad.isDieInArchive = true;
-    const chk = document.getElementById('chk-archive-die');
-    if (chk) chk.checked = true;
-    if (window.App) window.App.recalculate();
-    toast('قالب آرشیو فعال شد و هزینه ساخت قالب حذف گردید ✓');
-  },
-
-  renderSmartAssistantUI() {
-    const container = document.getElementById('smart-assistant-container');
-    if (!container) return;
-
-    if (this.smartAssistantAlerts.length === 0) {
-      container.innerHTML = '';
-      container.style.display = 'none';
-      return;
-    }
-
-    container.style.display = 'block';
-    let html = '';
-
-    this.smartAssistantAlerts.forEach(alert => {
-      if (alert.type === 'dimension_optimization') {
-        html += `
-          <div class="smart-alert-card" style="
-            background: rgba(217, 119, 6, 0.08);
-            border: 1px solid rgba(217, 119, 6, 0.4);
-            border-right: 4px solid #D97706;
-            border-radius: 8px;
-            padding: 10px 14px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            flex-wrap: wrap;
-          ">
-            <div style="display:flex; align-items:center; gap:10px;">
-              <i class="ph ${alert.icon}" style="font-size:1.4rem; color:#D97706;"></i>
-              <div>
-                <div style="font-weight:800; font-size:0.82rem; color:#B45309;">${alert.title}</div>
-                <div style="font-size:0.75rem; color:var(--text-main); margin-top:2px;">${alert.message}</div>
-              </div>
-            </div>
-            <button class="btn btn-sm btn-primary" onclick="NestingEngine.applyDimensionOptimization(${alert.deltaMm})" style="font-size:0.75rem; padding:4px 12px; font-weight:700;">
-              <i class="ph ph-magic-wand"></i> ${alert.actionLabel}
-            </button>
-          </div>
-        `;
-      } else if (alert.type === 'archive_die_match') {
-        html += `
-          <div class="smart-alert-card" style="
-            background: rgba(16, 185, 129, 0.08);
-            border: 1px solid rgba(16, 185, 129, 0.4);
-            border-right: 4px solid #10B981;
-            border-radius: 8px;
-            padding: 10px 14px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            flex-wrap: wrap;
-          ">
-            <div style="display:flex; align-items:center; gap:10px;">
-              <i class="ph ${alert.icon}" style="font-size:1.4rem; color:#10B981;"></i>
-              <div>
-                <div style="font-weight:800; font-size:0.82rem; color:#065F46;">${alert.title}</div>
-                <div style="font-size:0.75rem; color:var(--text-main); margin-top:2px;">${alert.message}</div>
-              </div>
-            </div>
-            <button class="btn btn-sm btn-outline" onclick="NestingEngine.applyArchiveDie()" style="font-size:0.75rem; padding:4px 12px; font-weight:700; border-color:#10B981; color:#065F46; background:white;">
-              <i class="ph ph-check"></i> ${alert.actionLabel}
-            </button>
-          </div>
-        `;
-      }
-    });
-
-    container.innerHTML = html;
-  },
-
   renderRecommendationCards() {
     const container = document.getElementById('recommendations-cockpit-container');
     if (!container) return;
 
-    const pUtils = window.PersianUtils || { fmtNum: (v, d) => String(v), e2p: v => String(v) };
+    const pUtils = window.PersianUtils || { fmtNum: (v, d) => String(v) };
     if (this.topRecommendations.length === 0) {
       container.innerHTML = '';
       return;
@@ -586,7 +369,7 @@ window.NestingEngine = {
         <div style="font-weight:800; font-size:0.86rem; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between;">
           <span style="display:flex; align-items:center; gap:6px; color:var(--graphite-text);">
             <i class="ph ph-trophy" style="color:#D97706; font-size:1.1rem;"></i>
-            <span>کارت‌های مقایسه و انتخاب ماشین و فرم‌بندی (Admin Cockpit)</span>
+            <span>کارت‌های مقایسه و انتخاب ماشین و فرم‌بندی</span>
           </span>
           <span style="font-size:0.72rem; color:var(--text-muted);">تحلیل خودکار هزینه زینک + دور چاپ + باطله مقوا</span>
         </div>
@@ -638,7 +421,7 @@ window.NestingEngine = {
               </div>
               <div style="display:flex; justify-content:space-between;">
                 <span>تعداد شیت مادر:</span>
-                <strong class="tabular-nums">${pUtils.fmtNum(opt.procuredParentSheets)} شیت (${pUtils.fmtNum(Math.round(opt.procuredParentSheets/100))} بند)</strong>
+                <strong class="tabular-nums">${pUtils.fmtNum(opt.procuredParentSheets)} شیت</strong>
               </div>
             </div>
           </div>
@@ -648,20 +431,12 @@ window.NestingEngine = {
               <span style="font-size:0.7rem; color:var(--text-muted);">قیمت هر عدد:</span>
               <strong style="font-size:0.88rem; color:var(--brand-primary);">${pUtils.fmtNum(opt.unitPrice_toman)} تومان</strong>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:baseline; font-size:0.68rem; color:var(--text-dim); margin-top:2px;">
-              <span>مبلغ کل فاکتور:</span>
-              <span class="tabular-nums font-bold">${pUtils.fmtNum(opt.finalInvoice_toman)} تومان</span>
-            </div>
           </div>
         </div>
       `;
     });
 
-    html += `
-        </div>
-      </div>
-    `;
-
+    html += `</div></div>`;
     container.innerHTML = html;
   },
 
@@ -669,7 +444,7 @@ window.NestingEngine = {
     const container = document.getElementById('nesting-options-pagination');
     if (!container) return;
 
-    const pUtils = window.PersianUtils || { fmtNum: (v, d) => String(v), e2p: v => String(v) };
+    const pUtils = window.PersianUtils || { fmtNum: (v, d) => String(v) };
     const totalPages = Math.ceil(this.allOptions.length / this.pageSize) || 1;
     if (this.currentPage >= totalPages) this.currentPage = totalPages - 1;
     if (this.currentPage < 0) this.currentPage = 0;
@@ -699,8 +474,6 @@ window.NestingEngine = {
             <div style="display:flex; align-items:center; gap:6px;">
               <strong style="color:var(--graphite-text); font-size:0.82rem;">${pUtils.fmtNum(opt.blankLength_cm)} × ${pUtils.fmtNum(opt.blankWidth_cm)} cm</strong>
               <span style="color:var(--text-muted); font-size:0.72rem;">(${opt.targetMachineShort})</span>
-              ${opt.isBestValue ? '<span class="badge badge-primary" style="font-size:0.62rem; padding:1px 5px;">پیشنهاد طلایی</span>' : ''}
-              ${!opt.grainCompliant ? '<span class="badge" style="background:#FEE2E2; color:#DC2626; font-size:0.62rem; padding:1px 5px;">خلاف الیاف</span>' : ''}
             </div>
             <div style="font-size:0.7rem; color:var(--text-dim); margin-top:2px;">
               ${opt.layoutModeFa} | ${pUtils.fmtNum(opt.rows)} ردیف × ${pUtils.fmtNum(opt.cols)} کار
@@ -750,6 +523,9 @@ window.NestingEngine = {
     }
   },
 
+  /* ============================================================
+     CANVAS ZERO-OVERLAP IMPOSITION RENDERING
+     ============================================================ */
   renderCanvas() {
     const canvas = document.getElementById('nesting-canvas');
     if (!canvas || !canvas.getContext) return;
@@ -765,13 +541,16 @@ window.NestingEngine = {
     const padding = 28;
     const availW = w - (padding * 2);
     const availH = h - (padding * 2);
-    const scale = Math.min(availW / (nest.sheetL || 70), availH / (nest.sheetW || 50));
+    const sheetL_cm = nest.sheetL || 70;
+    const sheetW_cm = nest.sheetW || 50;
+    const scale = Math.min(availW / sheetL_cm, availH / sheetW_cm);
 
-    const drawSheetW = (nest.sheetL || 70) * scale;
-    const drawSheetH = (nest.sheetW || 50) * scale;
+    const drawSheetW = sheetL_cm * scale;
+    const drawSheetH = sheetW_cm * scale;
     const startX = (w - drawSheetW) / 2;
     const startY = (h - drawSheetH) / 2;
 
+    // Sheet Background
     ctx.fillStyle = '#FAF8F5';
     ctx.fillRect(startX, startY, drawSheetW, drawSheetH);
     ctx.strokeStyle = '#334155';
@@ -779,13 +558,13 @@ window.NestingEngine = {
     ctx.strokeRect(startX, startY, drawSheetW, drawSheetH);
 
     const gripperMarginCm = this.CLEARANCES_MM.gripperMarginMm / 10;
-    const tailMarginCm = this.CLEARANCES_MM.tailMarginMm / 10;
     const safetyMarginCm = this.CLEARANCES_MM.sideMarginLeftMm / 10;
     const gutterCm = this.CLEARANCES_MM.interDieGutterMm / 10;
 
     const flatLcm = (cad.flatL || 310) / 10;
     const flatWcm = (cad.flatW || 220) / 10;
 
+    // Draw Gripper Margin (15 mm on right)
     const gripperDraw = gripperMarginCm * scale;
     ctx.fillStyle = 'rgba(239, 68, 68, 0.12)';
     ctx.fillRect(startX + drawSheetW - gripperDraw, startY, gripperDraw, drawSheetH);
@@ -811,8 +590,6 @@ window.NestingEngine = {
     const printableStartY = startY + (safetyMarginCm * scale);
 
     const isRotated = (opt && opt.layoutMode === 'orthogonal_rotated');
-    const isTumble = (opt && opt.layoutMode === 'interlocking_tumble');
-
     const unitWcm = isRotated ? flatWcm : flatLcm;
     const unitHcm = isRotated ? flatLcm : flatWcm;
 
@@ -828,47 +605,19 @@ window.NestingEngine = {
     let activeHoverCell = null;
     const mouse = this.hoverPoint;
 
-    if (isTumble && opt && opt.pairCols > 0) {
-      const pairPitchCm = ((2 * flatLcm) + gutterCm - (cad.tumblePitchGain / 10));
-      const pairDrawPitch = pairPitchCm * scale;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const bx = printableStartX + (c * (cellDrawW + gutterDraw));
+        const by = printableStartY + (r * (cellDrawH + gutterDraw));
+        const currentBoxIdx = boxIndex++;
 
-      for (let r = 0; r < rows; r++) {
-        for (let p = 0; p < opt.pairCols; p++) {
-          const pairStartX = printableStartX + (p * pairDrawPitch);
-          const by = printableStartY + (r * (cellDrawH + gutterDraw));
+        // Guaranteed safety check
+        if (bx + cellDrawW > startX + drawSheetW - gripperDraw + 2) continue;
+        if (by + cellDrawH > startY + drawSheetH + 2) continue;
 
-          const bx1 = pairStartX;
-          const boxIdx1 = boxIndex++;
-          if (bx1 + cellDrawW <= startX + drawSheetW - gripperDraw + 2 && by + cellDrawH <= startY + drawSheetH + 2) {
-            this.drawCellBox(ctx, bx1, by, cellDrawW, cellDrawH, boxIdx1, 0, cad, scale, mouse, pUtils, (hover) => {
-              activeHoverCell = hover;
-            });
-          }
-
-          const tumbleGainDraw = (cad.tumblePitchGain / 10) * scale;
-          const bx2 = pairStartX + cellDrawW + gutterDraw - tumbleGainDraw;
-          const boxIdx2 = boxIndex++;
-          if (bx2 + cellDrawW <= startX + drawSheetW - gripperDraw + 2 && by + cellDrawH <= startY + drawSheetH + 2) {
-            this.drawCellBox(ctx, bx2, by, cellDrawW, cellDrawH, boxIdx2, 180, cad, scale, mouse, pUtils, (hover) => {
-              activeHoverCell = hover;
-            });
-          }
-        }
-      }
-    } else {
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const bx = printableStartX + (c * (cellDrawW + gutterDraw));
-          const by = printableStartY + (r * (cellDrawH + gutterDraw));
-          const currentBoxIdx = boxIndex++;
-
-          if (bx + cellDrawW > startX + drawSheetW - gripperDraw + 2) continue;
-          if (by + cellDrawH > startY + drawSheetH + 2) continue;
-
-          this.drawCellBox(ctx, bx, by, cellDrawW, cellDrawH, currentBoxIdx, isRotated ? 90 : 0, cad, scale, mouse, pUtils, (hover) => {
-            activeHoverCell = hover;
-          });
-        }
+        this.drawCellBox(ctx, bx, by, cellDrawW, cellDrawH, currentBoxIdx, isRotated ? 90 : 0, cad, scale, mouse, pUtils, (hover) => {
+          activeHoverCell = hover;
+        });
       }
     }
 
@@ -892,18 +641,30 @@ window.NestingEngine = {
     if (isHovered) {
       setHover({
         index: boxIdx,
-        text: `جعبه ${pUtils.fmtNum(boxIdx)} (${rotationDeg}° ${rotationDeg === 180 ? 'وارونه/Tumble' : 'مستقیم'}) | ابعاد گسترده: ${pUtils.fmtNum(cad.flatL)}×${pUtils.fmtNum(cad.flatW)} mm`
+        text: `جعبه ${pUtils.fmtNum(boxIdx)} (${rotationDeg}° ${rotationDeg === 90 ? 'چرخیده ۹۰°' : 'مستقیم'}) | ابعاد گسترده: ${pUtils.fmtNum(cad.flatL)}×${pUtils.fmtNum(cad.flatW)} mm`
       });
-      ctx.fillStyle = 'rgba(217, 119, 6, 0.24)';
+      ctx.fillStyle = 'rgba(217, 119, 6, 0.22)';
     } else {
-      ctx.fillStyle = rotationDeg === 180 ? 'rgba(2, 132, 199, 0.08)' : 'rgba(217, 119, 6, 0.06)';
+      ctx.fillStyle = 'rgba(217, 119, 6, 0.05)';
     }
 
     ctx.fillRect(bx, by, cellDrawW, cellDrawH);
+    ctx.strokeStyle = isHovered ? '#D97706' : '#CBD5E1';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(bx, by, cellDrawW, cellDrawH);
 
+    // Render Vector Custom Die Paths inside cell
     if (cad.customDie && cad.customDie.active && cad.customDie.paths && cad.customDie.paths.length > 0) {
-      const b = cad.customDie.bounds || { minX: 0, minY: 0, width: cad.flatL, height: cad.flatW };
-      const pScale = Math.min((cellDrawW - 2) / (b.width || 1), (cellDrawH - 2) / (b.height || 1));
+      const b = cad.customDie.bounds || { minX: 0, minY: 0, rawWidth: cad.flatL, rawHeight: cad.flatW, scaleToMm: 1 };
+      const rawW = b.rawWidth || cad.flatL;
+      const rawH = b.rawHeight || cad.flatW;
+      const scaleToMm = b.scaleToMm || 1.0;
+      const targetW = cad.flatL;
+      const targetH = cad.flatW;
+
+      const fitW = (rotationDeg === 90 || rotationDeg === 270) ? targetH : targetW;
+      const fitH = (rotationDeg === 90 || rotationDeg === 270) ? targetW : targetH;
+      const cellScale = Math.min((cellDrawW - 4) / fitW, (cellDrawH - 4) / fitH);
 
       ctx.save();
       ctx.beginPath();
@@ -912,41 +673,37 @@ window.NestingEngine = {
 
       ctx.translate(bx + cellDrawW / 2, by + cellDrawH / 2);
       if (rotationDeg !== 0) ctx.rotate((rotationDeg * Math.PI) / 180);
-      ctx.scale(pScale, pScale);
-      ctx.translate(-b.minX - b.width / 2, -b.minY - b.height / 2);
+      ctx.scale(cellScale * (targetW / (rawW * scaleToMm)) * scaleToMm, cellScale * (targetH / (rawH * scaleToMm)) * scaleToMm);
+      ctx.translate(-b.minX - rawW / 2, -b.minY - rawH / 2);
 
       cad.customDie.paths.forEach(p => {
         if (!p.visible || p.type === 'ignore') return;
         if (p.type === 'cut') {
           ctx.strokeStyle = '#DC2626';
-          ctx.lineWidth = 1.2 / pScale;
+          ctx.lineWidth = 1.2 / cellScale;
           ctx.setLineDash([]);
         } else if (p.type === 'crease') {
           ctx.strokeStyle = '#2563EB';
-          ctx.lineWidth = 0.9 / pScale;
-          ctx.setLineDash([3 / pScale, 3 / pScale]);
+          ctx.lineWidth = 0.9 / cellScale;
+          ctx.setLineDash([3 / cellScale, 3 / cellScale]);
         } else if (p.type === 'glue') {
           ctx.strokeStyle = '#059669';
-          ctx.lineWidth = 1.2 / pScale;
+          ctx.lineWidth = 1.2 / cellScale;
           ctx.setLineDash([]);
         } else {
           ctx.strokeStyle = '#94A3B8';
-          ctx.lineWidth = 0.8 / pScale;
+          ctx.lineWidth = 0.8 / cellScale;
           ctx.setLineDash([]);
         }
         try {
-          ctx.stroke(new Path2D(p.d));
+          ctx.stroke(new Path2D(p.dRaw || p.d));
         } catch (e) {}
       });
 
       ctx.restore();
     } else {
-      ctx.strokeStyle = rotationDeg === 180 ? '#0284C7' : '#DC2626';
-      ctx.lineWidth = 1.2;
-      ctx.strokeRect(bx, by, cellDrawW, cellDrawH);
-
       ctx.strokeStyle = '#2563EB';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 0.8;
       ctx.setLineDash([3, 3]);
       ctx.beginPath();
       ctx.moveTo(bx, by + (cellDrawH * 0.3));
@@ -955,19 +712,12 @@ window.NestingEngine = {
       ctx.lineTo(bx + cellDrawW, by + (cellDrawH * 0.7));
       ctx.stroke();
       ctx.setLineDash([]);
-
-      if (rotationDeg === 180) {
-        ctx.fillStyle = '#0284C7';
-        ctx.font = 'bold 8px Peyda, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('⮁ 180°', bx + (cellDrawW / 2), by + 12);
-      }
     }
 
+    // Number Badge
     ctx.fillStyle = '#1E293B';
     ctx.font = 'bold 10px Peyda, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(pUtils.fmtNum(boxIdx), bx + (cellDrawW / 2), by + (cellDrawH / 2) + 3);
   }
 };
-

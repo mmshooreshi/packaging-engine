@@ -971,7 +971,7 @@
               <div class="stepper-label">عرض شیت (W):</div>
               <div style="display:flex; align-items:center; gap:4px;">
                 <button class="btn-stepper" onclick="ParametricDieEngine.stepFlatSize('w', -5)">-</button>
-                <input type="number" id="die-flat-w" class="stepper-input" value="415" onchange="ParametricDieEngine.setFlatSize('w', this.value)">
+                <input type="number" id="die-flat-w" class="stepper-input" value="415" oninput="ParametricDieEngine.setFlatSize('w', this.value)">
                 <button class="btn-stepper" onclick="ParametricDieEngine.stepFlatSize('w', 5)">+</button>
               </div>
             </div>
@@ -979,7 +979,7 @@
               <div class="stepper-label">طول شیت (H):</div>
               <div style="display:flex; align-items:center; gap:4px;">
                 <button class="btn-stepper" onclick="ParametricDieEngine.stepFlatSize('h', -5)">-</button>
-                <input type="number" id="die-flat-h" class="stepper-input" value="266" onchange="ParametricDieEngine.setFlatSize('h', this.value)">
+                <input type="number" id="die-flat-h" class="stepper-input" value="266" oninput="ParametricDieEngine.setFlatSize('h', this.value)">
                 <button class="btn-stepper" onclick="ParametricDieEngine.stepFlatSize('h', 5)">+</button>
               </div>
             </div>
@@ -987,7 +987,7 @@
               <div class="stepper-label">طول L:</div>
               <div style="display:flex; align-items:center; gap:4px;">
                 <button class="btn-stepper" onclick="ParametricDieEngine.stepParam('length', -5)">-</button>
-                <input type="number" id="die-param-l" class="stepper-input" value="120" onchange="ParametricDieEngine.setParam('length', this.value)">
+                <input type="number" id="die-param-l" class="stepper-input" value="120" oninput="ParametricDieEngine.setParam('length', this.value)">
                 <button class="btn-stepper" onclick="ParametricDieEngine.stepParam('length', 5)">+</button>
               </div>
             </div>
@@ -995,7 +995,7 @@
               <div class="stepper-label">عرض W:</div>
               <div style="display:flex; align-items:center; gap:4px;">
                 <button class="btn-stepper" onclick="ParametricDieEngine.stepParam('width', -5)">-</button>
-                <input type="number" id="die-param-w" class="stepper-input" value="80" onchange="ParametricDieEngine.setParam('width', this.value)">
+                <input type="number" id="die-param-w" class="stepper-input" value="80" oninput="ParametricDieEngine.setParam('width', this.value)">
                 <button class="btn-stepper" onclick="ParametricDieEngine.stepParam('width', 5)">+</button>
               </div>
             </div>
@@ -1003,7 +1003,7 @@
               <div class="stepper-label">ارتفاع H:</div>
               <div style="display:flex; align-items:center; gap:4px;">
                 <button class="btn-stepper" onclick="ParametricDieEngine.stepParam('height', -5)">-</button>
-                <input type="number" id="die-param-h" class="stepper-input" value="150" onchange="ParametricDieEngine.setParam('height', this.value)">
+                <input type="number" id="die-param-h" class="stepper-input" value="150" oninput="ParametricDieEngine.setParam('height', this.value)">
                 <button class="btn-stepper" onclick="ParametricDieEngine.stepParam('height', 5)">+</button>
               </div>
             </div>

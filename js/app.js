@@ -389,13 +389,18 @@ window.App = {
     cad.orderQty = Math.max(1, Number(document.getElementById('inp-order-qty').value) || 1000);
     cad.isDieInArchive = document.getElementById('chk-archive-die') ? document.getElementById('chk-archive-die').checked : false;
 
-    if (window.CadEngine) {
-      window.CadEngine.recalculateFlatDimensions();
+    if (window.ParametricDieEngine) {
+      window.ParametricDieEngine.params.length = cad.length;
+      window.ParametricDieEngine.params.width = cad.width;
+      window.ParametricDieEngine.params.height = cad.height;
+      if (!window.ParametricDieEngine.isCustomImport) {
+        window.ParametricDieEngine.synthesizeModel();
+      }
+      window.ParametricDieEngine.render();
     }
 
-    // If custom SVG die is loaded, rescale its vector paths to match the new flat dimensions
-    if (cad.customDie && cad.customDie.active && window.DieCutImporter) {
-      window.DieCutImporter.updateDieDimensions(cad.flatL, cad.flatW, 'all');
+    if (window.CadEngine) {
+      window.CadEngine.recalculateFlatDimensions();
     }
 
     this.updateTalqPriceCard();
@@ -408,12 +413,31 @@ window.App = {
     const cad = window.LemonPack.cad;
     cad[marginKey] = Math.max(0, Number(value) || 0);
 
+    if (window.ParametricDieEngine) {
+      if (marginKey === 'glueFlap') window.ParametricDieEngine.params.glueFlap = cad[marginKey];
+      if (marginKey === 'tuckFlap') window.ParametricDieEngine.params.topTuck = cad[marginKey];
+      if (marginKey === 'dustFlap') window.ParametricDieEngine.params.dustFlap = cad[marginKey];
+      if (!window.ParametricDieEngine.isCustomImport) {
+        window.ParametricDieEngine.synthesizeModel();
+      }
+      window.ParametricDieEngine.render();
+    }
+
     if (window.CadEngine) {
       window.CadEngine.recalculateFlatDimensions();
     }
 
-    if (cad.customDie && cad.customDie.active && window.DieCutImporter) {
-      window.DieCutImporter.updateDieDimensions(cad.flatL, cad.flatW, 'all');
+    this.recalculate();
+  },
+
+  onFlatDimensionInput(axis, value) {
+    const cad = window.LemonPack.cad;
+    const num = Math.max(20, Number(value) || 20);
+    if (axis === 'flatL') cad.flatL = num;
+    else if (axis === 'flatW') cad.flatW = num;
+
+    if (window.ParametricDieEngine) {
+      window.ParametricDieEngine.setFlatSize(axis === 'flatL' ? 'w' : 'h', num, true);
     }
 
     this.recalculate();
