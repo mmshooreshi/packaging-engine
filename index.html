@@ -878,339 +878,65 @@
 
     <!-- VIEW 3: VECTOR DIE-CUT IMPORTER & PARAMETRIC FORMULA STUDIO -->
     <div class="main-tab-view" id="view-diecut" style="display:none;">
-      <div style="max-width:1200px; margin:20px auto; padding:0 16px;">
+      <div style="max-width:1200px; margin:16px auto; padding:0 16px;">
         
-        <!-- Live HUD Status Metrics -->
-        <div class="diecut-hud">
-          <div class="diecut-hud-card">
-            <span class="diecut-hud-label"><i class="ph ph-cube" style="color:#3B82F6;"></i> ابعاد ۳بعدی جعبه (L×W×H)</span>
-            <span class="diecut-hud-val" id="diecut-3d-box-dims">۱۲۰ × ۸۰ × ۱۵۰ mm</span>
-          </div>
-          <div class="diecut-hud-card">
-            <span class="diecut-hud-label"><i class="ph ph-bounding-box" style="color:#10B981;"></i> ابعاد شیت گسترده (Flat Size)</span>
-            <span class="diecut-hud-val" id="diecut-flat-dims">۴۱۵ × ۲۶۶ mm</span>
-          </div>
-          <div class="diecut-hud-card">
-            <span class="diecut-hud-label"><i class="ph ph-scissors" style="color:#EF4444;"></i> متراژ تیغ و خط تا</span>
-            <span class="diecut-hud-val" id="diecut-blade-len" style="font-size:0.88rem;">۱,۸۴۰ mm تیغ / ۱,۱۲۰ mm تا</span>
-          </div>
-          <div class="diecut-hud-card">
-            <span class="diecut-hud-label"><i class="ph ph-scroll" style="color:#F59E0B;"></i> مساحت مقوای مصرفی</span>
-            <span class="diecut-hud-val" id="diecut-card-area">۱,۱۰۳.۹ cm²</span>
-          </div>
+        <!-- Live Wizard Step Progress Bar -->
+        <div class="wizard-stepper-bar" id="diecut-stepper-bar">
+          <!-- Dynamically populated by ParametricDieEngine.renderStepperBar() -->
         </div>
 
-        <!-- Main Studio Action Toolbar -->
-        <div class="card" style="margin-bottom:14px; padding:12px 16px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <button class="btn btn-outline btn-sm" onclick="document.getElementById('file-diecut-main').click()" title="واردسازی فایل SVG یا AI">
-                <i class="ph ph-upload-simple" style="color:var(--brand-primary); font-size:1.05rem;"></i> وارد کردن فایل SVG / AI
-              </button>
-              <input type="file" id="file-diecut-main" accept=".svg,.ai,.eps,.pdf" style="display:none;" onchange="DieCutImporter.handleFileSelect(event)">
+        <!-- 2-Column Wizard Layout: Left Canvas / Right Step Card -->
+        <div class="diecut-wizard-layout">
+          
+          <!-- LEFT: Interactive CAD Canvas -->
+          <div class="card" style="padding:0; overflow:hidden; position:relative;">
+            <div style="position:relative; width:100%; height:520px; background:#090D16; display:flex; align-items:center; justify-content:center;">
+              <canvas id="diecut-preview-canvas" width="700" height="520" style="width:100%; height:100%; cursor:crosshair;"></canvas>
               
-              <div style="display:inline-flex; align-items:center; gap:4px; margin-right:6px;">
-                <span style="font-size:0.75rem; color:var(--text-muted);">الگوهای آماده:</span>
-                <button class="btn btn-outline btn-sm" style="font-size:0.73rem; padding:3px 8px;" onclick="ParametricDieEngine.loadTemplate('tuck_end')">دارویی Tuck-End</button>
-                <button class="btn btn-outline btn-sm" style="font-size:0.73rem; padding:3px 8px;" onclick="ParametricDieEngine.loadTemplate('mailer_0427')">کیبوردی 0427</button>
-                <button class="btn btn-outline btn-sm" style="font-size:0.73rem; padding:3px 8px;" onclick="ParametricDieEngine.loadTemplate('lock_bottom')">ته‌قفلی خودکار</button>
-              </div>
-            </div>
-
-            <div style="display:flex; align-items:center; gap:8px;">
-              <button class="btn btn-outline btn-sm" id="btn-restore-deleted" style="display:none; color:#EF4444; border-color:rgba(239,68,68,0.3);" onclick="ParametricDieEngine.restoreAllDeleted()">
-                <i class="ph ph-arrow-counter-clockwise"></i> بازیابی خطوط حذفی (<span id="deleted-count-badge">0</span>)
-              </button>
-              <button class="btn btn-outline btn-sm" onclick="ParametricDieEngine.exportCleanSvg()">
-                <i class="ph ph-download-simple"></i> دانلود فایل SVG تمیز
-              </button>
-              <button class="btn btn-primary btn-sm" onclick="ParametricDieEngine.syncWithGlobalLemonPack(); go('studio');">
-                <i class="ph ph-check-circle"></i> اعمال در استودیو و شیت‌بندی
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 5 HERO PARAMETER DIMENSION CARDS (L, W, H, G, T) -->
-        <div class="param-hero-grid" id="param-hero-cards">
-          <!-- Card L -->
-          <div class="param-card" id="param-card-length"
-               onmouseenter="ParametricDieEngine.hoverParam('length')"
-               onmouseleave="ParametricDieEngine.hoverParam(null)"
-               onclick="ParametricDieEngine.selectParam('length')">
-            <div class="param-card-hdr">
-              <span class="param-badge-key">L</span>
-              <span class="param-name">طول (Length)</span>
-            </div>
-            <div class="param-val-row">
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('length', -5)">-5</button>
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('length', -1)">-</button>
-              <input type="number" class="param-input" id="param-inp-L" value="120"
-                     onclick="event.stopPropagation()"
-                     onfocus="ParametricDieEngine.selectParam('length')"
-                     oninput="ParametricDieEngine.updateParam('length', this.value)">
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('length', 1)">+</button>
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('length', 5)">+5</button>
-            </div>
-            <div class="param-subtext">۲ پنل جلو و پشت (Front & Back)</div>
-          </div>
-
-          <!-- Card W -->
-          <div class="param-card" id="param-card-width"
-               onmouseenter="ParametricDieEngine.hoverParam('width')"
-               onmouseleave="ParametricDieEngine.hoverParam(null)"
-               onclick="ParametricDieEngine.selectParam('width')">
-            <div class="param-card-hdr">
-              <span class="param-badge-key">W</span>
-              <span class="param-name">عرض (Width)</span>
-            </div>
-            <div class="param-val-row">
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('width', -5)">-5</button>
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('width', -1)">-</button>
-              <input type="number" class="param-input" id="param-inp-W" value="80"
-                     onclick="event.stopPropagation()"
-                     onfocus="ParametricDieEngine.selectParam('width')"
-                     oninput="ParametricDieEngine.updateParam('width', this.value)">
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('width', 1)">+</button>
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('width', 5)">+5</button>
-            </div>
-            <div class="param-subtext">۲ پنل پهلو راست و چپ (Sides)</div>
-          </div>
-
-          <!-- Card H -->
-          <div class="param-card" id="param-card-height"
-               onmouseenter="ParametricDieEngine.hoverParam('height')"
-               onmouseleave="ParametricDieEngine.hoverParam(null)"
-               onclick="ParametricDieEngine.selectParam('height')">
-            <div class="param-card-hdr">
-              <span class="param-badge-key">H</span>
-              <span class="param-name">ارتفاع (Height)</span>
-            </div>
-            <div class="param-val-row">
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('height', -5)">-5</button>
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('height', -1)">-</button>
-              <input type="number" class="param-input" id="param-inp-H" value="150"
-                     onclick="event.stopPropagation()"
-                     onfocus="ParametricDieEngine.selectParam('height')"
-                     oninput="ParametricDieEngine.updateParam('height', this.value)">
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('height', 1)">+</button>
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('height', 5)">+5</button>
-            </div>
-            <div class="param-subtext">ارتفاع ستون‌های ۴گانه بدنه</div>
-          </div>
-
-          <!-- Card G -->
-          <div class="param-card" id="param-card-glueFlap"
-               onmouseenter="ParametricDieEngine.hoverParam('glueFlap')"
-               onmouseleave="ParametricDieEngine.hoverParam(null)"
-               onclick="ParametricDieEngine.selectParam('glueFlap')">
-            <div class="param-card-hdr">
-              <span class="param-badge-key">G</span>
-              <span class="param-name">لبچسب (Glue)</span>
-            </div>
-            <div class="param-val-row">
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('glueFlap', -5)">-5</button>
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('glueFlap', -1)">-</button>
-              <input type="number" class="param-input" id="param-inp-G" value="15"
-                     onclick="event.stopPropagation()"
-                     onfocus="ParametricDieEngine.selectParam('glueFlap')"
-                     oninput="ParametricDieEngine.updateParam('glueFlap', this.value)">
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('glueFlap', 1)">+</button>
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('glueFlap', 5)">+5</button>
-            </div>
-            <div class="param-subtext">لبه اتصال و چسب جعبه</div>
-          </div>
-
-          <!-- Card T -->
-          <div class="param-card" id="param-card-topTuck"
-               onmouseenter="ParametricDieEngine.hoverParam('topTuck')"
-               onmouseleave="ParametricDieEngine.hoverParam(null)"
-               onclick="ParametricDieEngine.selectParam('topTuck')">
-            <div class="param-card-hdr">
-              <span class="param-badge-key">T</span>
-              <span class="param-name">درب (Flap)</span>
-            </div>
-            <div class="param-val-row">
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('topTuck', -5)">-5</button>
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('topTuck', -1)">-</button>
-              <input type="number" class="param-input" id="param-inp-T" value="25"
-                     onclick="event.stopPropagation()"
-                     onfocus="ParametricDieEngine.selectParam('topTuck')"
-                     oninput="ParametricDieEngine.updateParam('topTuck', this.value)">
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('topTuck', 1)">+</button>
-              <button class="param-btn-step" onclick="event.stopPropagation(); ParametricDieEngine.stepParam('topTuck', 5)">+5</button>
-            </div>
-            <div class="param-subtext">زبانه درپوش بالا و پایین</div>
-          </div>
-        </div>
-
-        <!-- Keyboard Shortcut Helper Banner -->
-        <div class="keyboard-helper-bar">
-          <i class="ph ph-keyboard" style="color:var(--brand-primary); font-size:1.1rem;"></i>
-          <span><strong>ویرایش زنده با کیبورد:</strong> با انتخاب هر پارامتر، کلیدهای جهت‌نما <strong>↑ و ↓</strong> ابعاد را ۱ میلی‌متر و با <strong>Shift</strong> ۵ میلی‌متر تغییر می‌دهند (بدون تغییر موقعیت مکانی). کلید <strong>Delete</strong> قطعه انتخابی را حذف می‌کند.</span>
-        </div>
-
-        <!-- Interactive Blueprint Canvas Viewport with Visual Controls -->
-        <div class="card" style="margin-bottom:16px; padding:0; overflow:hidden; position:relative;">
-          <div style="position:relative; width:100%; height:440px; background:#090D16; display:flex; align-items:center; justify-content:center;">
-            <canvas id="diecut-preview-canvas" width="1150" height="440" style="width:100%; height:100%; cursor:crosshair;"></canvas>
-            
-            <!-- Top Right Floating Status Overlay -->
-            <div style="position:absolute; top:12px; right:14px; display:flex; flex-direction:column; gap:6px; pointer-events:none;">
-              <div class="canvas-floating-tag" id="canvas-hover-tag" style="display:none;">
-                <i class="ph ph-cursor"></i> <span id="canvas-hover-text">نام جزء</span>
-              </div>
-              <div class="canvas-coords-tag" id="canvas-coords-display">
-                X: 0.0 mm | Y: 0.0 mm
-              </div>
-            </div>
-
-            <!-- Top Left Zoom/Pan/Fit Controls -->
-            <div style="position:absolute; top:12px; left:14px; display:flex; gap:6px;">
-              <button class="btn btn-outline btn-sm" style="padding:4px 8px; font-size:0.75rem; background:rgba(15,23,42,0.85);" onclick="ParametricDieEngine.zoomLevel = Math.min(4.0, ParametricDieEngine.zoomLevel * 1.2); ParametricDieEngine.render();" title="بزرگنمایی">
-                <i class="ph ph-magnifying-glass-plus"></i>
-              </button>
-              <button class="btn btn-outline btn-sm" style="padding:4px 8px; font-size:0.75rem; background:rgba(15,23,42,0.85);" onclick="ParametricDieEngine.zoomLevel = Math.max(0.3, ParametricDieEngine.zoomLevel / 1.2); ParametricDieEngine.render();" title="کوچکنمایی">
-                <i class="ph ph-magnifying-glass-minus"></i>
-              </button>
-              <button class="btn btn-outline btn-sm" style="padding:4px 8px; font-size:0.75rem; background:rgba(15,23,42,0.85);" onclick="ParametricDieEngine.resetView();" title="بازنشانی زاویه نما و فیت">
-                <i class="ph ph-arrows-clockwise"></i> فیت نما
-              </button>
-            </div>
-
-            <!-- Floating Selected Segment Action Pill -->
-            <div class="segment-quick-pill" id="segment-quick-pill" style="display:none;">
-              <div class="pill-hdr">
-                <span class="pill-title" id="pill-segment-title">قطعه انتخابی #1</span>
-                <span class="pill-len" id="pill-segment-len">طول: ۱۲۰ mm</span>
-              </div>
-              <div class="pill-actions">
-                <div class="pill-btn-group">
-                  <button class="btn-pill-action cut" title="تغییر به تیغ برش" onclick="ParametricDieEngine.setSelectedSegmentType('cut')">🔴 تیغ</button>
-                  <button class="btn-pill-action crease" title="تغییر به خط تا" onclick="ParametricDieEngine.setSelectedSegmentType('crease')">🔵 تا</button>
-                  <button class="btn-pill-action glue" title="تغییر به لبه چسب" onclick="ParametricDieEngine.setSelectedSegmentType('glue')">🟢 چسب</button>
-                  <button class="btn-pill-action perf" title="تغییر به پرفراژ" onclick="ParametricDieEngine.setSelectedSegmentType('perforation')">🟠 پرفراژ</button>
-                </div>
-                <div style="display:flex; align-items:center; gap:6px;">
-                  <select class="input-box" id="pill-mapping-select" style="height:26px; font-size:0.72rem; padding:0 4px;" onchange="ParametricDieEngine.setSelectedSegmentMapping(this.value)">
-                    <option value="">نگاشت: مستقل</option>
-                    <option value="length">طول (L)</option>
-                    <option value="width">عرض (W)</option>
-                    <option value="height">ارتفاع (H)</option>
-                    <option value="glueFlap">لبچسب (G)</option>
-                    <option value="topTuck">درب (T)</option>
-                    <option value="dustFlap">گوشواره (D)</option>
-                  </select>
-                  <button class="btn-pill-delete" onclick="ParametricDieEngine.deleteSelectedSegment(false)" title="حذف این قطعه (Delete)">
-                    <i class="ph ph-trash"></i> حذف
-                  </button>
-                  <button class="btn-pill-delete-similar" id="btn-pill-del-similar" onclick="ParametricDieEngine.deleteSelectedSegment(true)" title="حذف تمام خطوط هم‌سان این دسته">
-                    حذف کل دسته
-                  </button>
+              <!-- Floating Hover Tag -->
+              <div style="position:absolute; top:12px; right:14px; display:flex; flex-direction:column; gap:6px; pointer-events:none;">
+                <div class="canvas-floating-tag" id="canvas-hover-tag" style="display:none;">
+                  <i class="ph ph-cursor"></i> <span id="canvas-hover-text">نام جزء</span>
                 </div>
               </div>
-            </div>
 
-            <!-- Bottom Legend -->
-            <div style="position:absolute; bottom:12px; right:14px; display:flex; gap:8px; background:rgba(15,23,42,0.85); backdrop-filter:blur(6px); padding:5px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
-              <span style="font-size:0.72rem; color:#94A3B8; display:flex; align-items:center; gap:4px;">
-                <span style="width:8px; height:8px; border-radius:2px; background:#DC2626; display:inline-block;"></span> تیغ برش (Cut)
-              </span>
-              <span style="font-size:0.72rem; color:#94A3B8; display:flex; align-items:center; gap:4px; margin-right:8px;">
-                <span style="width:8px; height:8px; border-radius:2px; background:#2563EB; display:inline-block;"></span> خط تا (Crease)
-              </span>
-              <span style="font-size:0.72rem; color:#94A3B8; display:flex; align-items:center; gap:4px; margin-right:8px;">
-                <span style="width:8px; height:8px; border-radius:2px; background:#10B981; display:inline-block;"></span> لبه چسب (Glue)
-              </span>
-              <span style="font-size:0.72rem; color:#94A3B8; display:flex; align-items:center; gap:4px; margin-right:8px;">
-                <span style="width:8px; height:8px; border-radius:2px; background:#F59E0B; display:inline-block;"></span> پرفراژ (Perf)
-              </span>
-              <span style="font-size:0.72rem; color:#F59E0B; display:flex; align-items:center; gap:4px; margin-right:8px; font-weight:700;">
-                <span style="width:8px; height:8px; border-radius:50%; background:#F59E0B; display:inline-block; box-shadow:0 0 6px #F59E0B;"></span> خطوط هم‌سان و قرینه
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- UNIFIED SMART INSPECTOR PANEL (replaces 3-tab complexity) -->
-        <div id="diecut-smart-inspector">
-
-          <!-- ROW A: Similarity groups (compact, inline, 2-col grid) -->
-          <div class="card" style="margin-bottom:12px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px 8px; border-bottom:1px solid var(--border-color);">
-              <div style="display:flex; align-items:center; gap:7px; font-weight:700; font-size:0.82rem; color:var(--graphite-text);">
-                <i class="ph ph-intersect" style="color:var(--brand-primary);"></i>
-                دسته‌بندی اجزای قالب — نگاشت و ویرایش سریع
-              </div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <button class="btn btn-outline btn-sm" id="btn-restore-deleted" style="display:none; color:#EF4444; border-color:rgba(239,68,68,0.3); font-size:0.73rem; padding:3px 8px;" onclick="ParametricDieEngine.restoreAllDeleted()">
-                  <i class="ph ph-arrow-counter-clockwise"></i> بازیابی حذف‌شده‌ها (<span id="deleted-count-badge">0</span>)
+              <!-- Top Left Zoom/Fit Controls -->
+              <div style="position:absolute; top:12px; left:14px; display:flex; gap:6px;">
+                <button class="btn btn-outline btn-sm" style="padding:4px 8px; font-size:0.75rem; background:rgba(15,23,42,0.85);" onclick="ParametricDieEngine.zoomLevel = Math.min(4.0, ParametricDieEngine.zoomLevel * 1.2); ParametricDieEngine.renderCanvas();" title="بزرگنمایی">
+                  <i class="ph ph-magnifying-glass-plus"></i>
                 </button>
-                <span style="font-size:0.72rem; color:var(--text-muted);" id="tab-segments-count-wrap">
-                  <span id="tab-segments-count">0</span> قطعه
+                <button class="btn btn-outline btn-sm" style="padding:4px 8px; font-size:0.75rem; background:rgba(15,23,42,0.85);" onclick="ParametricDieEngine.zoomLevel = Math.max(0.3, ParametricDieEngine.zoomLevel / 1.2); ParametricDieEngine.renderCanvas();" title="کوچکنمایی">
+                  <i class="ph ph-magnifying-glass-minus"></i>
+                </button>
+                <button class="btn btn-outline btn-sm" style="padding:4px 8px; font-size:0.75rem; background:rgba(15,23,42,0.85);" onclick="ParametricDieEngine.resetView();" title="فیت نما">
+                  <i class="ph ph-arrows-clockwise"></i> فیت نما
+                </button>
+              </div>
+
+              <!-- Bottom Legend -->
+              <div style="position:absolute; bottom:12px; right:14px; display:flex; gap:8px; background:rgba(15,23,42,0.85); backdrop-filter:blur(6px); padding:4px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
+                <span style="font-size:0.72rem; color:#94A3B8; display:flex; align-items:center; gap:4px;">
+                  <span style="width:8px; height:8px; border-radius:2px; background:#DC2626; display:inline-block;"></span> تیغ برش (Cut)
+                </span>
+                <span style="font-size:0.72rem; color:#94A3B8; display:flex; align-items:center; gap:4px; margin-right:8px;">
+                  <span style="width:8px; height:8px; border-radius:2px; background:#2563EB; display:inline-block;"></span> خط‌تا (Crease)
+                </span>
+                <span style="font-size:0.72rem; color:#F59E0B; display:flex; align-items:center; gap:4px; margin-right:8px; font-weight:700;">
+                  <span style="width:8px; height:8px; border-radius:50%; background:#F59E0B; display:inline-block;"></span> جزء فعال در مرحله
                 </span>
               </div>
             </div>
-            <div class="similarity-grid" id="diecut-similarity-container" style="padding:10px 12px;">
-              <!-- Dynamically Populated by ParametricDieEngine -->
-            </div>
           </div>
 
-          <!-- ROW B: Math Summary + Import Status (side by side on wide, stack on narrow) -->
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-
-            <!-- Left: Formula Panel -->
-            <div class="card" style="padding:12px 14px;">
-              <div style="font-weight:700; font-size:0.8rem; color:var(--graphite-text); margin-bottom:10px; display:flex; align-items:center; gap:5px;">
-                <i class="ph ph-function" style="color:var(--brand-primary);"></i> هندسه و ابعاد گسترده
-              </div>
-              <div id="diecut-formulas-container"></div>
-            </div>
-
-            <!-- Right: Import detected values / file info panel -->
-            <div class="card" style="padding:12px 14px;">
-              <div style="font-weight:700; font-size:0.8rem; color:var(--graphite-text); margin-bottom:10px; display:flex; align-items:center; gap:5px;">
-                <i class="ph ph-upload-simple" style="color:var(--brand-primary);"></i> واردسازی فایل قالب
-              </div>
-              <!-- Drop zone -->
-              <div id="diecut-drop-zone" style="border:2px dashed var(--border-color); border-radius:var(--radius-sm); padding:16px; text-align:center; cursor:pointer; transition:all 0.18s; background:var(--surface-base);"
-                   onclick="document.getElementById('file-diecut-main').click()"
-                   ondragover="event.preventDefault(); this.style.borderColor='var(--brand-primary)'; this.style.background='rgba(217,119,6,0.06)'"
-                   ondragleave="this.style.borderColor='var(--border-color)'; this.style.background='var(--surface-base)'"
-                   ondrop="DieCutImporter.handleDrop(event); this.style.borderColor='var(--border-color)'; this.style.background='var(--surface-base)'">
-                <i class="ph ph-file-vector" style="font-size:1.8rem; color:var(--text-dim); display:block; margin-bottom:6px;"></i>
-                <div style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">کشیدن و رها کردن فایل SVG / AI</div>
-                <div style="font-size:0.72rem; color:var(--text-dim); margin-top:3px;">یا کلیک برای انتخاب فایل</div>
-              </div>
-              <input type="file" id="file-diecut-main" accept=".svg,.ai,.eps,.pdf" style="display:none;" onchange="DieCutImporter.handleFileSelect(event)">
-
-              <!-- Import result panel (shown after import) -->
-              <div id="import-result-panel" style="display:none; margin-top:10px; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.2); border-radius:var(--radius-sm); padding:10px 12px;">
-                <div style="font-size:0.75rem; font-weight:700; color:#059669; margin-bottom:6px; display:flex; align-items:center; gap:5px;">
-                  <i class="ph ph-check-circle"></i> ابعاد استخراج‌شده از فایل
-                </div>
-                <div id="import-result-dims" style="font-size:0.78rem; color:var(--graphite-text);"></div>
-              </div>
-
-              <!-- Preset templates -->
-              <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border-color);">
-                <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:6px; font-weight:600;">قالب‌های آماده:</div>
-                <div style="display:flex; flex-wrap:wrap; gap:5px;">
-                  <button class="btn btn-outline btn-sm" style="font-size:0.72rem; padding:3px 8px;" onclick="ParametricDieEngine.loadTemplate('tuck_end')">
-                    <i class="ph ph-package"></i> دارویی Tuck-End
-                  </button>
-                  <button class="btn btn-outline btn-sm" style="font-size:0.72rem; padding:3px 8px;" onclick="ParametricDieEngine.loadTemplate('mailer_0427')">
-                    <i class="ph ph-envelope"></i> کیبوردی 0427
-                  </button>
-                  <button class="btn btn-outline btn-sm" style="font-size:0.72rem; padding:3px 8px;" onclick="ParametricDieEngine.loadTemplate('lock_bottom')">
-                    <i class="ph ph-lock-key"></i> ته‌قفلی خودکار
-                  </button>
-                </div>
-              </div>
-            </div>
-
+          <!-- RIGHT: Interactive Wizard Step Card -->
+          <div class="wizard-card" id="diecut-wizard-card">
+            <!-- Dynamically populated by ParametricDieEngine.renderWizardCard() -->
           </div>
+
         </div>
+
+      </div>
+    </div>
 
       </div>
     </div>
