@@ -876,72 +876,107 @@
       </div>
     </div>
 
-    <!-- VIEW 3: VECTOR DIE-CUT IMPORTER & PARAMETRIC FORMULA STUDIO -->
+    <!-- VIEW 3: SMART VECTOR DIE-CUT INSPECTOR & CAD STUDIO -->
     <div class="main-tab-view" id="view-diecut" style="display:none;">
-      <div style="max-width:1200px; margin:16px auto; padding:0 16px;">
+      <div style="max-width:1240px; margin:16px auto; padding:0 16px;">
         
-        <!-- Live Wizard Step Progress Bar -->
-        <div class="wizard-stepper-bar" id="diecut-stepper-bar">
-          <!-- Dynamically populated by ParametricDieEngine.renderStepperBar() -->
-        </div>
-
-        <!-- 2-Column Wizard Layout: Left Canvas / Right Step Card -->
-        <div class="diecut-wizard-layout">
-          
-          <!-- LEFT: Interactive CAD Canvas -->
-          <div class="card" style="padding:0; overflow:hidden; position:relative;">
-            <div style="position:relative; width:100%; height:520px; background:#090D16; display:flex; align-items:center; justify-content:center;">
-              <canvas id="diecut-preview-canvas" width="700" height="520" style="width:100%; height:100%; cursor:crosshair;"></canvas>
+        <!-- Modern Smart Action Toolbar -->
+        <div class="card" style="margin-bottom:12px; padding:10px 14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <button class="btn btn-outline btn-sm" onclick="document.getElementById('file-diecut-main').click()" style="font-weight:700;">
+                <i class="ph ph-upload-simple" style="color:var(--brand-primary); font-size:1.05rem;"></i> بارگذاری فایل SVG / AI
+              </button>
+              <input type="file" id="file-diecut-main" accept=".svg,.ai,.eps,.pdf" style="display:none;" onchange="ParametricDieEngine.handleFileSelect(event)">
               
-              <!-- Floating Hover Tag -->
-              <div style="position:absolute; top:12px; right:14px; display:flex; flex-direction:column; gap:6px; pointer-events:none;">
-                <div class="canvas-floating-tag" id="canvas-hover-tag" style="display:none;">
-                  <i class="ph ph-cursor"></i> <span id="canvas-hover-text">نام جزء</span>
-                </div>
-              </div>
-
-              <!-- Top Left Zoom/Fit Controls -->
-              <div style="position:absolute; top:12px; left:14px; display:flex; gap:6px;">
-                <button class="btn btn-outline btn-sm" style="padding:4px 8px; font-size:0.75rem; background:rgba(15,23,42,0.85);" onclick="ParametricDieEngine.zoomLevel = Math.min(4.0, ParametricDieEngine.zoomLevel * 1.2); ParametricDieEngine.renderCanvas();" title="بزرگنمایی">
-                  <i class="ph ph-magnifying-glass-plus"></i>
-                </button>
-                <button class="btn btn-outline btn-sm" style="padding:4px 8px; font-size:0.75rem; background:rgba(15,23,42,0.85);" onclick="ParametricDieEngine.zoomLevel = Math.max(0.3, ParametricDieEngine.zoomLevel / 1.2); ParametricDieEngine.renderCanvas();" title="کوچکنمایی">
-                  <i class="ph ph-magnifying-glass-minus"></i>
-                </button>
-                <button class="btn btn-outline btn-sm" style="padding:4px 8px; font-size:0.75rem; background:rgba(15,23,42,0.85);" onclick="ParametricDieEngine.resetView();" title="فیت نما">
-                  <i class="ph ph-arrows-clockwise"></i> فیت نما
-                </button>
-              </div>
-
-              <!-- Bottom Legend -->
-              <div style="position:absolute; bottom:12px; right:14px; display:flex; gap:8px; background:rgba(15,23,42,0.85); backdrop-filter:blur(6px); padding:4px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
-                <span style="font-size:0.72rem; color:#94A3B8; display:flex; align-items:center; gap:4px;">
-                  <span style="width:8px; height:8px; border-radius:2px; background:#DC2626; display:inline-block;"></span> تیغ برش (Cut)
-                </span>
-                <span style="font-size:0.72rem; color:#94A3B8; display:flex; align-items:center; gap:4px; margin-right:8px;">
-                  <span style="width:8px; height:8px; border-radius:2px; background:#2563EB; display:inline-block;"></span> خط‌تا (Crease)
-                </span>
-                <span style="font-size:0.72rem; color:#F59E0B; display:flex; align-items:center; gap:4px; margin-right:8px; font-weight:700;">
-                  <span style="width:8px; height:8px; border-radius:50%; background:#F59E0B; display:inline-block;"></span> جزء فعال در مرحله
-                </span>
+              <div style="display:inline-flex; align-items:center; gap:4px; margin-right:4px;">
+                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">الگوهای آماده:</span>
+                <button class="btn btn-outline btn-sm" data-die-template="tuck_end" style="font-size:0.72rem; padding:3px 8px;" onclick="ParametricDieEngine.loadTemplate('tuck_end')">دارویی Tuck-End</button>
+                <button class="btn btn-outline btn-sm" data-die-template="mailer_0427" style="font-size:0.72rem; padding:3px 8px;" onclick="ParametricDieEngine.loadTemplate('mailer_0427')">کیبوردی 0427</button>
+                <button class="btn btn-outline btn-sm" data-die-template="lock_bottom" style="font-size:0.72rem; padding:3px 8px;" onclick="ParametricDieEngine.loadTemplate('lock_bottom')">ته‌قفلی خودکار</button>
               </div>
             </div>
-          </div>
 
-          <!-- RIGHT: Interactive Wizard Step Card -->
-          <div class="wizard-card" id="diecut-wizard-card">
-            <!-- Dynamically populated by ParametricDieEngine.renderWizardCard() -->
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button class="btn btn-outline btn-sm" onclick="ParametricDieEngine.exportCleanSvg()">
+                <i class="ph ph-download-simple"></i> دانلود SVG تمیز
+              </button>
+              <button class="btn btn-primary btn-sm" style="font-weight:800;" onclick="ParametricDieEngine.applyToStudio()">
+                <i class="ph ph-check-circle font-bold"></i> اعمال در استودیو و شیت‌بندی
+              </button>
+            </div>
           </div>
+        </div>
 
+        <!-- Full-Featured Interactive Blueprint Canvas Viewport -->
+        <div class="card" style="padding:0; overflow:hidden; position:relative; margin-bottom:12px;">
+          <div style="position:relative; width:100%; height:520px; background:#0B1120; display:flex; align-items:center; justify-content:center;">
+            <canvas id="diecut-preview-canvas" width="1180" height="520" style="width:100%; height:100%; cursor:crosshair;"></canvas>
+            
+            <!-- Live Hover Glass Tag -->
+            <div style="position:absolute; top:12px; right:14px; display:flex; flex-direction:column; gap:6px; pointer-events:none;">
+              <div class="canvas-floating-tag" id="canvas-hover-tag" style="display:none; background:rgba(15,23,42,0.92); border:1px solid rgba(217,119,6,0.5); backdrop-filter:blur(8px); padding:6px 12px; border-radius:6px; font-weight:700; color:#F59E0B; font-size:0.78rem;">
+                <i class="ph ph-cursor"></i> <span id="canvas-hover-text">نام جزء</span>
+              </div>
+            </div>
+
+            <!-- Top Left Zoom/Fit Controls -->
+            <div style="position:absolute; top:12px; left:14px; display:flex; gap:6px;">
+              <button class="btn btn-outline btn-sm" style="padding:4px 8px; font-size:0.75rem; background:rgba(15,23,42,0.85);" onclick="ParametricDieEngine.zoomLevel = Math.min(4.0, ParametricDieEngine.zoomLevel * 1.2); ParametricDieEngine.renderCanvas();" title="بزرگنمایی">
+                <i class="ph ph-magnifying-glass-plus"></i>
+              </button>
+              <button class="btn btn-outline btn-sm" style="padding:4px 8px; font-size:0.75rem; background:rgba(15,23,42,0.85);" onclick="ParametricDieEngine.zoomLevel = Math.max(0.3, ParametricDieEngine.zoomLevel / 1.2); ParametricDieEngine.renderCanvas();" title="کوچکنمایی">
+                <i class="ph ph-magnifying-glass-minus"></i>
+              </button>
+              <button class="btn btn-outline btn-sm" style="padding:4px 8px; font-size:0.75rem; background:rgba(15,23,42,0.85);" onclick="ParametricDieEngine.resetView();" title="فیت نما">
+                <i class="ph ph-arrows-clockwise"></i> فیت نما
+              </button>
+            </div>
+
+            <!-- Bottom Legend -->
+            <div style="position:absolute; bottom:12px; right:14px; display:flex; gap:10px; background:rgba(15,23,42,0.88); backdrop-filter:blur(6px); padding:5px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
+              <span style="font-size:0.72rem; color:#94A3B8; display:flex; align-items:center; gap:4px;">
+                <span style="width:8px; height:8px; border-radius:2px; background:#EF4444; display:inline-block;"></span> تیغ برش (Cut)
+              </span>
+              <span style="font-size:0.72rem; color:#94A3B8; display:flex; align-items:center; gap:4px;">
+                <span style="width:8px; height:8px; border-radius:2px; background:#3B82F6; display:inline-block;"></span> خط‌تا (Crease)
+              </span>
+              <span style="font-size:0.72rem; color:#94A3B8; display:flex; align-items:center; gap:4px;">
+                <span style="width:8px; height:8px; border-radius:2px; background:#10B981; display:inline-block;"></span> لبه چسب (Glue)
+              </span>
+              <span style="font-size:0.72rem; color:#F59E0B; display:flex; align-items:center; gap:4px; font-weight:700;">
+                <span style="width:8px; height:8px; border-radius:2px; background:#F59E0B; display:inline-block;"></span> خطوط ابعاد و اندازه‌ها
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live HUD Status Metrics (Auto-Extracted from Die) -->
+        <div class="diecut-hud" style="margin-bottom:0;">
+          <div class="diecut-hud-card">
+            <span class="diecut-hud-label"><i class="ph ph-cube" style="color:#3B82F6;"></i> ابعاد ۳بعدی جعبه (L×W×H)</span>
+            <span class="diecut-hud-val" id="hud-box-dims">۱۲۰ × ۸۰ × ۱۵۰ mm</span>
+          </div>
+          <div class="diecut-hud-card">
+            <span class="diecut-hud-label"><i class="ph ph-bounding-box" style="color:#10B981;"></i> ابعاد شیت گسترده (Flat Size)</span>
+            <span class="diecut-hud-val" id="hud-flat-dims">۴۱۵ × ۲۶۶ mm</span>
+          </div>
+          <div class="diecut-hud-card">
+            <span class="diecut-hud-label"><i class="ph ph-scissors" style="color:#EF4444;"></i> متراژ تیغ برش لیزری</span>
+            <span class="diecut-hud-val" id="hud-blade-len" style="color:#EF4444;">۱,۸۴۰ mm</span>
+          </div>
+          <div class="diecut-hud-card">
+            <span class="diecut-hud-label"><i class="ph ph-line-segments" style="color:#3B82F6;"></i> متراژ خط‌تا لترپرس</span>
+            <span class="diecut-hud-val" id="hud-crease-len" style="color:#3B82F6;">۱,۱۲۰ mm</span>
+          </div>
+          <div class="diecut-hud-card">
+            <span class="diecut-hud-label"><i class="ph ph-scroll" style="color:#F59E0B;"></i> مساحت مقوای مصرفی</span>
+            <span class="diecut-hud-val" id="hud-area">۱,۱۰۳.۹ cm²</span>
+          </div>
         </div>
 
       </div>
     </div>
-
-      </div>
-    </div>
-
-  </div>
 
   <!-- Non-Disruptive Rates Modal (Never hides studio) -->
   <div class="modal-overlay" id="rates-modal" onclick="if(event.target===this) App.closeRatesModal()">
