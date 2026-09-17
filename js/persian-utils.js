@@ -30,7 +30,7 @@ window.PersianUtils = {
     const val = isRial ? (tomanAmount * 10) : tomanAmount;
     const unitText = isRial ? 'ریال' : 'تومان';
     const numStr = this.fmtNum(val);
-    return showUnit ?  : numStr;
+    return showUnit ? (numStr + ' ' + unitText) : numStr;
   },
 
   numToWords(num, currency = 'toman') {
@@ -72,7 +72,7 @@ window.PersianUtils = {
       if (chunk > 0) {
         const chunkText = convertThreeDigits(chunk);
         const scale = scales[i];
-        words.push(scale ?  : chunkText);
+        words.push(scale ? (chunkText + ' ' + scale) : chunkText);
       }
     }
     

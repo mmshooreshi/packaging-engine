@@ -123,7 +123,7 @@ window.CadEngine = {
 
   renderBlueprint() {
     const canvas = document.getElementById('blueprint-canvas');
-    if (!canvas) return;
+    if (!canvas || !canvas.getContext) return;
     const ctx = canvas.getContext('2d');
     const w = canvas.width;
     const h = canvas.height;

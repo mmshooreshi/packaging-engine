@@ -194,29 +194,23 @@ window.InvoiceEngine = {
     const cur = window.LemonPack.currency || 'toman';
     const pUtils = window.PersianUtils;
 
-    const text = '📦 *پیش‌فاکتور رسمی استودیو بسته‌بندی لمون‌پک*
-' +
-      '━━━━━━━━━━━━━━━━━━━━
-' +
-      '• ابعاد جعبه: ' + pUtils.e2p(cad.length) + '×' + pUtils.e2p(cad.width) + '×' + pUtils.e2p(cad.height) + ' mm
-' +
-      '• تیراژ سفارش: ' + pUtils.fmtNum(cad.orderQty) + ' عدد
-' +
-      '• قیمت هر عدد: ' + pUtils.fmtCurrency(res.unitPrice, cur) + '
-' +
-      '• *مبلغ کل پیش‌فاکتور:* ' + pUtils.fmtCurrency(res.grandTotal, cur) + '
-' +
-      '• اعتبار استعلام: ۴۸ ساعت کاری
-' +
-      '━━━━━━━━━━━━━━━━━━━━
-' +
-      'تلفن کارخانه: ۰۲۱-۸۸۷۶۵۴۳۲';
+    const lines = [
+      '📦 *پیش‌فاکتور رسمی استودیو بسته‌بندی لمون‌پک*',
+      '━━━━━━━━━━━━━━━━━━━━',
+      '• ابعاد جعبه: ' + pUtils.e2p(cad.length) + '×' + pUtils.e2p(cad.width) + '×' + pUtils.e2p(cad.height) + ' mm',
+      '• تیراژ سفارش: ' + pUtils.fmtNum(cad.orderQty) + ' عدد',
+      '• قیمت هر عدد: ' + pUtils.fmtCurrency(res.unitPrice, cur),
+      '• *مبلغ کل پیش‌فاکتور:* ' + pUtils.fmtCurrency(res.grandTotal, cur),
+      '• اعتبار استعلام: ۴۸ ساعت کاری',
+      '━━━━━━━━━━━━━━━━━━━━',
+      'تلفن کارخانه: ۰۲۱-۸۸۷۶۵۴۳۲'
+    ];
+    const text = lines.join('\n');
 
     if (navigator.share) {
       navigator.share({ title: 'پیش‌فاکتور لمون پک', text: text }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(text.replace(/\n/g, '
-')).then(() => toast('متن پیش‌فاکتور برای واتس‌اپ کپی شد ✓'));
+      navigator.clipboard.writeText(text).then(() => toast('متن پیش‌فاکتور برای واتس‌اپ کپی شد ✓'));
     }
   }
 };
