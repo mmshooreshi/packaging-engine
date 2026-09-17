@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lemonpack-pro-v2.5.0';
+const CACHE_NAME = 'lemonpack-pro-v3.0.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
