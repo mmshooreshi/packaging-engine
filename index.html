@@ -141,22 +141,22 @@
                 <div class="input-row" style="margin-bottom:8px;">
                   <div class="input-col">
                     <label class="field-label">لبه چسب (mm)</label>
-                    <input type="number" class="input-box" id="inp-glue-flap" value="15" oninput="LemonPack.cad.glueFlap=Number(this.value); CadEngine.recalculateFlatDimensions(); App.recalculate();">
+                    <input type="number" class="input-box" id="inp-glue-flap" value="15" oninput="App.onCadMarginChange('glueFlap', Number(this.value))">
                   </div>
                   <div class="input-col">
                     <label class="field-label">زبانه درپوش (mm)</label>
-                    <input type="number" class="input-box" id="inp-tuck-flap" value="18" oninput="LemonPack.cad.tuckFlap=Number(this.value); CadEngine.recalculateFlatDimensions(); App.recalculate();">
+                    <input type="number" class="input-box" id="inp-tuck-flap" value="18" oninput="App.onCadMarginChange('tuckFlap', Number(this.value))">
                   </div>
                 </div>
 
                 <div class="input-row">
                   <div class="input-col">
                     <label class="field-label">گوشواره‌ها (mm)</label>
-                    <input type="number" class="input-box" id="inp-dust-flap" value="15" oninput="LemonPack.cad.dustFlap=Number(this.value); CadEngine.recalculateFlatDimensions(); App.recalculate();">
+                    <input type="number" class="input-box" id="inp-dust-flap" value="15" oninput="App.onCadMarginChange('dustFlap', Number(this.value))">
                   </div>
                   <div class="input-col">
                     <label class="field-label">لقی خط تا (mm)</label>
-                    <input type="number" class="input-box" id="inp-crease-gap" value="2" oninput="LemonPack.cad.creaseGap=Number(this.value); CadEngine.recalculateFlatDimensions(); App.recalculate();">
+                    <input type="number" class="input-box" id="inp-crease-gap" value="2" oninput="App.onCadMarginChange('creaseGap', Number(this.value))">
                   </div>
                 </div>
               </div>

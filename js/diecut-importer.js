@@ -485,53 +485,154 @@ window.DieCutImporter = {
     ctx.restore();
   },
 
+  // Robust SVG path coordinate transformation & scaling
+  transformSvgPath(d, transformFn) {
+    if (!d) return '';
+    // Tokenize SVG path into commands and coordinate arguments
+    const commandRegex = /([a-df-z])([^a-df-z]*)/gi;
+    let newD = '';
+    let match;
+
+    while ((match = commandRegex.exec(d)) !== null) {
+      const cmd = match[1];
+      const argsStr = match[2].trim();
+      if (!argsStr) {
+        newD += cmd + ' ';
+        continue;
+      }
+
+      // Parse numbers with decimals/signs
+      const nums = (argsStr.match(/-?[\d.]+(?:e-?\d+)?/gi) || []).map(Number);
+      const isRelative = (cmd === cmd.toLowerCase());
+      const upperCmd = cmd.toUpperCase();
+
+      if (upperCmd === 'H') {
+        // Horizontal coordinate
+        const newNums = nums.map(x => {
+          const pt = transformFn(x, 0, isRelative, 'x');
+          return pt.x.toFixed(2);
+        });
+        newD += cmd + ' ' + newNums.join(' ') + ' ';
+      } else if (upperCmd === 'V') {
+        // Vertical coordinate
+        const newNums = nums.map(y => {
+          const pt = transformFn(0, y, isRelative, 'y');
+          return pt.y.toFixed(2);
+        });
+        newD += cmd + ' ' + newNums.join(' ') + ' ';
+      } else if (upperCmd === 'M' || upperCmd === 'L' || upperCmd === 'T') {
+        // Pair coordinates (x, y)
+        const newPairs = [];
+        for (let i = 0; i < nums.length - 1; i += 2) {
+          const pt = transformFn(nums[i], nums[i+1], isRelative, 'xy');
+          newPairs.push(pt.x.toFixed(2) + ' ' + pt.y.toFixed(2));
+        }
+        newD += cmd + ' ' + newPairs.join(' ') + ' ';
+      } else if (upperCmd === 'C') {
+        // Cubic bezier: x1 y1 x2 y2 x y
+        const newTriplets = [];
+        for (let i = 0; i < nums.length - 5; i += 6) {
+          const pt1 = transformFn(nums[i], nums[i+1], isRelative, 'xy');
+          const pt2 = transformFn(nums[i+2], nums[i+3], isRelative, 'xy');
+          const pt3 = transformFn(nums[i+4], nums[i+5], isRelative, 'xy');
+          newTriplets.push(`${pt1.x.toFixed(2)} ${pt1.y.toFixed(2)} ${pt2.x.toFixed(2)} ${pt2.y.toFixed(2)} ${pt3.x.toFixed(2)} ${pt3.y.toFixed(2)}`);
+        }
+        newD += cmd + ' ' + newTriplets.join(' ') + ' ';
+      } else if (upperCmd === 'S' || upperCmd === 'Q') {
+        // Quad bezier: x1 y1 x y
+        const newQuads = [];
+        for (let i = 0; i < nums.length - 3; i += 4) {
+          const pt1 = transformFn(nums[i], nums[i+1], isRelative, 'xy');
+          const pt2 = transformFn(nums[i+2], nums[i+3], isRelative, 'xy');
+          newQuads.push(`${pt1.x.toFixed(2)} ${pt1.y.toFixed(2)} ${pt2.x.toFixed(2)} ${pt2.y.toFixed(2)}`);
+        }
+        newD += cmd + ' ' + newQuads.join(' ') + ' ';
+      } else if (upperCmd === 'A') {
+        // Arc: rx ry x-axis-rotation large-arc-flag sweep-flag x y
+        const newArcs = [];
+        for (let i = 0; i < nums.length - 6; i += 7) {
+          const rx = nums[i];
+          const ry = nums[i+1];
+          const rot = nums[i+2];
+          const laf = nums[i+3];
+          const sf = nums[i+4];
+          const pt = transformFn(nums[i+5], nums[i+6], isRelative, 'xy');
+          newArcs.push(`${rx} ${ry} ${rot} ${laf} ${sf} ${pt.x.toFixed(2)} ${pt.y.toFixed(2)}`);
+        }
+        newD += cmd + ' ' + newArcs.join(' ') + ' ';
+      } else {
+        newD += cmd + ' ' + argsStr + ' ';
+      }
+    }
+    return newD.trim();
+  },
+
+  recalculateBounds() {
+    const b = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+    this.currentPaths.forEach(p => {
+      if (!p.visible || p.type === 'ignore') return;
+      const nums = (p.d.match(/-?[\d.]+(?:e-?\d+)?/gi) || []).map(Number);
+      this.updateBoundsFromNumbers(nums, b);
+    });
+    if (b.minX !== Infinity && b.maxX !== -Infinity) {
+      b.width = Math.max(1, b.maxX - b.minX);
+      b.height = Math.max(1, b.maxY - b.minY);
+      this.originalBounds = b;
+    }
+  },
+
   // Edit dimensions on custom vector die (scale / stretch with segment clarification)
-  updateDieDimensions(targetWidthMm, targetHeightMm, mapping = 'uniform') {
+  updateDieDimensions(targetWidthMm, targetHeightMm, partFilter = 'all') {
     if (!this.currentPaths || this.currentPaths.length === 0) return;
     const b = this.originalBounds;
     if (b.width <= 0 || b.height <= 0) return;
 
     const scaleX = targetWidthMm / b.width;
     const scaleY = targetHeightMm / b.height;
+    const originX = b.minX;
+    const originY = b.minY;
 
-    // Scale SVG path coordinates
     this.currentPaths.forEach(p => {
-      p.d = p.d.replace(/-?[\d.]+(?:e-?\d+)?/gi, (match, offset, str) => {
-        const val = parseFloat(match);
-        if (isNaN(val)) return match;
-        // Approximation: scale coordinate relative to bounds origin
-        return (val * scaleX).toFixed(2);
+      // Filter by part/layer if specified
+      if (partFilter === 'glue' && p.type !== 'glue') return;
+      if (partFilter === 'crease' && p.type !== 'crease') return;
+      if (partFilter === 'cut' && p.type !== 'cut') return;
+
+      p.d = this.transformSvgPath(p.d, (x, y, isRelative, type) => {
+        if (isRelative) {
+          return { x: x * scaleX, y: y * scaleY };
+        } else {
+          return {
+            x: originX + ((x - originX) * scaleX),
+            y: originY + ((y - originY) * scaleY)
+          };
+        }
       });
     });
 
-    this.originalBounds.width = targetWidthMm;
-    this.originalBounds.height = targetHeightMm;
-    this.originalBounds.maxX = this.originalBounds.minX + targetWidthMm;
-    this.originalBounds.maxY = this.originalBounds.minY + targetHeightMm;
-
+    this.recalculateBounds();
     this.renderPreviewCanvas();
     this.applyToProject();
-    toast(`ابعاد قالب برداری با موفقیت به ${targetWidthMm} × ${targetHeightMm} میلی‌متر بازتنظیم شد ✓`);
+    toast(`ابعاد قالب با موفقیت به ${Math.round(this.originalBounds.width)} × ${Math.round(this.originalBounds.height)} میلی‌متر ویرایش شد ✓`);
   },
 
   promptDimensionMapping(field, newMm) {
     const cad = window.LemonPack.cad;
     const modal = document.getElementById('dim-mapping-modal');
+    this.pendingDimEdit = { field, newMm };
+
     if (!modal) {
-      // Fallback direct update
-      if (field === 'length' || field === 'flatL') cad.flatL = newMm;
-      if (field === 'width' || field === 'height' || field === 'flatW') cad.flatW = newMm;
-      if (cad.customDie && cad.customDie.active) {
-        this.updateDieDimensions(cad.flatL, cad.flatW);
+      if (field.includes('طول') || field.includes('L')) {
+        this.updateDieDimensions(newMm, cad.flatW || this.originalBounds.height, 'all');
+      } else if (field.includes('عرض') || field.includes('W') || field.includes('ارتفاع') || field.includes('H')) {
+        this.updateDieDimensions(cad.flatL || this.originalBounds.width, newMm, 'all');
       }
       return;
     }
 
-    // Set modal text
     const titleEl = document.getElementById('dim-modal-title');
-    if (titleEl) titleEl.textContent = `تطبیق اندازه (${field}: ${newMm} mm) روی لایه‌های قالب`;
+    if (titleEl) titleEl.innerHTML = `<i class="ph ph-question" style="color:var(--brand-primary); margin-left:4px;"></i> ویرایش ابعاد قالب برداری (${field}: ${newMm} mm)`;
     modal.classList.add('show');
-    this.pendingDimEdit = { field, newMm };
   },
 
   confirmDimensionMapping(chosenPart) {
@@ -541,18 +642,25 @@ window.DieCutImporter = {
 
     const { field, newMm } = this.pendingDimEdit;
     const cad = window.LemonPack.cad;
+    const curW = this.originalBounds.width || cad.flatL || 310;
+    const curH = this.originalBounds.height || cad.flatW || 220;
 
     if (chosenPart === 'entire_box') {
-      if (field === 'length' || field === 'flatL') cad.flatL = newMm;
-      if (field === 'height' || field === 'width' || field === 'flatW') cad.flatW = newMm;
+      if (field.includes('طول') || field.includes('L')) {
+        this.updateDieDimensions(newMm, curH, 'all');
+      } else {
+        this.updateDieDimensions(curW, newMm, 'all');
+      }
     } else if (chosenPart === 'glue_flap') {
       cad.glueFlap = newMm;
+      // Scale glue lines
+      this.updateDieDimensions(curW, curH, 'glue');
     } else if (chosenPart === 'tuck_flap') {
       cad.tuckFlap = newMm;
+      this.updateDieDimensions(curW, curH, 'crease');
     }
 
     if (window.CadEngine) window.CadEngine.recalculateFlatDimensions();
-    this.updateDieDimensions(cad.flatL, cad.flatW);
     if (window.App) window.App.recalculate();
     toast(`تغییرات بر روی بخش «${chosenPart}» قالب برداری اعمال شد ✓`);
   },
@@ -580,7 +688,6 @@ window.DieCutImporter = {
     if (inpW) inpW.value = cad.flatW;
 
     this.closeModal();
-    toast('قالب اختصاصی در شیت‌بندی و محاسبات اعمال گردید ✓');
     if (window.App && window.App.recalculate) {
       window.App.recalculate();
     }

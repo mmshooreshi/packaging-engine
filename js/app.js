@@ -310,6 +310,18 @@ window.App = {
     }
   },
 
+  onCadMarginChange(marginKey, value) {
+    const cad = window.LemonPack.cad;
+    cad[marginKey] = value;
+    if (cad.customDie && cad.customDie.active && window.DieCutImporter) {
+      const fieldFa = marginKey === 'glueFlap' ? 'لبه چسب' : marginKey === 'tuckFlap' ? 'زبانه درپوش' : marginKey === 'dustFlap' ? 'گوشواره' : 'لقی خط تا';
+      window.DieCutImporter.promptDimensionMapping(fieldFa, value);
+    } else {
+      if (window.CadEngine) window.CadEngine.recalculateFlatDimensions();
+      this.recalculate();
+    }
+  },
+
   setupPwa() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(console.warn);
