@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lemonpack-pro-v1.0.0';
+const CACHE_NAME = 'lemonpack-pro-v2.0.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -6,8 +6,15 @@ const ASSETS_TO_CACHE = [
   './version.json',
   './icon.svg',
   './favicon.svg',
-  'https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..900&display=swap',
-  'https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css',
+  './fonts/PeydaWeb-Thin.woff2',
+  './fonts/peydaWeb-extralight.woff2',
+  './fonts/peydaWeb-light.woff2',
+  './fonts/PeydaWeb-Regular.woff2',
+  './fonts/PeydaWeb-Medium.woff2',
+  './fonts/PeydaWeb-SemiBold.woff2',
+  './fonts/PeydaWeb-Bold.woff2',
+  './fonts/PeydaWeb-ExtraBold.woff2',
+  './fonts/PeydaWeb-Black.woff2',
   'https://unpkg.com/@phosphor-icons/web@2.1.1',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
