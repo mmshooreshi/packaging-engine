@@ -383,11 +383,29 @@ window.App = {
 
   onCadInputChange() {
     const cad = window.LemonPack.cad;
-    cad.length = Math.max(10, Number(document.getElementById('inp-length').value) || 120);
-    cad.width = Math.max(10, Number(document.getElementById('inp-width').value) || 80);
-    cad.height = Math.max(10, Number(document.getElementById('inp-height').value) || 150);
-    cad.orderQty = Math.max(1, Number(document.getElementById('inp-order-qty').value) || 1000);
+    const inpL = document.getElementById('inp-length');
+    const inpW = document.getElementById('inp-width');
+    const inpH = document.getElementById('inp-height');
+    const sldL = document.getElementById('slider-length');
+    const sldW = document.getElementById('slider-width');
+    const sldH = document.getElementById('slider-height');
+
+    cad.length = Math.max(10, Number(inpL ? inpL.value : 120) || 120);
+    cad.width = Math.max(10, Number(inpW ? inpW.value : 80) || 80);
+    cad.height = Math.max(10, Number(inpH ? inpH.value : 150) || 150);
+    cad.orderQty = Math.max(1, Number(document.getElementById('inp-order-qty')?.value) || 1000);
     cad.isDieInArchive = document.getElementById('chk-archive-die') ? document.getElementById('chk-archive-die').checked : false;
+
+    if (sldL && sldL.value != cad.length) sldL.value = cad.length;
+    if (sldW && sldW.value != cad.width) sldW.value = cad.width;
+    if (sldH && sldH.value != cad.height) sldH.value = cad.height;
+
+    const dieL = document.getElementById('die-param-l');
+    const dieW = document.getElementById('die-param-w');
+    const dieH = document.getElementById('die-param-h');
+    if (dieL) dieL.value = cad.length;
+    if (dieW) dieW.value = cad.width;
+    if (dieH) dieH.value = cad.height;
 
     if (window.ParametricDieEngine) {
       window.ParametricDieEngine.params.length = cad.length;
@@ -433,11 +451,22 @@ window.App = {
   onFlatDimensionInput(axis, value) {
     const cad = window.LemonPack.cad;
     const num = Math.max(20, Number(value) || 20);
-    if (axis === 'flatL') cad.flatL = num;
-    else if (axis === 'flatW') cad.flatW = num;
-
-    if (window.ParametricDieEngine) {
-      window.ParametricDieEngine.setFlatSize(axis === 'flatL' ? 'w' : 'h', num, true);
+    if (axis === 'l' || axis === 'flatL') {
+      cad.flatL = num;
+      if (cad.customDie) cad.customDie.widthMm = num;
+      const inpFlatL = document.getElementById('inp-flat-l');
+      if (inpFlatL && inpFlatL.value != num) inpFlatL.value = num;
+      const dieFlatW = document.getElementById('die-flat-w');
+      if (dieFlatW) dieFlatW.value = num;
+      if (window.ParametricDieEngine) window.ParametricDieEngine.setFlatSize('w', num, true);
+    } else if (axis === 'w' || axis === 'flatW') {
+      cad.flatW = num;
+      if (cad.customDie) cad.customDie.heightMm = num;
+      const inpFlatW = document.getElementById('inp-flat-w');
+      if (inpFlatW && inpFlatW.value != num) inpFlatW.value = num;
+      const dieFlatH = document.getElementById('die-flat-h');
+      if (dieFlatH) dieFlatH.value = num;
+      if (window.ParametricDieEngine) window.ParametricDieEngine.setFlatSize('h', num, true);
     }
 
     this.recalculate();

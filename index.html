@@ -72,9 +72,6 @@
       <div class="top-nav-item" data-tab="invoice" onclick="go('invoice')">
         <i class="ph ph-file-text"></i> پیش‌فاکتور رسمی تجاری
       </div>
-      <div class="top-nav-item" data-tab="diecut" onclick="go('diecut')">
-        <i class="ph ph-vector-three"></i> واردسازی و تفکیک قالب
-      </div>
       <div class="top-nav-item" data-tab="rates" onclick="App.openRatesModal()">
         <i class="ph ph-sliders"></i> نرخ‌های روز بازار
       </div>
@@ -121,6 +118,29 @@
               </div>
             </div>
 
+            <!-- Hero Upload & Custom SVG Die Card -->
+            <div style="background:var(--surface-subtle); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-weight:800; font-size:0.82rem; display:flex; align-items:center; gap:5px;">
+                  <i class="ph ph-upload-simple" style="color:var(--brand-primary); font-size:1.1rem;"></i> قالب برداری اختصاصی (SVG / AI)
+                </span>
+                <span id="diecut-file-status" style="font-size:0.7rem; color:var(--text-muted); background:var(--surface-card); padding:2px 8px; border-radius:4px; border:1px solid var(--border-light);">
+                  <span id="diecut-filename-label">قالب برداری فعال</span>
+                </span>
+              </div>
+              <div style="display:flex; gap:6px;">
+                <button class="btn btn-primary btn-sm" style="flex:1; font-weight:800; font-size:0.78rem;" onclick="document.getElementById('file-diecut-main').click()">
+                  <i class="ph ph-folder-open"></i> بارگذاری فایل SVG / AI
+                </button>
+                <input type="file" id="file-diecut-main" accept=".svg,.ai,.eps,.pdf" style="display:none;" onchange="ParametricDieEngine.handleFileSelect(event)">
+                <button class="btn btn-outline btn-sm" style="padding:4px 8px; font-size:0.75rem;" title="خروجی و دانلود SVG تمیز" onclick="ParametricDieEngine.exportCleanSvg()">
+                  <i class="ph ph-download-simple"></i>
+                </button>
+              </div>
+              <!-- Detected Colors / Layer Mapping Bar -->
+              <div id="diecut-color-layers-bar" style="display:none; margin-top:8px; padding-top:8px; border-top:1px solid var(--border-light);"></div>
+            </div>
+
             <div class="field-group">
               <label class="field-label">مدل جعبه صنعتی</label>
               <div class="chips-grid" id="cad-models-studio" style="grid-template-columns: 1fr 1fr;">
@@ -132,19 +152,82 @@
             </div>
 
             <div class="field-group">
-              <label class="field-label">ابعاد خارجی جعبه (طول × عرض × عمق/ارتفاع)</label>
-              <div class="input-row">
-                <div class="input-col input-wrap">
-                  <input type="number" class="input-box" id="inp-length" value="120" oninput="App.onCadInputChange()">
-                  <span class="input-unit">L</span>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label class="field-label" style="margin-bottom:0;">ابعاد خارجی جعبه و لغزنده‌های روان (mm)</label>
+                <span style="font-size:0.68rem; color:var(--brand-primary); font-weight:700;"><i class="ph ph-hand-pointing"></i> یا درگ مستقیم روی بلوپرینت</span>
+              </div>
+
+              <!-- Length Slider & Input -->
+              <div style="margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; margin-bottom:2px;">
+                  <span style="font-weight:700; color:var(--text-main);">طول جعبه (Length - L):</span>
+                  <div style="display:flex; align-items:center; gap:3px;">
+                    <button class="btn-stepper" onclick="ParametricDieEngine.stepParam('length', -5)">-</button>
+                    <input type="number" class="stepper-input" id="inp-length" value="120" style="width:60px; height:24px; font-weight:800;" oninput="App.onCadInputChange()">
+                    <button class="btn-stepper" onclick="ParametricDieEngine.stepParam('length', 5)">+</button>
+                    <span style="font-size:0.7rem; color:var(--text-muted);">mm</span>
+                  </div>
                 </div>
-                <div class="input-col input-wrap">
-                  <input type="number" class="input-box" id="inp-width" value="80" oninput="App.onCadInputChange()">
-                  <span class="input-unit">W</span>
+                <input type="range" class="fluid-slider" id="slider-length" min="20" max="600" value="120" oninput="document.getElementById('inp-length').value=this.value; App.onCadInputChange();">
+              </div>
+
+              <!-- Width Slider & Input -->
+              <div style="margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; margin-bottom:2px;">
+                  <span style="font-weight:700; color:var(--text-main);">عرض جعبه (Width - W):</span>
+                  <div style="display:flex; align-items:center; gap:3px;">
+                    <button class="btn-stepper" onclick="ParametricDieEngine.stepParam('width', -5)">-</button>
+                    <input type="number" class="stepper-input" id="inp-width" value="80" style="width:60px; height:24px; font-weight:800;" oninput="App.onCadInputChange()">
+                    <button class="btn-stepper" onclick="ParametricDieEngine.stepParam('width', 5)">+</button>
+                    <span style="font-size:0.7rem; color:var(--text-muted);">mm</span>
+                  </div>
                 </div>
-                <div class="input-col input-wrap">
-                  <input type="number" class="input-box" id="inp-height" value="150" oninput="App.onCadInputChange()">
-                  <span class="input-unit">D</span>
+                <input type="range" class="fluid-slider" id="slider-width" min="15" max="400" value="80" oninput="document.getElementById('inp-width').value=this.value; App.onCadInputChange();">
+              </div>
+
+              <!-- Height Slider & Input -->
+              <div style="margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; margin-bottom:2px;">
+                  <span style="font-weight:700; color:var(--text-main);">ارتفاع/عمق جعبه (Height - H/D):</span>
+                  <div style="display:flex; align-items:center; gap:3px;">
+                    <button class="btn-stepper" onclick="ParametricDieEngine.stepParam('height', -5)">-</button>
+                    <input type="number" class="stepper-input" id="inp-height" value="150" style="width:60px; height:24px; font-weight:800;" oninput="App.onCadInputChange()">
+                    <button class="btn-stepper" onclick="ParametricDieEngine.stepParam('height', 5)">+</button>
+                    <span style="font-size:0.7rem; color:var(--text-muted);">mm</span>
+                  </div>
+                </div>
+                <input type="range" class="fluid-slider" id="slider-height" min="20" max="800" value="150" oninput="document.getElementById('inp-height').value=this.value; App.onCadInputChange();">
+              </div>
+
+              <!-- Direct Flat Dimensions Steppers for Custom SVG -->
+              <div style="background:var(--surface-base); padding:8px 10px; border-radius:6px; border:1px solid var(--border-light); margin-top:10px;">
+                <div style="font-size:0.72rem; font-weight:800; margin-bottom:6px; color:var(--text-muted);">ابعاد گسترده قالب برداری شیت (Flat Size):</div>
+                <div style="display:flex; gap:8px;">
+                  <div style="flex:1;">
+                    <div style="font-size:0.68rem; color:var(--text-muted); margin-bottom:2px;">طول گسترده (L):</div>
+                    <div style="display:flex; align-items:center; gap:2px;">
+                      <button class="btn-stepper" onclick="ParametricDieEngine.stepFlatSize('w', -5)">-</button>
+                      <input type="number" id="inp-flat-l" class="stepper-input" style="width:100%; height:24px;" value="415" oninput="App.onFlatDimensionInput('l', this.value)">
+                      <button class="btn-stepper" onclick="ParametricDieEngine.stepFlatSize('w', 5)">+</button>
+                    </div>
+                  </div>
+                  <div style="flex:1;">
+                    <div style="font-size:0.68rem; color:var(--text-muted); margin-bottom:2px;">عرض گسترده (W):</div>
+                    <div style="display:flex; align-items:center; gap:2px;">
+                      <button class="btn-stepper" onclick="ParametricDieEngine.stepFlatSize('h', -5)">-</button>
+                      <input type="number" id="inp-flat-w" class="stepper-input" style="width:100%; height:24px;" value="266" oninput="App.onFlatDimensionInput('w', this.value)">
+                      <button class="btn-stepper" onclick="ParametricDieEngine.stepFlatSize('h', 5)">+</button>
+                    </div>
+                  </div>
+                </div>
+                <!-- Quick Scale Chips -->
+                <div style="display:flex; align-items:center; gap:4px; margin-top:6px; flex-wrap:wrap;">
+                  <span style="font-size:0.67rem; color:var(--text-muted);">مقیاس سریع:</span>
+                  <button class="chip chip-sm" style="padding:1px 6px; font-size:0.68rem;" onclick="ParametricDieEngine.scaleCustomDie(0.85)">۸۵٪</button>
+                  <button class="chip chip-sm" style="padding:1px 6px; font-size:0.68rem;" onclick="ParametricDieEngine.scaleCustomDie(0.90)">۹۰٪</button>
+                  <button class="chip chip-sm active" style="padding:1px 6px; font-size:0.68rem;" onclick="ParametricDieEngine.scaleCustomDie(1.0)">۱۰۰٪</button>
+                  <button class="chip chip-sm" style="padding:1px 6px; font-size:0.68rem;" onclick="ParametricDieEngine.scaleCustomDie(1.10)">۱۱۰٪</button>
+                  <button class="chip chip-sm" style="padding:1px 6px; font-size:0.68rem;" onclick="ParametricDieEngine.scaleCustomDie(1.25)">۱۲۵٪</button>
                 </div>
               </div>
             </div>
@@ -188,11 +271,6 @@
                 </div>
               </div>
             </div>
-
-            <!-- Custom Die-cut Importer Button -->
-            <button class="btn btn-outline btn-block" style="margin-bottom:12px;" onclick="go('diecut')">
-              <i class="ph ph-upload-simple"></i> واردسازی و تفکیک قالب (.ai و .svg)
-            </button>
 
             <div class="field-group">
               <label class="field-label">تیراژ سفارش (تعداد)</label>

@@ -84,25 +84,142 @@ window.CadEngine = {
     this.setupBlueprintHover();
   },
 
-  hoverPoint: null,
-  hoverAnnotation: null,
+  dragHandle: null,
+  dragStart: { x: 0, y: 0, scale: 1, startVal: 0 },
+  activeHandles: [],
 
   setupBlueprintHover() {
+    this.setupBlueprintInteractions();
+  },
+
+  setupBlueprintInteractions() {
     const canvas = document.getElementById('blueprint-canvas');
     if (!canvas) return;
 
-    canvas.addEventListener('mousemove', (e) => {
+    const getMousePos = (e) => {
       const rect = canvas.getBoundingClientRect();
-      const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
-      const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
-      this.hoverPoint = { x: mouseX, y: mouseY };
-      this.renderBlueprint();
+      return {
+        x: (e.clientX - rect.left) * (canvas.width / rect.width),
+        y: (e.clientY - rect.top) * (canvas.height / rect.height)
+      };
+    };
+
+    canvas.addEventListener('mousedown', (e) => {
+      const pos = getMousePos(e);
+      const hit = this.hitTestHandle(pos.x, pos.y);
+      if (hit) {
+        this.dragHandle = hit.type;
+        this.dragStart = {
+          x: pos.x,
+          y: pos.y,
+          scale: hit.scale || 1,
+          startVal: hit.currentVal
+        };
+        canvas.style.cursor = hit.cursor;
+        e.preventDefault();
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (this.dragHandle) {
+        this.dragHandle = null;
+        if (canvas) {
+          canvas.style.cursor = 'default';
+          this.renderBlueprint();
+        }
+      }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      const pos = getMousePos(e);
+      this.hoverPoint = pos;
+
+      if (this.dragHandle) {
+        const dx = (pos.x - this.dragStart.x) / (this.dragStart.scale || 1);
+        const dy = (pos.y - this.dragStart.y) / (this.dragStart.scale || 1);
+        const cad = window.LemonPack.cad;
+
+        if (this.dragHandle === 'length') {
+          const newL = Math.max(20, Math.min(1000, Math.round(this.dragStart.startVal + dx / 2)));
+          cad.length = newL;
+          const inp = document.getElementById('inp-length');
+          if (inp) inp.value = newL;
+          const sld = document.getElementById('slider-length');
+          if (sld) sld.value = newL;
+          const dieL = document.getElementById('die-param-l');
+          if (dieL) dieL.value = newL;
+          if (window.ParametricDieEngine) window.ParametricDieEngine.params.length = newL;
+        } else if (this.dragHandle === 'height') {
+          const newH = Math.max(20, Math.min(1000, Math.round(this.dragStart.startVal + dy)));
+          cad.height = newH;
+          const inp = document.getElementById('inp-height');
+          if (inp) inp.value = newH;
+          const sld = document.getElementById('slider-height');
+          if (sld) sld.value = newH;
+          const dieH = document.getElementById('die-param-h');
+          if (dieH) dieH.value = newH;
+          if (window.ParametricDieEngine) window.ParametricDieEngine.params.height = newH;
+        } else if (this.dragHandle === 'width') {
+          const newW = Math.max(15, Math.min(600, Math.round(this.dragStart.startVal + dx)));
+          cad.width = newW;
+          const inp = document.getElementById('inp-width');
+          if (inp) inp.value = newW;
+          const sld = document.getElementById('slider-width');
+          if (sld) sld.value = newW;
+          const dieW = document.getElementById('die-param-w');
+          if (dieW) dieW.value = newW;
+          if (window.ParametricDieEngine) window.ParametricDieEngine.params.width = newW;
+        } else if (this.dragHandle === 'flatL') {
+          const newFlatL = Math.max(50, Math.min(2000, Math.round(this.dragStart.startVal + dx)));
+          cad.flatL = newFlatL;
+          if (cad.customDie) cad.customDie.widthMm = newFlatL;
+          if (window.ParametricDieEngine) window.ParametricDieEngine.calculated.flatWidth = newFlatL;
+          const inpFlatL = document.getElementById('inp-flat-l');
+          if (inpFlatL) inpFlatL.value = newFlatL;
+          const dieFlatW = document.getElementById('die-flat-w');
+          if (dieFlatW) dieFlatW.value = newFlatL;
+        } else if (this.dragHandle === 'flatW') {
+          const newFlatW = Math.max(50, Math.min(2000, Math.round(this.dragStart.startVal + dy)));
+          cad.flatW = newFlatW;
+          if (cad.customDie) cad.customDie.heightMm = newFlatW;
+          if (window.ParametricDieEngine) window.ParametricDieEngine.calculated.flatHeight = newFlatW;
+          const inpFlatW = document.getElementById('inp-flat-w');
+          if (inpFlatW) inpFlatW.value = newFlatW;
+          const dieFlatH = document.getElementById('die-flat-h');
+          if (dieFlatH) dieFlatH.value = newFlatW;
+        }
+
+        if (!cad.customDie || !cad.customDie.active) {
+          this.recalculateFlatDimensions();
+        }
+        if (window.App && window.App.recalculate) {
+          window.App.recalculate();
+        }
+      } else {
+        const hit = this.hitTestHandle(pos.x, pos.y);
+        canvas.style.cursor = hit ? hit.cursor : 'default';
+        this.renderBlueprint();
+      }
     });
 
     canvas.addEventListener('mouseleave', () => {
-      this.hoverPoint = null;
-      this.renderBlueprint();
+      if (!this.dragHandle) {
+        this.hoverPoint = null;
+        canvas.style.cursor = 'default';
+        this.renderBlueprint();
+      }
     });
+  },
+
+  hitTestHandle(x, y) {
+    if (!this.activeHandles || this.activeHandles.length === 0) return null;
+    for (const h of this.activeHandles) {
+      const dist = Math.hypot(x - h.x, y - h.y);
+      if (dist <= h.radius) {
+        return h;
+      }
+    }
+    return null;
   },
 
   loadCustomPresets() {
@@ -281,6 +398,12 @@ window.CadEngine = {
       const startX = (w - boxW) / 2;
       const startY = (h - boxH) / 2;
 
+      // Register interactive drag handles for custom die
+      this.activeHandles = [
+        { type: 'flatL', x: startX + boxW, y: startY + boxH / 2, radius: 14, cursor: 'ew-resize', scale: scale, currentVal: flatW, label: 'طول شیت' },
+        { type: 'flatW', x: startX + boxW / 2, y: startY + boxH, radius: 14, cursor: 'ns-resize', scale: scale, currentVal: flatH, label: 'عرض شیت' }
+      ];
+
       ctx.fillStyle = '#FAF8F5';
       ctx.fillRect(startX, startY, boxW, boxH);
       ctx.strokeStyle = '#CBD5E1';
@@ -353,6 +476,9 @@ window.CadEngine = {
       ctx.lineTo(startX - 6, startY + boxH);
       ctx.stroke();
 
+      // Draw Interactive Drag Handles on Canvas
+      this.drawDragHandles(ctx);
+
       // Render Floating Hover Annotation
       if (mouse && activeHoverText) {
         this.drawHoverBadge(ctx, mouse.x, mouse.y, activeHoverText);
@@ -375,6 +501,13 @@ window.CadEngine = {
     const G = (cad.glueFlap || 15) * scale;
     const T = (cad.tuckFlap || 18) * scale;
     const D = (cad.dustFlap || 15) * scale;
+
+    // Register interactive drag handles for parametric box
+    this.activeHandles = [
+      { type: 'length', x: startX + boxW, y: startY + boxH / 2, radius: 14, cursor: 'ew-resize', scale: scale, currentVal: cad.length, label: 'تغییر طول L با درگ' },
+      { type: 'height', x: startX + boxW / 2, y: startY + boxH, radius: 14, cursor: 'ns-resize', scale: scale, currentVal: cad.height, label: 'تغییر ارتفاع H با درگ' },
+      { type: 'width', x: startX + G + W, y: startY + T + H / 2, radius: 12, cursor: 'col-resize', scale: scale, currentVal: cad.width, label: 'تغییر عرض W با درگ' }
+    ];
 
     ctx.fillStyle = '#FAF8F5';
     ctx.fillRect(startX, startY, boxW, boxH);
@@ -512,10 +645,74 @@ window.CadEngine = {
     ctx.lineTo(startX - 6, startY + boxH);
     ctx.stroke();
 
+    // Draw Interactive Drag Handles on Canvas
+    this.drawDragHandles(ctx);
+
     // Floating Hover Measurement Tooltip
     if (mouse && activeHoverText) {
       this.drawHoverBadge(ctx, mouse.x, mouse.y, activeHoverText);
     }
+  },
+
+  drawDragHandles(ctx) {
+    if (!this.activeHandles) return;
+    const mouse = this.hoverPoint;
+
+    this.activeHandles.forEach(h => {
+      const isHovered = mouse && Math.hypot(mouse.x - h.x, mouse.y - h.y) <= h.radius + 4;
+      const isDragging = this.dragHandle === h.type;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(h.x, h.y, isHovered || isDragging ? 11 : 8, 0, Math.PI * 2);
+      ctx.fillStyle = isDragging ? '#F59E0B' : isHovered ? '#D97706' : '#FFFFFF';
+      ctx.fill();
+
+      ctx.strokeStyle = isHovered || isDragging ? '#78350F' : '#D97706';
+      ctx.lineWidth = isHovered || isDragging ? 2.5 : 1.8;
+      ctx.stroke();
+
+      // Inner Grip Dots / Lines
+      ctx.fillStyle = isDragging || isHovered ? '#FFFFFF' : '#D97706';
+      if (h.type === 'length' || h.type === 'flatL') {
+        ctx.fillRect(h.x - 3, h.y - 4, 1.5, 8);
+        ctx.fillRect(h.x + 1.5, h.y - 4, 1.5, 8);
+      } else if (h.type === 'height' || h.type === 'flatW') {
+        ctx.fillRect(h.x - 4, h.y - 3, 8, 1.5);
+        ctx.fillRect(h.x - 4, h.y + 1.5, 8, 1.5);
+      } else {
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Drag tooltip pill if hovered
+      if (isHovered || isDragging) {
+        ctx.font = 'bold 9.5px Peyda, sans-serif';
+        const labelText = isDragging ? `درحال تغییر: ${h.label}` : `⟷ ${h.label}`;
+        const tw = ctx.measureText(labelText).width;
+        const pillW = tw + 14;
+        const pillH = 20;
+        const pillX = h.x - (pillW / 2);
+        const pillY = h.y - 24;
+
+        ctx.fillStyle = '#0F172A';
+        ctx.beginPath();
+        ctx.roundRect(pillX, pillY, pillW, pillH, 4);
+        ctx.fill();
+
+        ctx.strokeStyle = '#F59E0B';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = '#F59E0B';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(labelText, h.x, pillY + (pillH / 2));
+      }
+
+      ctx.restore();
+    });
   },
 
   drawHoverBadge(ctx, x, y, text) {
