@@ -291,41 +291,37 @@ window.App = {
 
   onCadInputChange() {
     const cad = window.LemonPack.cad;
-    const prevL = cad.length;
-    const prevW = cad.width;
-    const prevH = cad.height;
-
-    cad.length = Number(document.getElementById('inp-length').value) || 120;
-    cad.width = Number(document.getElementById('inp-width').value) || 80;
-    cad.height = Number(document.getElementById('inp-height').value) || 150;
-    cad.orderQty = Number(document.getElementById('inp-order-qty').value) || 1000;
+    cad.length = Math.max(10, Number(document.getElementById('inp-length').value) || 120);
+    cad.width = Math.max(10, Number(document.getElementById('inp-width').value) || 80);
+    cad.height = Math.max(10, Number(document.getElementById('inp-height').value) || 150);
+    cad.orderQty = Math.max(1, Number(document.getElementById('inp-order-qty').value) || 1000);
     cad.isDieInArchive = document.getElementById('chk-archive-die') ? document.getElementById('chk-archive-die').checked : false;
 
-    // If custom SVG die is loaded and user changes dimensions, update or ask
-    if (cad.customDie && cad.customDie.active) {
-      if (cad.length !== prevL && window.DieCutImporter) {
-        window.DieCutImporter.promptDimensionMapping('طول (L)', cad.length);
-      } else if (cad.width !== prevW && window.DieCutImporter) {
-        window.DieCutImporter.promptDimensionMapping('عرض (W)', cad.width);
-      } else if (cad.height !== prevH && window.DieCutImporter) {
-        window.DieCutImporter.promptDimensionMapping('ارتفاع (H)', cad.height);
-      }
-    } else {
-      if (window.CadEngine) window.CadEngine.recalculateFlatDimensions();
-      this.recalculate();
+    if (window.CadEngine) {
+      window.CadEngine.recalculateFlatDimensions();
     }
+
+    // If custom SVG die is loaded, rescale its vector paths to match the new flat dimensions
+    if (cad.customDie && cad.customDie.active && window.DieCutImporter) {
+      window.DieCutImporter.updateDieDimensions(cad.flatL, cad.flatW, 'all');
+    }
+
+    this.recalculate();
   },
 
   onCadMarginChange(marginKey, value) {
     const cad = window.LemonPack.cad;
-    cad[marginKey] = value;
-    if (cad.customDie && cad.customDie.active && window.DieCutImporter) {
-      const fieldFa = marginKey === 'glueFlap' ? 'لبه چسب' : marginKey === 'tuckFlap' ? 'زبانه درپوش' : marginKey === 'dustFlap' ? 'گوشواره' : 'لقی خط تا';
-      window.DieCutImporter.promptDimensionMapping(fieldFa, value);
-    } else {
-      if (window.CadEngine) window.CadEngine.recalculateFlatDimensions();
-      this.recalculate();
+    cad[marginKey] = Math.max(0, Number(value) || 0);
+
+    if (window.CadEngine) {
+      window.CadEngine.recalculateFlatDimensions();
     }
+
+    if (cad.customDie && cad.customDie.active && window.DieCutImporter) {
+      window.DieCutImporter.updateDieDimensions(cad.flatL, cad.flatW, 'all');
+    }
+
+    this.recalculate();
   },
 
   setupPwa() {

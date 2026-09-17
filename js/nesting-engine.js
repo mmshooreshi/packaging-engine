@@ -292,8 +292,22 @@ window.NestingEngine = {
     ctx.lineWidth = 1.5;
     ctx.strokeRect(startX, startY, drawSheetW, drawSheetH);
 
-    const gripperDraw = this.MACHINE_CONSTRAINTS.gripperMarginCm * scale;
-    ctx.fillStyle = 'rgba(239, 68, 68, 0.15)';
+    const gripperMarginCm = this.MACHINE_CONSTRAINTS.gripperMarginCm;
+    const safetyMarginCm = (this.MACHINE_CONSTRAINTS.safetyMarginMm) / 10;
+    const gutterCm = this.MACHINE_CONSTRAINTS.interGutterMm / 10;
+
+    const flatLcm = cad.flatL / 10;
+    const flatWcm = cad.flatW / 10;
+
+    const unitWcm = nest.orientation === 'A' ? flatLcm : flatWcm;
+    const unitHcm = nest.orientation === 'A' ? flatWcm : flatLcm;
+
+    const cols = nest.cols || Math.floor((nest.sheetL - gripperMarginCm - (safetyMarginCm * 2)) / (unitWcm + gutterCm));
+    const rows = nest.rows || Math.floor((nest.sheetW - (safetyMarginCm * 2)) / (unitHcm + gutterCm));
+
+    // Draw Gripper Margin (right or bottom)
+    const gripperDraw = gripperMarginCm * scale;
+    ctx.fillStyle = 'rgba(239, 68, 68, 0.12)';
     ctx.fillRect(startX + drawSheetW - gripperDraw, startY, gripperDraw, drawSheetH);
     ctx.strokeStyle = '#DC2626';
     ctx.setLineDash([4, 4]);
@@ -308,13 +322,13 @@ window.NestingEngine = {
     ctx.textAlign = 'center';
     ctx.fillText('لب‌پنجه (۱.۵cm)', startX + drawSheetW - (gripperDraw / 2), startY + (drawSheetH / 2));
 
-    const flatLcm = (cad.flatL + this.MACHINE_CONSTRAINTS.interGutterMm) / 10;
-    const flatWcm = (cad.flatW + this.MACHINE_CONSTRAINTS.interGutterMm) / 10;
-    const pieceW = (nest.orientation === 'A' ? flatLcm : flatWcm) * scale;
-    const pieceH = (nest.orientation === 'A' ? flatWcm : flatLcm) * scale;
+    // Usable printable area (excluding gripper and safety margins)
+    const printableStartX = startX + (safetyMarginCm * scale);
+    const printableStartY = startY + (safetyMarginCm * scale);
 
-    const cols = Math.floor((nest.sheetL - this.MACHINE_CONSTRAINTS.gripperMarginCm) / (nest.orientation === 'A' ? flatLcm : flatWcm));
-    const rows = Math.floor(nest.sheetW / (nest.orientation === 'A' ? flatWcm : flatLcm));
+    const cellDrawW = unitWcm * scale;
+    const cellDrawH = unitHcm * scale;
+    const gutterDraw = gutterCm * scale;
 
     let boxIndex = 1;
     const pUtils = window.PersianUtils || { e2p: function(v){ return v; } };
@@ -324,14 +338,16 @@ window.NestingEngine = {
 
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        const bx = startX + 8 + (c * pieceW);
-        const by = startY + 8 + (r * pieceH);
-        const cellW = pieceW - 3;
-        const cellH = pieceH - 3;
+        const bx = printableStartX + (c * (cellDrawW + gutterDraw));
+        const by = printableStartY + (r * (cellDrawH + gutterDraw));
         const currentBoxIdx = boxIndex++;
 
+        // Ensure within sheet bounds
+        if (bx + cellDrawW > startX + drawSheetW - gripperDraw + 2) continue;
+        if (by + cellDrawH > startY + drawSheetH + 2) continue;
+
         // Hover detection on cell
-        if (mouse && mouse.x >= bx && mouse.x <= bx + cellW && mouse.y >= by && mouse.y <= by + cellH) {
+        if (mouse && mouse.x >= bx && mouse.x <= bx + cellDrawW && mouse.y >= by && mouse.y <= by + cellDrawH) {
           activeHoverCell = {
             index: currentBoxIdx,
             row: r + 1,
@@ -343,19 +359,22 @@ window.NestingEngine = {
           ctx.fillStyle = 'rgba(217, 119, 6, 0.06)';
         }
 
-        ctx.fillRect(bx, by, cellW, cellH);
+        ctx.fillRect(bx, by, cellDrawW, cellDrawH);
 
         // If custom SVG diecut is active, draw miniature vector contours in each nested cell
         if (cad.customDie && cad.customDie.active && cad.customDie.paths && cad.customDie.paths.length > 0) {
           const b = cad.customDie.bounds || { minX: 0, minY: 0, width: cad.flatL, height: cad.flatW };
-          const pScale = Math.min((cellW - 4) / b.width, (cellH - 4) / b.height);
+          const pScale = Math.min((cellDrawW - 2) / b.width, (cellDrawH - 2) / b.height);
 
           ctx.save();
           ctx.beginPath();
-          ctx.rect(bx, by, cellW, cellH);
+          ctx.rect(bx, by, cellDrawW, cellDrawH);
           ctx.clip();
 
-          ctx.translate(bx + cellW / 2, by + cellH / 2);
+          ctx.translate(bx + cellDrawW / 2, by + cellDrawH / 2);
+          if (nest.orientation === 'B') {
+            ctx.rotate(Math.PI / 2);
+          }
           ctx.scale(pScale, pScale);
           ctx.translate(-b.minX - b.width / 2, -b.minY - b.height / 2);
 
@@ -394,16 +413,16 @@ window.NestingEngine = {
           // Parametric fallback box
           ctx.strokeStyle = '#DC2626';
           ctx.lineWidth = 1.2;
-          ctx.strokeRect(bx, by, cellW, cellH);
+          ctx.strokeRect(bx, by, cellDrawW, cellDrawH);
 
           ctx.strokeStyle = '#2563EB';
           ctx.lineWidth = 1;
           ctx.setLineDash([3, 3]);
           ctx.beginPath();
-          ctx.moveTo(bx, by + (cellH * 0.3));
-          ctx.lineTo(bx + cellW, by + (cellH * 0.3));
-          ctx.moveTo(bx, by + (cellH * 0.7));
-          ctx.lineTo(bx + cellW, by + (cellH * 0.7));
+          ctx.moveTo(bx, by + (cellDrawH * 0.3));
+          ctx.lineTo(bx + cellDrawW, by + (cellDrawH * 0.3));
+          ctx.moveTo(bx, by + (cellDrawH * 0.7));
+          ctx.lineTo(bx + cellDrawW, by + (cellDrawH * 0.7));
           ctx.stroke();
           ctx.setLineDash([]);
         }
@@ -411,7 +430,7 @@ window.NestingEngine = {
         ctx.fillStyle = '#1E293B';
         ctx.font = 'bold 10px Peyda, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(pUtils.e2p(currentBoxIdx), bx + (cellW / 2), by + (cellH / 2) + 3);
+        ctx.fillText(pUtils.e2p(currentBoxIdx), bx + (cellDrawW / 2), by + (cellDrawH / 2) + 3);
       }
     }
 
