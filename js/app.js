@@ -229,39 +229,73 @@ window.App = {
 
   syncRatesToInputs() {
     const r = window.LemonPack.rates;
-    const setInp = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-    setInp('set-paper-price', r.paper_price_per_kg_toman);
-    setInp('set-plate-cost', r.plate_2_5_unit_cost_toman);
-    setInp('set-press-cost', r.press_run_cost_per_5000_toman);
-    setInp('set-lam-rate', r.lamination_rate_per_cm2_toman);
-    setInp('set-letterpress-cost', r.letterpress_base_run_cost_toman);
-    setInp('set-die-cost', r.laser_die_fabrication_default_cost_toman);
-    setInp('set-gluing-box', r.gluing_cost_per_box_toman);
-    setInp('set-profit-pct', r.profit_margin_percentage);
+    const pUtils = window.PersianUtils || { fmtNum: (v, d) => String(v), fmtCurrency: v => String(v) };
 
-    setInp('drw-paper-price', r.paper_price_per_kg_toman);
-    setInp('drw-plate-cost', r.plate_2_5_unit_cost_toman);
-    setInp('drw-press-cost', r.press_run_cost_per_5000_toman);
-    setInp('drw-profit-pct', r.profit_margin_percentage);
+    const setField = (id, val, isDecimal = false) => {
+      const el = document.getElementById(id);
+      const help = document.getElementById('help-' + id);
+      if (el) {
+        el.value = isDecimal ? pUtils.fmtNum(val, 1) : pUtils.fmtNum(val, 0);
+      }
+      if (help) {
+        if (id === 'set-profit-pct') {
+          help.textContent = `${pUtils.fmtNum(val, 0)} درصد حاشیه سود`;
+        } else if (id === 'set-lam-rate') {
+          help.textContent = `${pUtils.fmtNum(val, 1)} تومان بر سانتی‌متر مربع`;
+        } else {
+          help.textContent = pUtils.fmtCurrency(val, 'toman');
+        }
+      }
+    };
+
+    setField('set-paper-price', r.paper_price_per_kg_toman);
+    setField('set-plate-cost', r.plate_2_5_unit_cost_toman);
+    setField('set-press-cost', r.press_run_cost_per_5000_toman);
+    setField('set-lam-rate', r.lamination_rate_per_cm2_toman, true);
+    setField('set-letterpress-cost', r.letterpress_base_run_cost_toman);
+    setField('set-die-cost', r.laser_die_fabrication_default_cost_toman);
+    setField('set-gluing-box', r.gluing_cost_per_box_toman);
+    setField('set-profit-pct', r.profit_margin_percentage, false);
+  },
+
+  onRateInput(id, rateKey, isDecimal = false) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const pUtils = window.PersianUtils || { p2e: v => v, fmtNum: (v, d) => String(v), fmtCurrency: v => String(v) };
+    const rawVal = pUtils.p2e(el.value);
+    const num = isDecimal ? (parseFloat(rawVal) || 0) : (parseInt(rawVal, 10) || 0);
+
+    const help = document.getElementById('help-' + id);
+    if (help) {
+      if (id === 'set-profit-pct') {
+        help.textContent = `${pUtils.fmtNum(num, 0)} درصد حاشیه سود`;
+      } else if (id === 'set-lam-rate') {
+        help.textContent = `${pUtils.fmtNum(num, 1)} تومان بر سانتی‌متر مربع`;
+      } else {
+        help.textContent = pUtils.fmtCurrency(num, 'toman');
+      }
+    }
+
+    if (window.LemonPack && window.LemonPack.rates) {
+      window.LemonPack.rates[rateKey] = num;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(window.LemonPack.rates));
+      } catch(e) {}
+    }
+    this.recalculate();
+  },
+
+  onRateBlur(id, rateKey, isDecimal = false) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const pUtils = window.PersianUtils || { p2e: v => v, fmtNum: (v, d) => String(v) };
+    const rawVal = pUtils.p2e(el.value);
+    const num = isDecimal ? (parseFloat(rawVal) || 0) : (parseInt(rawVal, 10) || 0);
+    el.value = isDecimal ? pUtils.fmtNum(num, 1) : pUtils.fmtNum(num, 0);
   },
 
   saveRates() {
-    const pUtils = window.PersianUtils || { p2e: function(v){ return v; } };
-    const getVal = (id, def) => {
-      const el = document.getElementById(id);
-      return el && el.value ? Number(pUtils.p2e(el.value)) : def;
-    };
-    const r = window.LemonPack.rates;
-    r.paper_price_per_kg_toman = getVal('set-paper-price', DEFAULT_RATES.paper_price_per_kg_toman);
-    r.plate_2_5_unit_cost_toman = getVal('set-plate-cost', DEFAULT_RATES.plate_2_5_unit_cost_toman);
-    r.press_run_cost_per_5000_toman = getVal('set-press-cost', DEFAULT_RATES.press_run_cost_per_5000_toman);
-    r.lamination_rate_per_cm2_toman = getVal('set-lam-rate', DEFAULT_RATES.lamination_rate_per_cm2_toman);
-    r.letterpress_base_run_cost_toman = getVal('set-letterpress-cost', DEFAULT_RATES.letterpress_base_run_cost_toman);
-    r.laser_die_fabrication_default_cost_toman = getVal('set-die-cost', DEFAULT_RATES.laser_die_fabrication_default_cost_toman);
-    r.gluing_cost_per_box_toman = getVal('set-gluing-box', DEFAULT_RATES.gluing_cost_per_box_toman);
-    r.profit_margin_percentage = getVal('set-profit-pct', DEFAULT_RATES.profit_margin_percentage);
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(r));
+    this.syncRatesToInputs();
     this.recalculate();
   },
 

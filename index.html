@@ -945,53 +945,61 @@
 
   <!-- Non-Disruptive Rates Modal (Never hides studio) -->
   <div class="modal-overlay" id="rates-modal" onclick="if(event.target===this) App.closeRatesModal()">
-    <div class="modal-card" style="max-width:580px;">
+    <div class="modal-card" style="max-width:620px;">
       <div class="modal-hdr">
-        <div style="font-weight:800; font-size:0.9rem; display:flex; align-items:center; gap:6px; color:var(--graphite-text);">
-          <i class="ph ph-sliders" style="color:var(--brand-primary);"></i>
+        <div style="font-weight:800; font-size:0.92rem; display:flex; align-items:center; gap:6px; color:var(--graphite-text);">
+          <i class="ph ph-sliders" style="color:var(--brand-primary); font-size:1.1rem;"></i>
           <span>تنظیم نرخ‌های روز بازار و استهلاک کارخانه</span>
         </div>
         <button class="btn-icon" onclick="App.closeRatesModal()"><i class="ph ph-x"></i></button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body" style="max-height:70vh; overflow-y:auto;">
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div class="field-group">
             <label class="field-label">قیمت هر کیلوگرم مقوا (تومان)</label>
-            <input type="number" class="input-box" id="set-paper-price" oninput="App.saveRates()">
+            <input type="text" class="input-box tabular-nums font-bold" id="set-paper-price" oninput="App.onRateInput('set-paper-price', 'paper_price_per_kg_toman')" onblur="App.onRateBlur('set-paper-price', 'paper_price_per_kg_toman')">
+            <div class="field-help" id="help-set-paper-price" style="font-size:0.7rem; color:var(--brand-primary); margin-top:3px;"></div>
           </div>
           <div class="field-group">
             <label class="field-label">هزینه واحد زینک ۲.۵ ورقی (تومان)</label>
-            <input type="number" class="input-box" id="set-plate-cost" oninput="App.saveRates()">
+            <input type="text" class="input-box tabular-nums font-bold" id="set-plate-cost" oninput="App.onRateInput('set-plate-cost', 'plate_2_5_unit_cost_toman')" onblur="App.onRateBlur('set-plate-cost', 'plate_2_5_unit_cost_toman')">
+            <div class="field-help" id="help-set-plate-cost" style="font-size:0.7rem; color:var(--brand-primary); margin-top:3px;"></div>
           </div>
           <div class="field-group">
             <label class="field-label">اجرت هر دور چاپ ۵,۰۰۰ تایی (تومان)</label>
-            <input type="number" class="input-box" id="set-press-cost" oninput="App.saveRates()">
+            <input type="text" class="input-box tabular-nums font-bold" id="set-press-cost" oninput="App.onRateInput('set-press-cost', 'press_run_cost_per_5000_toman')" onblur="App.onRateBlur('set-press-cost', 'press_run_cost_per_5000_toman')">
+            <div class="field-help" id="help-set-press-cost" style="font-size:0.7rem; color:var(--brand-primary); margin-top:3px;"></div>
           </div>
           <div class="field-group">
             <label class="field-label">نرخ سلفون هر سانتی‌متر مربع (تومان)</label>
-            <input type="number" step="0.1" class="input-box" id="set-lam-rate" oninput="App.saveRates()">
+            <input type="text" class="input-box tabular-nums font-bold" id="set-lam-rate" oninput="App.onRateInput('set-lam-rate', 'lamination_rate_per_cm2_toman', true)" onblur="App.onRateBlur('set-lam-rate', 'lamination_rate_per_cm2_toman', true)">
+            <div class="field-help" id="help-set-lam-rate" style="font-size:0.7rem; color:var(--brand-primary); margin-top:3px;"></div>
           </div>
           <div class="field-group">
             <label class="field-label">اجرت پایه تیغ‌زنی لترپرس (تومان)</label>
-            <input type="number" class="input-box" id="set-letterpress-cost" oninput="App.saveRates()">
+            <input type="text" class="input-box tabular-nums font-bold" id="set-letterpress-cost" oninput="App.onRateInput('set-letterpress-cost', 'letterpress_base_run_cost_toman')" onblur="App.onRateBlur('set-letterpress-cost', 'letterpress_base_run_cost_toman')">
+            <div class="field-help" id="help-set-letterpress-cost" style="font-size:0.7rem; color:var(--brand-primary); margin-top:3px;"></div>
           </div>
           <div class="field-group">
             <label class="field-label">هزینه ساخت قالب لیزری (تومان)</label>
-            <input type="number" class="input-box" id="set-die-cost" oninput="App.saveRates()">
+            <input type="text" class="input-box tabular-nums font-bold" id="set-die-cost" oninput="App.onRateInput('set-die-cost', 'laser_die_fabrication_default_cost_toman')" onblur="App.onRateBlur('set-die-cost', 'laser_die_fabrication_default_cost_toman')">
+            <div class="field-help" id="help-set-die-cost" style="font-size:0.7rem; color:var(--brand-primary); margin-top:3px;"></div>
           </div>
           <div class="field-group">
             <label class="field-label">اجرت جعبه‌چسبانی هر عدد (تومان)</label>
-            <input type="number" class="input-box" id="set-gluing-box" oninput="App.saveRates()">
+            <input type="text" class="input-box tabular-nums font-bold" id="set-gluing-box" oninput="App.onRateInput('set-gluing-box', 'gluing_cost_per_box_toman')" onblur="App.onRateBlur('set-gluing-box', 'gluing_cost_per_box_toman')">
+            <div class="field-help" id="help-set-gluing-box" style="font-size:0.7rem; color:var(--brand-primary); margin-top:3px;"></div>
           </div>
           <div class="field-group">
             <label class="field-label">درصد حاشیه سود کارخانه (٪)</label>
-            <input type="number" class="input-box" id="set-profit-pct" value="30" oninput="App.saveRates()">
+            <input type="text" class="input-box tabular-nums font-bold" id="set-profit-pct" oninput="App.onRateInput('set-profit-pct', 'profit_margin_percentage', true)" onblur="App.onRateBlur('set-profit-pct', 'profit_margin_percentage', true)">
+            <div class="field-help" id="help-set-profit-pct" style="font-size:0.7rem; color:var(--brand-primary); margin-top:3px;"></div>
           </div>
         </div>
       </div>
       <div class="modal-ftr">
-        <button class="btn btn-primary btn-block" onclick="App.closeRatesModal()">
-          ثبت نرخ‌ها و بستن
+        <button class="btn btn-primary btn-block" onclick="App.closeRatesModal()" style="font-weight:800;">
+          <i class="ph ph-check-circle"></i> ثبت نرخ‌ها و بستن
         </button>
       </div>
     </div>

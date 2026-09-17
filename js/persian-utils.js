@@ -11,8 +11,12 @@ window.PersianUtils = {
   },
 
   p2e(str) {
-    if (!str) return '';
-    return String(str).replace(/[۰-۹]/g, w => this.faDigits.indexOf(w));
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/[۰-۹]/g, w => this.faDigits.indexOf(w))
+      .replace(/,/g, '')
+      .replace(/،/g, '')
+      .trim();
   },
 
   fmtNum(n, decimals = 0) {
