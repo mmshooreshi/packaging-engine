@@ -573,15 +573,43 @@ window.App = {
     setEl('uv-live-total-cost', pUtils.fmtCurrency(total, cur));
   },
 
+  openRatesModal() {
+    const modal = document.getElementById('rates-modal');
+    if (modal) modal.classList.add('show');
+    if (window.SoundEngine) window.SoundEngine.playClick();
+  },
+
+  closeRatesModal() {
+    const modal = document.getElementById('rates-modal');
+    if (modal) modal.classList.remove('show');
+    this.recalculate();
+    if (window.SoundEngine) window.SoundEngine.playClick();
+  },
+
   setupPwa() {
+    // Unregister any stale service workers and clear cache storage
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(console.warn);
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let r of registrations) r.unregister();
+      }).catch(console.warn);
+    }
+    if ('caches' in window) {
+      caches.keys().then((keys) => {
+        keys.forEach((k) => caches.delete(k));
+      }).catch(console.warn);
     }
   }
 };
 
 window.go = function(tabId) {
   if (tabId === 'cad') tabId = 'studio';
+
+  // If user clicked rates, simply open the rates modal over the active view without hiding the studio
+  if (tabId === 'rates') {
+    window.App.openRatesModal();
+    return;
+  }
+
   window.LemonPack.currentTab = tabId;
 
   document.querySelectorAll('.main-tab-view').forEach(v => {
@@ -618,17 +646,6 @@ window.go = function(tabId) {
   }
 
   if (window.SoundEngine) window.SoundEngine.playClick();
-};
-
-window.openRatesDrawer = function() {
-  document.getElementById('rates-overlay').classList.add('show');
-  document.getElementById('rates-drawer').classList.add('show');
-  if (window.SoundEngine) window.SoundEngine.playClick();
-};
-
-window.closeRatesDrawer = function() {
-  document.getElementById('rates-overlay').classList.remove('show');
-  document.getElementById('rates-drawer').classList.remove('show');
 };
 
 document.addEventListener('DOMContentLoaded', () => {

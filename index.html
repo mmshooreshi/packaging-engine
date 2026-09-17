@@ -17,9 +17,9 @@
   <link rel="apple-touch-icon" href="./icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="./css/typography.css?v=3.0.0">
-  <link rel="stylesheet" href="./css/styles.css?v=3.0.0">
-  <link rel="stylesheet" href="./css/invoice-print.css?v=3.0.0">
+  <link rel="stylesheet" href="./css/typography.css?v=3.2.0">
+  <link rel="stylesheet" href="./css/styles.css?v=3.2.0">
+  <link rel="stylesheet" href="./css/invoice-print.css?v=3.2.0">
 
   <!-- Phosphor Icons & Export Utilities -->
   <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
@@ -52,7 +52,7 @@
       <div class="top-nav-item" data-tab="diecut" onclick="go('diecut')">
         <i class="ph ph-vector-three"></i> واردسازی و تفکیک قالب
       </div>
-      <div class="top-nav-item" data-tab="rates" onclick="go('rates')">
+      <div class="top-nav-item" data-tab="rates" onclick="App.openRatesModal()">
         <i class="ph ph-sliders"></i> نرخ‌های روز بازار
       </div>
     </nav>
@@ -1001,17 +1001,20 @@
       </div>
     </div>
 
-    <!-- VIEW 4: DAILY RATES MANAGEMENT -->
-    <div class="main-tab-view" id="view-rates" style="display:none;">
-      <div style="max-width:700px; margin:20px auto; padding:0 16px;">
-        <div class="card">
-          <div class="card-title">
-            <div class="card-title-left">
-              <i class="ph ph-sliders"></i>
-              <span>میز کنترل نرخ‌های روز بازار و استهلاک</span>
-            </div>
-          </div>
+  </div>
 
+  <!-- Non-Disruptive Rates Modal (Never hides studio) -->
+  <div class="modal-overlay" id="rates-modal">
+    <div class="modal-card" style="max-width:580px;">
+      <div class="modal-hdr">
+        <div style="font-weight:800; font-size:0.9rem; display:flex; align-items:center; gap:6px; color:var(--graphite-text);">
+          <i class="ph ph-sliders" style="color:var(--brand-primary);"></i>
+          <span>تنظیم نرخ‌های روز بازار و استهلاک کارخانه</span>
+        </div>
+        <button class="btn-icon" onclick="App.closeRatesModal()"><i class="ph ph-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div class="field-group">
             <label class="field-label">قیمت هر کیلوگرم مقوا (تومان)</label>
             <input type="number" class="input-box" id="set-paper-price" oninput="App.saveRates()">
@@ -1037,23 +1040,24 @@
             <input type="number" class="input-box" id="set-die-cost" oninput="App.saveRates()">
           </div>
           <div class="field-group">
-            <label class="field-label">اجرت جعبه‌چسبانی به ازای هر جعبه (تومان)</label>
+            <label class="field-label">اجرت جعبه‌چسبانی هر عدد (تومان)</label>
             <input type="number" class="input-box" id="set-gluing-box" oninput="App.saveRates()">
           </div>
           <div class="field-group">
             <label class="field-label">درصد حاشیه سود کارخانه (٪)</label>
             <input type="number" class="input-box" id="set-profit-pct" value="30" oninput="App.saveRates()">
           </div>
-          <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="go('studio')">
-            ثبت و بازگشت به استودیو
-          </button>
         </div>
       </div>
+      <div class="modal-ftr">
+        <button class="btn btn-primary btn-block" onclick="App.closeRatesModal()">
+          ثبت نرخ‌ها و بستن
+        </button>
+      </div>
     </div>
-
   </div>
 
-  <!-- Mobile Bottom Navigation Bar -->
+  <!-- Mobile Bottom Navigation Bar (Hidden on Desktop) -->
   <nav class="bnav">
     <div class="bnav-item active" data-tab="studio" onclick="go('studio')">
       <i class="ph ph-squares-four"></i>
@@ -1067,7 +1071,7 @@
       <i class="ph ph-vector-three"></i>
       <span>قالب</span>
     </div>
-    <div class="bnav-item" data-tab="rates" onclick="go('rates')">
+    <div class="bnav-item" data-tab="rates" onclick="App.openRatesModal()">
       <i class="ph ph-sliders"></i>
       <span>نرخ‌ها</span>
     </div>
@@ -1077,15 +1081,15 @@
   <div id="toast">پیام سیستم</div>
 </div>
 
-<!-- Modular Scripts with Cache Busting -->
-<script src="./js/audio.js?v=3.0.0"></script>
-<script src="./js/persian-utils.js?v=3.0.0"></script>
-<script src="./js/cad-engine.js?v=3.0.0"></script>
-<script src="./js/parametric-die-engine.js?v=3.0.0"></script>
-<script src="./js/diecut-importer.js?v=3.0.0"></script>
-<script src="./js/nesting-engine.js?v=3.0.0"></script>
-<script src="./js/cost-engine.js?v=3.0.0"></script>
-<script src="./js/invoice.js?v=3.0.0"></script>
-<script src="./js/app.js?v=3.0.0"></script>
+<!-- Modular Scripts with Cache Busting v3.2.0 -->
+<script src="./js/audio.js?v=3.2.0"></script>
+<script src="./js/persian-utils.js?v=3.2.0"></script>
+<script src="./js/cad-engine.js?v=3.2.0"></script>
+<script src="./js/parametric-die-engine.js?v=3.2.0"></script>
+<script src="./js/diecut-importer.js?v=3.2.0"></script>
+<script src="./js/nesting-engine.js?v=3.2.0"></script>
+<script src="./js/cost-engine.js?v=3.2.0"></script>
+<script src="./js/invoice.js?v=3.2.0"></script>
+<script src="./js/app.js?v=3.2.0"></script>
 </body>
 </html>
