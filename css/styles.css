@@ -953,23 +953,389 @@ input:checked + .slider:before {
   color: var(--graphite-text);
 }
 
-.diecut-grid {
+/* Parametric Hero Dimension Cards (L, W, H, G, T) */
+.param-hero-grid {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: 16px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
 }
-@media (max-width: 960px) {
-  .diecut-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 900px) {
+  .param-hero-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .param-hero-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
-.feature-row:hover {
-  background: rgba(255, 255, 255, 0.03);
+.param-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  user-select: none;
 }
 
-.feature-row.selected {
-  background: rgba(217, 119, 6, 0.12) !important;
+.param-card:hover, .param-card.hovered {
+  border-color: var(--brand-primary);
+  background: rgba(217, 119, 6, 0.06);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.15);
+}
+
+.param-card.active {
+  border-color: var(--brand-primary);
+  background: rgba(217, 119, 6, 0.12);
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.35);
+}
+
+.param-card-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.param-badge-key {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: monospace;
+  font-weight: 900;
+  font-size: 0.95rem;
+  color: var(--brand-primary);
+}
+
+.param-card.active .param-badge-key {
+  background: var(--brand-primary);
+  color: #FFFFFF;
+}
+
+.param-name {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--graphite-text);
+}
+
+.param-val-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.param-btn-step {
+  height: 28px;
+  padding: 0 6px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xs);
+  color: var(--graphite-text);
+  font-weight: 800;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.param-btn-step:hover {
+  background: var(--brand-primary);
+  color: #FFFFFF;
+  border-color: var(--brand-primary);
+}
+
+.param-input {
+  flex: 1;
+  min-width: 40px;
+  height: 28px;
+  background: var(--surface-base);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xs);
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 900;
+  color: var(--graphite-text);
+  direction: ltr;
+}
+
+.param-input:focus {
+  border-color: var(--brand-primary);
+  outline: none;
+}
+
+.param-subtext {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.keyboard-helper-bar {
+  background: rgba(217, 119, 6, 0.08);
+  border: 1px solid rgba(217, 119, 6, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  font-size: 0.78rem;
+  color: var(--graphite-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* Floating Selected Segment Quick Pill */
+.segment-quick-pill {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 10px 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+  min-width: 340px;
+}
+
+.pill-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 6px;
+}
+
+.pill-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #F8FAFC;
+}
+
+.pill-len {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--brand-primary);
+  direction: ltr;
+}
+
+.pill-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill-btn-group {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-pill-action {
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: #E2E8F0;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-pill-action:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.btn-pill-action.active {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary);
+  color: #FFFFFF;
+}
+
+.btn-pill-delete {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #EF4444;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-pill-delete:hover {
+  background: #EF4444;
+  color: #FFFFFF;
+}
+
+.btn-pill-delete-similar {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #F59E0B;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-pill-delete-similar:hover {
+  background: #F59E0B;
+  color: #000000;
+}
+
+.canvas-floating-tag {
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: #F8FAFC;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.canvas-coords-tag {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-family: monospace;
+  color: #94A3B8;
+  direction: ltr;
+}
+
+/* Tabs for DieCut Studio */
+.diecut-tabs-nav {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 16px;
+}
+
+.diecut-tab-btn {
+  padding: 8px 16px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.diecut-tab-btn:hover {
+  color: var(--graphite-text);
+}
+
+.diecut-tab-btn.active {
+  color: var(--brand-primary);
+  border-bottom-color: var(--brand-primary);
+}
+
+.diecut-tab-content {
+  display: none;
+}
+
+.diecut-tab-content.active {
+  display: block;
+}
+
+/* Similarity Group Cards Grid */
+.similarity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.similarity-card {
+  background: var(--surface-base);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.15s;
+}
+
+.similarity-card:hover {
+  border-color: var(--brand-primary);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+.similarity-card-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.similarity-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--graphite-text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.similarity-badge-count {
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: rgba(217, 119, 6, 0.12);
+  color: var(--brand-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.similarity-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.segment-row.deleted {
+  opacity: 0.45;
+  text-decoration: line-through;
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.segment-row.highlighted {
+  background: rgba(245, 158, 11, 0.12) !important;
+}
+
+.segment-row.selected {
+  background: rgba(217, 119, 6, 0.18) !important;
   border-right: 3px solid var(--brand-primary);
 }
 

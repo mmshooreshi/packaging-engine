@@ -639,6 +639,15 @@ window.go = function(tabId) {
     }
   } else if (tabId === 'diecut') {
     if (window.ParametricDieEngine) {
+      const cad = window.LemonPack.cad;
+      if (cad && !window.ParametricDieEngine.isCustomImport) {
+        window.ParametricDieEngine.params.length = cad.length || 120;
+        window.ParametricDieEngine.params.width = cad.width || 80;
+        window.ParametricDieEngine.params.height = cad.height || 150;
+        window.ParametricDieEngine.params.glueFlap = cad.glueFlap || 15;
+        window.ParametricDieEngine.params.topTuck = cad.tuckFlap || 25;
+        window.ParametricDieEngine.synthesizeModelFromParams();
+      }
       window.ParametricDieEngine.render();
     } else if (window.DieCutImporter) {
       window.DieCutImporter.renderPreviewCanvas();
@@ -647,6 +656,15 @@ window.go = function(tabId) {
 
   if (window.SoundEngine) window.SoundEngine.playClick();
 };
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const rm = document.getElementById('rates-modal');
+    if (rm && rm.classList.contains('show')) {
+      window.App.closeRatesModal();
+    }
+  }
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   window.App.init();
