@@ -155,7 +155,7 @@ window.CadEngine = {
 
     const cad = window.LemonPack.cad;
     const padding = 38;
-    const pUtils = window.PersianUtils || { e2p: function(v){ return v; } };
+    const pUtils = window.PersianUtils || { fmtNum: (v, d) => String(v), e2p: function(v){ return v; } };
     let activeHoverText = null;
     const mouse = this.hoverPoint;
 
@@ -213,7 +213,7 @@ window.CadEngine = {
       if (mouse && mouse.x >= startX && mouse.x <= startX + boxW && mouse.y >= startY && mouse.y <= startY + boxH) {
         const mmX = Math.round((mouse.x - startX) / scale);
         const mmY = Math.round((mouse.y - startY) / scale);
-        activeHoverText = `مختصات خطی: X: ${pUtils.e2p(mmX)}mm | Y: ${pUtils.e2p(mmY)}mm (کل: ${pUtils.e2p(cad.flatL)}×${pUtils.e2p(cad.flatW)}mm)`;
+        activeHoverText = `مختصات خطی: X: ${pUtils.fmtNum(mmX)}mm | Y: ${pUtils.fmtNum(mmY)}mm (کل: ${pUtils.fmtNum(cad.flatL)}×${pUtils.fmtNum(cad.flatW)}mm)`;
       }
 
       // Outer Dimension Extension Lines
@@ -223,7 +223,7 @@ window.CadEngine = {
       ctx.font = 'bold 11px Peyda, sans-serif';
       ctx.textAlign = 'center';
 
-      ctx.fillText(pUtils.e2p(cad.flatL) + ' mm (طول گسترده قالب برداری)', w / 2, startY - 14);
+      ctx.fillText(pUtils.fmtNum(cad.flatL) + ' mm (طول گسترده قالب برداری)', w / 2, startY - 14);
       ctx.beginPath();
       ctx.moveTo(startX, startY - 6);
       ctx.lineTo(startX + boxW, startY - 6);
@@ -232,7 +232,7 @@ window.CadEngine = {
       ctx.save();
       ctx.translate(startX - 14, h / 2);
       ctx.rotate(-Math.PI / 2);
-      ctx.fillText(pUtils.e2p(cad.flatW) + ' mm (عرض گسترده قالب)', 0, 0);
+      ctx.fillText(pUtils.fmtNum(cad.flatW) + ' mm (عرض گسترده قالب)', 0, 0);
       ctx.restore();
       ctx.beginPath();
       ctx.moveTo(startX - 6, startY);
@@ -297,7 +297,7 @@ window.CadEngine = {
 
       // Check hover on this panel column
       if (mouse && mouse.x >= curX && mouse.x <= curX + pw && mouse.y >= startY && mouse.y <= startY + boxH) {
-        activeHoverText = `${labels[i]}: عرض ${pUtils.e2p(pwMm)} mm | ارتفاع ${pUtils.e2p(cad.height)} mm`;
+        activeHoverText = `${labels[i]}: عرض ${pUtils.fmtNum(pwMm)} mm | ارتفاع ${pUtils.fmtNum(cad.height)} mm`;
       }
 
       ctx.fillStyle = '#64748B';
@@ -306,7 +306,7 @@ window.CadEngine = {
       ctx.fillText(labels[i], curX + (pw / 2), startY + (boxH / 2));
       ctx.font = 'bold 9px Peyda, sans-serif';
       ctx.fillStyle = '#2563EB';
-      ctx.fillText(`${pUtils.e2p(pwMm)} mm`, curX + (pw / 2), startY + (boxH / 2) + 14);
+      ctx.fillText(`${pUtils.fmtNum(pwMm)} mm`, curX + (pw / 2), startY + (boxH / 2) + 14);
 
       curX += pw;
     }
@@ -323,11 +323,11 @@ window.CadEngine = {
     // Check hover on top/bottom tuck flaps or glue flap
     if (mouse) {
       if (mouse.x >= startX && mouse.x <= startX + G && mouse.y >= startY + T && mouse.y <= startY + T + H) {
-        activeHoverText = `لبه چسب (Glue Flap): عرض ${pUtils.e2p(cad.glueFlap)} mm`;
+        activeHoverText = `لبه چسب (Glue Flap): عرض ${pUtils.fmtNum(cad.glueFlap)} mm`;
       } else if (mouse.y >= startY && mouse.y <= startY + T) {
-        activeHoverText = `زبانه درپوش بالا (Top Tuck): ارتفاع ${pUtils.e2p(cad.tuckFlap)} mm`;
+        activeHoverText = `زبانه درپوش بالا (Top Tuck): ارتفاع ${pUtils.fmtNum(cad.tuckFlap)} mm`;
       } else if (mouse.y >= startY + T + H && mouse.y <= startY + boxH) {
-        activeHoverText = `زبانه درپوش پایین (Bottom Tuck): ارتفاع ${pUtils.e2p(cad.tuckFlap)} mm`;
+        activeHoverText = `زبانه درپوش پایین (Bottom Tuck): ارتفاع ${pUtils.fmtNum(cad.tuckFlap)} mm`;
       }
     }
 
@@ -363,15 +363,15 @@ window.CadEngine = {
       ctx.fillStyle = '#0369A1';
       ctx.font = 'bold 9px Peyda, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(`پنجره طلق: ${pUtils.e2p(winLenMm)}×${pUtils.e2p(winWidMm)} mm`, winX + (winDrawW / 2), winY + (winDrawH / 2) - 3);
+      ctx.fillText(`پنجره طلق: ${pUtils.fmtNum(winLenMm)}×${pUtils.fmtNum(winWidMm)} mm`, winX + (winDrawW / 2), winY + (winDrawH / 2) - 3);
       ctx.font = '8px Peyda, sans-serif';
-      ctx.fillText(`(${win.material.toUpperCase()} ${pUtils.e2p(win.thicknessMicron)}µm)`, winX + (winDrawW / 2), winY + (winDrawH / 2) + 9);
+      ctx.fillText(`(${win.material.toUpperCase()} ${pUtils.fmtNum(win.thicknessMicron)}µm)`, winX + (winDrawW / 2), winY + (winDrawH / 2) + 9);
       ctx.restore();
 
       if (mouse && mouse.x >= winX && mouse.x <= winX + winDrawW && mouse.y >= winY && mouse.y <= winY + winDrawH) {
         const filmW = winLenMm + (2 * (win.margin || 10));
         const filmH = winWidMm + (2 * (win.margin || 10));
-        activeHoverText = `پنجره طلقی (Window): ${pUtils.e2p(winLenMm)}×${pUtils.e2p(winWidMm)} mm | طلق مصرفی: ${pUtils.e2p(filmW)}×${pUtils.e2p(filmH)} mm (${pUtils.e2p(win.thicknessMicron)} میکرون)`;
+        activeHoverText = `پنجره طلقی (Window): ${pUtils.fmtNum(winLenMm)}×${pUtils.fmtNum(winWidMm)} mm | طلق مصرفی: ${pUtils.fmtNum(filmW)}×${pUtils.fmtNum(filmH)} mm (${pUtils.fmtNum(win.thicknessMicron)} میکرون)`;
       }
     }
 
@@ -382,7 +382,7 @@ window.CadEngine = {
     ctx.font = 'bold 11px Peyda, sans-serif';
     ctx.textAlign = 'center';
 
-    ctx.fillText(pUtils.e2p(cad.flatL) + ' mm (طول گسترده)', w / 2, startY - 14);
+    ctx.fillText(pUtils.fmtNum(cad.flatL) + ' mm (طول گسترده)', w / 2, startY - 14);
     ctx.beginPath();
     ctx.moveTo(startX, startY - 6);
     ctx.lineTo(startX + boxW, startY - 6);
@@ -391,7 +391,7 @@ window.CadEngine = {
     ctx.save();
     ctx.translate(startX - 14, h / 2);
     ctx.rotate(-Math.PI / 2);
-    ctx.fillText(pUtils.e2p(cad.flatW) + ' mm (عرض گسترده)', 0, 0);
+    ctx.fillText(pUtils.fmtNum(cad.flatW) + ' mm (عرض گسترده)', 0, 0);
     ctx.restore();
     ctx.beginPath();
     ctx.moveTo(startX - 6, startY);

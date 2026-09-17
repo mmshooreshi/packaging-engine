@@ -86,7 +86,7 @@ window.NestingEngine = {
 
       // Orientation B: rotated 90 degrees
       const colsB = Math.floor(usableL / flatWcm);
-      const rowsB = Math.floor(usableW / flatWcm);
+      const rowsB = Math.floor(usableW / flatLcm);
       const upsB = Math.max(0, colsB * rowsB);
 
       const maxUps = Math.max(upsA, upsB);
@@ -166,19 +166,19 @@ window.NestingEngine = {
     nest.orientation = opt.orientation;
     nest.pressClass = opt.pressClass;
 
-    const pUtils = window.PersianUtils || { e2p: function(v){ return v; } };
+    const pUtils = window.PersianUtils || { fmtNum: (v, d) => String(v), e2p: v => String(v) };
     const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
-    setTxt('hud-ups', pUtils.e2p(nest.ups) + ' کار');
-    setTxt('hud-sheet', pUtils.e2p(nest.sheetL) + ' × ' + pUtils.e2p(nest.sheetW));
+    setTxt('hud-ups', pUtils.fmtNum(nest.ups) + ' کار');
+    setTxt('hud-sheet', pUtils.fmtNum(nest.sheetL) + ' × ' + pUtils.fmtNum(nest.sheetW));
     setTxt('hud-press', nest.pressClass);
-    setTxt('hud-waste', pUtils.e2p(nest.wastePercentage) + '٪');
+    setTxt('hud-waste', pUtils.fmtNum(nest.wastePercentage, 1) + '٪');
   },
 
   renderPaginationUI() {
     const container = document.getElementById('nesting-options-pagination');
     if (!container) return;
 
-    const pUtils = window.PersianUtils || { e2p: function(v){ return v; } };
+    const pUtils = window.PersianUtils || { fmtNum: (v, d) => String(v), e2p: v => String(v) };
     const totalPages = Math.ceil(this.allOptions.length / this.pageSize) || 1;
     if (this.currentPage >= totalPages) this.currentPage = totalPages - 1;
     if (this.currentPage < 0) this.currentPage = 0;
@@ -205,15 +205,15 @@ window.NestingEngine = {
           transition: all 0.15s;
         ">
           <div>
-            <strong style="color:var(--graphite-text); font-size:0.82rem;">${pUtils.e2p(opt.sheetL)} × ${pUtils.e2p(opt.sheetW)} cm</strong>
+            <strong style="color:var(--graphite-text); font-size:0.82rem;">${pUtils.fmtNum(opt.sheetL)} × ${pUtils.fmtNum(opt.sheetW)} cm</strong>
             <span style="color:var(--text-muted); font-size:0.72rem; margin-right:6px;">(${opt.name})</span>
             <div style="font-size:0.7rem; color:var(--text-dim); margin-top:2px;">
-              ${pUtils.e2p(opt.rows)} ردیف × ${pUtils.e2p(opt.cols)} ستون (${pUtils.e2p(opt.cols)} در هر ردیف)
+              ${pUtils.fmtNum(opt.rows)} ردیف × ${pUtils.fmtNum(opt.cols)} ستون (${pUtils.fmtNum(opt.cols)} در هر ردیف)
             </div>
           </div>
           <div style="text-align:left;">
-            <div style="font-weight:900; color:var(--brand-primary); font-size:0.88rem;">${pUtils.e2p(opt.ups)} کار در فرم</div>
-            <div style="font-size:0.7rem; color:var(--text-muted);">دورریز: ${pUtils.e2p(opt.wastePercentage)}٪</div>
+            <div style="font-weight:900; color:var(--brand-primary); font-size:0.88rem;">${pUtils.fmtNum(opt.ups)} کار در فرم</div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">دورریز: ${pUtils.fmtNum(opt.wastePercentage, 1)}٪</div>
           </div>
         </div>
       `;
@@ -228,7 +228,7 @@ window.NestingEngine = {
           <i class="ph ph-caret-right"></i> گزینه‌های قبلی
         </button>
         <span style="color:var(--text-muted); font-weight:700;">
-          صفحه ${pUtils.e2p(this.currentPage + 1)} از ${pUtils.e2p(totalPages)} (${pUtils.e2p(this.allOptions.length)} آرایش شیت)
+          صفحه ${pUtils.fmtNum(this.currentPage + 1)} از ${pUtils.fmtNum(totalPages)} (${pUtils.fmtNum(this.allOptions.length)} آرایش شیت)
         </span>
         <button class="btn btn-outline btn-sm" onclick="NestingEngine.nextPage()" ${this.currentPage >= totalPages - 1 ? 'disabled' : ''} style="padding:0 8px;">
           گزینه‌های بعدی <i class="ph ph-caret-left"></i>
@@ -331,7 +331,7 @@ window.NestingEngine = {
     const gutterDraw = gutterCm * scale;
 
     let boxIndex = 1;
-    const pUtils = window.PersianUtils || { e2p: function(v){ return v; } };
+    const pUtils = window.PersianUtils || { fmtNum: (v, d) => String(v), e2p: function(v){ return v; } };
 
     let activeHoverCell = null;
     const mouse = this.hoverPoint;
@@ -352,7 +352,7 @@ window.NestingEngine = {
             index: currentBoxIdx,
             row: r + 1,
             col: c + 1,
-            text: `جعبه ${pUtils.e2p(currentBoxIdx)} (ردیف ${pUtils.e2p(r+1)}، ستون ${pUtils.e2p(c+1)}) | گسترده: ${pUtils.e2p(cad.flatL)}×${pUtils.e2p(cad.flatW)} mm`
+            text: `جعبه ${pUtils.fmtNum(currentBoxIdx)} (ردیف ${pUtils.fmtNum(r+1)}، ستون ${pUtils.fmtNum(c+1)}) | گسترده: ${pUtils.fmtNum(cad.flatL)}×${pUtils.fmtNum(cad.flatW)} mm`
           };
           ctx.fillStyle = 'rgba(217, 119, 6, 0.22)';
         } else {
@@ -364,7 +364,9 @@ window.NestingEngine = {
         // If custom SVG diecut is active, draw miniature vector contours in each nested cell
         if (cad.customDie && cad.customDie.active && cad.customDie.paths && cad.customDie.paths.length > 0) {
           const b = cad.customDie.bounds || { minX: 0, minY: 0, width: cad.flatL, height: cad.flatW };
-          const pScale = Math.min((cellDrawW - 2) / b.width, (cellDrawH - 2) / b.height);
+          const pScale = nest.orientation === 'B'
+            ? Math.min((cellDrawW - 2) / (b.height || 1), (cellDrawH - 2) / (b.width || 1))
+            : Math.min((cellDrawW - 2) / (b.width || 1), (cellDrawH - 2) / (b.height || 1));
 
           ctx.save();
           ctx.beginPath();
@@ -430,14 +432,14 @@ window.NestingEngine = {
         ctx.fillStyle = '#1E293B';
         ctx.font = 'bold 10px Peyda, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(pUtils.e2p(currentBoxIdx), bx + (cellDrawW / 2), by + (cellDrawH / 2) + 3);
+        ctx.fillText(pUtils.fmtNum(currentBoxIdx), bx + (cellDrawW / 2), by + (cellDrawH / 2) + 3);
       }
     }
 
     ctx.fillStyle = '#64748B';
     ctx.font = '10px Peyda, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('ابعاد شیت انتخابی: ' + pUtils.e2p(nest.sheetL) + ' × ' + pUtils.e2p(nest.sheetW) + ' سانتی‌متر', w / 2, h - 8);
+    ctx.fillText('ابعاد شیت انتخابی: ' + pUtils.fmtNum(nest.sheetL) + ' × ' + pUtils.fmtNum(nest.sheetW) + ' سانتی‌متر', w / 2, h - 8);
 
     // Render Floating Hover Badge
     if (mouse && activeHoverCell && window.CadEngine && window.CadEngine.drawHoverBadge) {

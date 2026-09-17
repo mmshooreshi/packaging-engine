@@ -1,7 +1,8 @@
 /* ============================================================
-   PARAMETRIC DIE-CUT & MATHEMATICAL PACKAGING FORMULA ENGINE v6.0
+   PARAMETRIC DIE-CUT & MATHEMATICAL PACKAGING FORMULA ENGINE v6.1
    Atomic Segment Decomposition, Similarity & Symmetry Engine,
    Piecewise Parametric Deformation (Non-Stretching), Keyboard Controls,
+   MacDora-Standard Packaging Topology Detection (L, W, H, G, T),
    and Real-time Blueprint CAD Workspace.
    ============================================================ */
 
@@ -77,11 +78,6 @@ window.ParametricDieEngine = {
     p.glueFlap = G; p.topTuck = T; p.dustFlap = D;
 
     // Piecewise horizontal coordinate anchors (X)
-    // 0 -> x1 (Glue Flap G)
-    // x1 -> x2 (Side Panel W)
-    // x2 -> x3 (Front Panel L)
-    // x3 -> x4 (Side Panel W)
-    // x4 -> x5 (Back Panel L)
     const x0 = 0;
     const x1 = G;
     const x2 = G + W;
@@ -90,11 +86,6 @@ window.ParametricDieEngine = {
     const x5 = G + W + L + W + L;
 
     // Piecewise vertical coordinate anchors (Y)
-    // y0 -> y1 (Top Tuck Flap T)
-    // y1 -> y2 (Top Flap Body / Dust Flap zone W)
-    // y2 -> y3 (Body Panel Height H)
-    // y3 -> y4 (Bottom Flap Body / Dust Flap zone W)
-    // y4 -> y5 (Bottom Tuck Flap T)
     const y0 = 0;
     const y1 = T;
     const y2 = T + W;
@@ -112,19 +103,24 @@ window.ParametricDieEngine = {
     const segs = [];
     let nextId = 1;
     const addSeg = (type, x1, y1, x2, y2, mapping, groupName, label) => {
-      const len = Math.hypot(x2 - x1, y2 - y1);
-      const isHoriz = Math.abs(y2 - y1) < 0.2;
-      const isVert = Math.abs(x2 - x1) < 0.2;
+      const nX1 = typeof x1 === 'number' ? x1 : (parseFloat(x1) || 0);
+      const nY1 = typeof y1 === 'number' ? y1 : (parseFloat(y1) || 0);
+      const nX2 = typeof x2 === 'number' ? x2 : (parseFloat(x2) || 0);
+      const nY2 = typeof y2 === 'number' ? y2 : (parseFloat(y2) || 0);
+
+      const len = Math.hypot(nX2 - nX1, nY2 - nY1);
+      const isHoriz = Math.abs(nY2 - nY1) < 0.2;
+      const isVert = Math.abs(nX2 - nX1) < 0.2;
       const orientation = isHoriz ? 'horizontal' : (isVert ? 'vertical' : 'diagonal');
 
       segs.push({
         id: `seg_${nextId++}`,
         type: type, // 'cut' | 'crease' | 'glue' | 'perforation' | 'guide'
-        x1: Number(x1.toFixed(2)),
-        y1: Number(y1.toFixed(2)),
-        x2: Number(x2.toFixed(2)),
-        y2: Number(y2.toFixed(2)),
-        d: `M ${x1.toFixed(2)} ${y1.toFixed(2)} L ${x2.toFixed(2)} ${y2.toFixed(2)}`,
+        x1: Number(nX1.toFixed(2)),
+        y1: Number(nY1.toFixed(2)),
+        x2: Number(nX2.toFixed(2)),
+        y2: Number(nY2.toFixed(2)),
+        d: `M ${nX1.toFixed(2)} ${nY1.toFixed(2)} L ${nX2.toFixed(2)} ${nY2.toFixed(2)}`,
         lengthMm: Number(len.toFixed(1)),
         mapping: mapping, // 'length' | 'width' | 'height' | 'glueFlap' | 'topTuck' | 'dustFlap' | null
         groupKey: groupName,
@@ -135,7 +131,6 @@ window.ParametricDieEngine = {
     };
 
     // --- 1. Vertical Creases (4 body folds of height H) ---
-    // All these 4 lines are identical in height and vertical orientation
     addSeg('crease', x1, y2, x1, y3, 'height', 'grp_crease_vertical_body', 'خط تا عمودی: لبه چسب / پهلو چپ');
     addSeg('crease', x2, y2, x2, y3, 'height', 'grp_crease_vertical_body', 'خط تا عمودی: پهلو چپ / جلو');
     addSeg('crease', x3, y2, x3, y3, 'height', 'grp_crease_vertical_body', 'خط تا عمودی: جلو / پهلو راست');
@@ -165,7 +160,7 @@ window.ParametricDieEngine = {
 
     // --- 4. Top Tuck Flap Contours (Panel 2: x2 to x3) ---
     // Lip edge of tuck flap at y0
-    addSeg('cut', x2 + 4, y0, x3 - 4, 'length', 'grp_tuck_lip', 'تیغ لبه درپوش بالا');
+    addSeg('cut', x2 + 4, y0, x3 - 4, y0, 'length', 'grp_tuck_lip', 'تیغ لبه درپوش بالا');
     // Radiused / chamfered corners
     addSeg('cut', x2, y1, x2 + 4, y0, 'topTuck', 'grp_tuck_side', 'گوشه مایل درپوش بالا');
     addSeg('cut', x3 - 4, y0, x3, y1, 'topTuck', 'grp_tuck_side', 'گوشه مایل درپوش بالا');
@@ -189,7 +184,7 @@ window.ParametricDieEngine = {
 
     // --- 6. Bottom Flap Contours (Panel 4: x4 to x5) ---
     // Lip edge of bottom tuck flap at y5
-    addSeg('cut', x4 + 4, y5, x5 - 4, 'length', 'grp_tuck_lip', 'تیغ لبه درپوش پایین');
+    addSeg('cut', x4 + 4, y5, x5 - 4, y5, 'length', 'grp_tuck_lip', 'تیغ لبه درپوش پایین');
     addSeg('cut', x4, y4, x4 + 4, y5, 'topTuck', 'grp_tuck_side', 'گوشه مایل درپوش پایین');
     addSeg('cut', x5 - 4, y5, x5, y4, 'topTuck', 'grp_tuck_side', 'گوشه مایل درپوش پایین');
     addSeg('cut', x4, y3, x4, y4, 'width', 'grp_flap_slits', 'چاک و شیار درپوش پایین');
@@ -293,19 +288,20 @@ window.ParametricDieEngine = {
     this.calculated.areaCm2 = Number(((this.calculated.flatWidth * this.calculated.flatHeight) / 100).toFixed(1));
 
     // Update Top Metric HUD
+    const pUtils = window.PersianUtils || { fmtNum: (v, d) => String(v), e2p: s => String(s) };
     const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    setVal('diecut-3d-box-dims', `${this.params.length} × ${this.params.width} × ${this.params.height} mm`);
-    setVal('diecut-flat-dims', `${this.calculated.flatWidth} × ${this.calculated.flatHeight} mm`);
-    setVal('diecut-blade-len', `${this.calculated.totalBladeLengthMm.toLocaleString('fa-IR')} mm تیغ / ${this.calculated.totalCreaseLengthMm.toLocaleString('fa-IR')} mm تا`);
-    setVal('diecut-card-area', `${this.calculated.areaCm2.toLocaleString('fa-IR')} cm²`);
+    setVal('diecut-3d-box-dims', `${pUtils.fmtNum(this.params.length)} × ${pUtils.fmtNum(this.params.width)} × ${pUtils.fmtNum(this.params.height)} mm`);
+    setVal('diecut-flat-dims', `${pUtils.fmtNum(this.calculated.flatWidth)} × ${pUtils.fmtNum(this.calculated.flatHeight)} mm`);
+    setVal('diecut-blade-len', `${pUtils.fmtNum(this.calculated.totalBladeLengthMm)} mm تیغ / ${pUtils.fmtNum(this.calculated.totalCreaseLengthMm)} mm تا`);
+    setVal('diecut-card-area', `${pUtils.fmtNum(this.calculated.areaCm2, 1)} cm²`);
 
     const delBadge = document.getElementById('deleted-count-badge');
     const delBtn = document.getElementById('btn-restore-deleted');
-    if (delBadge) delBadge.textContent = deletedCount;
+    if (delBadge) delBadge.textContent = pUtils.fmtNum(deletedCount);
     if (delBtn) delBtn.style.display = deletedCount > 0 ? 'inline-flex' : 'none';
 
     const tabSegsCount = document.getElementById('tab-segments-count');
-    if (tabSegsCount) tabSegsCount.textContent = this.segments.length;
+    if (tabSegsCount) tabSegsCount.textContent = pUtils.fmtNum(this.segments.length);
   },
 
   /* ============================================================
@@ -362,7 +358,6 @@ window.ParametricDieEngine = {
       const viewDiecut = document.getElementById('view-diecut');
       if (!viewDiecut || viewDiecut.style.display === 'none') return;
 
-      // Do not hijack if user is typing in an active text input (unless Enter or Escape)
       const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
       const isInput = (tag === 'input' || tag === 'textarea' || tag === 'select');
 
@@ -534,7 +529,6 @@ window.ParametricDieEngine = {
     if (lenEl) lenEl.textContent = `طول: ${seg.lengthMm} mm`;
     if (mapSelect) mapSelect.value = seg.mapping || '';
 
-    // Set active button style for type
     pill.querySelectorAll('.btn-pill-action').forEach(b => {
       b.classList.toggle('active', b.classList.contains(seg.type));
     });
@@ -558,14 +552,12 @@ window.ParametricDieEngine = {
       const clientX = e.clientX - rect.left;
       const clientY = e.clientY - rect.top;
 
-      // Convert client px to blueprint mm
       const ptMm = this.canvasPxToMm(clientX, clientY);
       const coordsDisplay = document.getElementById('canvas-coords-display');
       if (coordsDisplay) {
         coordsDisplay.textContent = `X: ${ptMm.x.toFixed(1)} mm | Y: ${ptMm.y.toFixed(1)} mm`;
       }
 
-      // Hit testing segments (tolerance ~6mm)
       let closestSeg = null;
       let minDistance = 7; // mm
 
@@ -585,7 +577,7 @@ window.ParametricDieEngine = {
         this.hoveredSegmentId = closestSeg.id;
         if (hoverTag && hoverText) {
           hoverTag.style.display = 'block';
-          hoverText.textContent = `${closestSeg.label || closestSeg.id} (${closestSeg.lengthMm} mm)`;
+          hoverText.textContent = `${closestSeg.label || closestSeg.id} (${(window.PersianUtils || { fmtNum: (v, d) => String(v) }).fmtNum(closestSeg.lengthMm, 1)} mm)`;
         }
       } else {
         this.hoveredSegmentId = null;
@@ -657,13 +649,13 @@ window.ParametricDieEngine = {
   renderCanvas() {
     const canvas = document.getElementById('diecut-preview-canvas');
     if (!canvas || !canvas.getContext) return;
+    const pUtils = window.PersianUtils || { fmtNum: (v, d) => String(v), e2p: s => String(s) };
     const ctx = canvas.getContext('2d');
     const w = canvas.width;
     const h = canvas.height;
 
     ctx.clearRect(0, 0, w, h);
 
-    // Dark CAD background with millimeter grid
     ctx.fillStyle = '#0B1120';
     ctx.fillRect(0, 0, w, h);
 
@@ -679,7 +671,7 @@ window.ParametricDieEngine = {
     ctx.scale(scale, scale);
     ctx.translate(-flatW / 2, -flatH / 2);
 
-    // Draw Subtle Grid
+    // Draw Grid
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
     ctx.lineWidth = 0.5 / scale;
     const stepMm = 20;
@@ -690,7 +682,6 @@ window.ParametricDieEngine = {
       ctx.beginPath(); ctx.moveTo(-40, y); ctx.lineTo(flatW + 40, y); ctx.stroke();
     }
 
-    // Determine Active Hover/Selection Groups
     let activeHighlightKey = null;
     let activeHighlightMapping = this.selectedParam || this.hoveredParam || null;
 
@@ -718,7 +709,6 @@ window.ParametricDieEngine = {
     const y2 = p.topTuck + p.width;
     const y3 = p.topTuck + p.width + p.height;
 
-    // Helper to draw panel text banner
     const drawPanelLabel = (px, py, pw, ph, label, isHighlighted) => {
       ctx.save();
       ctx.fillStyle = isHighlighted ? 'rgba(245, 158, 11, 0.14)' : 'rgba(255, 255, 255, 0.02)';
@@ -732,7 +722,6 @@ window.ParametricDieEngine = {
       ctx.restore();
     };
 
-    // Panels labeled clearly in Persian
     drawPanelLabel(0, y2, x1, p.height, 'لبچسب G', activeHighlightMapping === 'glueFlap');
     drawPanelLabel(x1, y2, p.width, p.height, 'پهلو چپ (W)', activeHighlightMapping === 'width');
     drawPanelLabel(x2, y2, p.length, p.height, 'بدنه جلو (L)', activeHighlightMapping === 'length');
@@ -763,7 +752,6 @@ window.ParametricDieEngine = {
     // 3. DRAW ATOMIC SEGMENTS
     this.segments.forEach(s => {
       if (s.isDeleted) {
-        // Draw very faint dashed red for deleted segments
         ctx.save();
         ctx.strokeStyle = 'rgba(239, 68, 68, 0.2)';
         ctx.lineWidth = 1 / scale;
@@ -815,7 +803,6 @@ window.ParametricDieEngine = {
         ctx.lineTo(selSeg.x2, selSeg.y2);
         ctx.stroke();
 
-        // Endpoints circular handles
         ctx.fillStyle = '#FFFFFF';
         ctx.strokeStyle = '#D97706';
         ctx.lineWidth = 2 / scale;
@@ -827,9 +814,9 @@ window.ParametricDieEngine = {
     }
 
     // 5. DRAW DIMENSION OVERLAYS WITH ARROWS (L, W, H, Total Flat)
-    this.drawDimensionLine(ctx, x2, y3 + 12, x3, y3 + 12, `L: ${p.length} mm`, '#F59E0B', scale);
-    this.drawDimensionLine(ctx, x1, y3 + 24, x2, y3 + 24, `W: ${p.width} mm`, '#3B82F6', scale);
-    this.drawDimensionLine(ctx, x5 + 12, y2, x5 + 12, y3, `H: ${p.height} mm`, '#10B981', scale);
+    this.drawDimensionLine(ctx, x2, y3 + 12, x3, y3 + 12, `L: ${pUtils.fmtNum(p.length)} mm`, '#F59E0B', scale);
+    this.drawDimensionLine(ctx, x1, y3 + 24, x2, y3 + 24, `W: ${pUtils.fmtNum(p.width)} mm`, '#3B82F6', scale);
+    this.drawDimensionLine(ctx, x5 + 12, y2, x5 + 12, y3, `H: ${pUtils.fmtNum(p.height)} mm`, '#10B981', scale);
 
     ctx.restore();
   },
@@ -845,22 +832,16 @@ window.ParametricDieEngine = {
     ctx.lineTo(x2, y2);
     ctx.stroke();
 
-    // Arrows
     const isHoriz = Math.abs(y2 - y1) < 0.1;
     const arrowSize = 3.5 / scale;
     if (isHoriz) {
-      // Left arrow
       ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 + arrowSize, y1 - arrowSize * 0.7); ctx.lineTo(x1 + arrowSize, y1 + arrowSize * 0.7); ctx.fill();
-      // Right arrow
       ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - arrowSize, y2 - arrowSize * 0.7); ctx.lineTo(x2 - arrowSize, y2 + arrowSize * 0.7); ctx.fill();
     } else {
-      // Top arrow
       ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - arrowSize * 0.7, y1 + arrowSize); ctx.lineTo(x1 + arrowSize * 0.7, y1 + arrowSize); ctx.fill();
-      // Bottom arrow
-      ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - arrowSize * 0.7, y2 - arrowSize); ctx.lineTo(x2 + arrowSize * 0.7, y2 - arrowSize); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - arrowSize, y2 - arrowSize * 0.7); ctx.lineTo(x2 + arrowSize * 0.7, y2 - arrowSize); ctx.fill();
     }
 
-    // Text Badge
     const midX = (x1 + x2) / 2;
     const midY = (y1 + y2) / 2;
     ctx.font = `bold ${10 / scale}px Peyda, sans-serif`;
@@ -887,6 +868,7 @@ window.ParametricDieEngine = {
   renderSimilarityTab() {
     const container = document.getElementById('diecut-similarity-container');
     if (!container) return;
+    const pUtils = window.PersianUtils || { fmtNum: (v, d) => String(v), e2p: s => String(s) };
 
     let html = '';
     this.similarityGroups.forEach(grp => {
@@ -898,12 +880,12 @@ window.ParametricDieEngine = {
               <span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:${grp.type === 'crease' ? '#2563EB' : '#DC2626'};"></span>
               <strong>${grp.name}</strong>
             </div>
-            <span class="similarity-badge-count">${grp.segmentIds.length} خط</span>
+            <span class="similarity-badge-count">${pUtils.fmtNum(grp.segmentIds.length)} خط</span>
           </div>
 
           <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:var(--text-muted);">
-            <span>طول هر خط: <strong style="color:var(--graphite-text);">${grp.lengthMm} mm</strong></span>
-            <span>مجموع متراژ: <strong>${(grp.totalLengthMm / 1000).toFixed(2)} متر</strong></span>
+            <span>طول هر خط: <strong style="color:var(--graphite-text);">${pUtils.fmtNum(grp.lengthMm, 1)} mm</strong></span>
+            <span>مجموع متراژ: <strong>${pUtils.e2p((grp.totalLengthMm / 1000).toFixed(2))} متر</strong></span>
           </div>
 
           <div class="similarity-actions-row">
@@ -1011,45 +993,37 @@ window.ParametricDieEngine = {
   renderFormulasTab() {
     const container = document.getElementById('diecut-formulas-container');
     if (!container) return;
+    const pUtils = window.PersianUtils || { fmtNum: (v, d) => String(v), e2p: s => String(s) };
 
     const p = this.params;
     const flatW = this.calculated.flatWidth;
     const flatH = this.calculated.flatHeight;
 
     container.innerHTML = `
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <div style="background:var(--surface-base); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:12px 14px;">
-          <strong style="font-size:0.82rem; color:var(--graphite-text);">۱. عرض شیت گسترده جعبه (Flat Width):</strong>
-          <div style="direction:ltr; font-family:monospace; color:var(--brand-primary); margin:6px 0; font-size:0.9rem;">
+      <div style="display:grid; grid-template-columns:1fr; gap:8px;">
+        <div style="background:var(--surface-base); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:8px 12px;">
+          <div style="font-size:0.75rem; color:var(--graphite-text); font-weight:700;">۱. عرض شیت گسترده (Flat Width):</div>
+          <div style="direction:ltr; font-family:monospace; color:var(--brand-primary); margin:2px 0; font-size:0.8rem;">
             W_flat = G + 2W + 2L
           </div>
-          <div style="font-size:0.75rem; color:var(--text-muted);">
-            = ${p.glueFlap} + (2 × ${p.width}) + (2 × ${p.length}) = <strong>${flatW} mm</strong>
+          <div style="font-size:0.72rem; color:var(--text-muted);">
+            = ${pUtils.fmtNum(p.glueFlap)} + (۲ × ${pUtils.fmtNum(p.width)}) + (۲ × ${pUtils.fmtNum(p.length)}) = <strong style="color:var(--graphite-text);">${pUtils.fmtNum(flatW)} mm</strong>
           </div>
         </div>
 
-        <div style="background:var(--surface-base); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:12px 14px;">
-          <strong style="font-size:0.82rem; color:var(--graphite-text);">۲. طول شیت گسترده جعبه (Flat Height):</strong>
-          <div style="direction:ltr; font-family:monospace; color:var(--brand-primary); margin:6px 0; font-size:0.9rem;">
+        <div style="background:var(--surface-base); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:8px 12px;">
+          <div style="font-size:0.75rem; color:var(--graphite-text); font-weight:700;">۲. طول شیت گسترده (Flat Height):</div>
+          <div style="direction:ltr; font-family:monospace; color:var(--brand-primary); margin:2px 0; font-size:0.8rem;">
             H_flat = 2T + 2W + H
           </div>
-          <div style="font-size:0.75rem; color:var(--text-muted);">
-            = (2 × ${p.topTuck}) + (2 × ${p.width}) + ${p.height} = <strong>${flatH} mm</strong>
+          <div style="font-size:0.72rem; color:var(--text-muted);">
+            = (۲ × ${pUtils.fmtNum(p.topTuck)}) + (۲ × ${pUtils.fmtNum(p.width)}) + ${pUtils.fmtNum(p.height)} = <strong style="color:var(--graphite-text);">${pUtils.fmtNum(flatH)} mm</strong>
           </div>
         </div>
 
-        <div style="background:var(--surface-base); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:12px 14px;">
-          <strong style="font-size:0.82rem; color:var(--graphite-text);">۳. متراژ کل تیغ برش صنعتی (Laser Die Length):</strong>
-          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">
-            مجموع خطوط برش قالب لیزری: <strong style="color:#DC2626;">${(this.calculated.totalBladeLengthMm / 1000).toFixed(2)} متر</strong>
-          </div>
-        </div>
-
-        <div style="background:var(--surface-base); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:12px 14px;">
-          <strong style="font-size:0.82rem; color:var(--graphite-text);">۴. متراژ کل خط تا (Crease Matrix Rule):</strong>
-          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">
-            مجموع خطوط تا و خط‌زنی لترپرس: <strong style="color:#2563EB;">${(this.calculated.totalCreaseLengthMm / 1000).toFixed(2)} متر</strong>
-          </div>
+        <div style="display:flex; justify-content:space-between; background:var(--surface-base); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:8px 12px; font-size:0.72rem;">
+          <span>تیغ لیزری: <strong style="color:#DC2626;">${pUtils.fmtNum((this.calculated.totalBladeLengthMm / 1000).toFixed(2))} متر</strong></span>
+          <span>خط تا: <strong style="color:#2563EB;">${pUtils.fmtNum((this.calculated.totalCreaseLengthMm / 1000).toFixed(2))} متر</strong></span>
         </div>
       </div>
     `;
@@ -1072,13 +1046,8 @@ window.ParametricDieEngine = {
   render() {
     this.renderHeroInputs();
     this.renderCanvas();
-    if (this.activeTab === 'similarity') {
-      this.renderSimilarityTab();
-    } else if (this.activeTab === 'segments') {
-      this.renderSegmentsTab();
-    } else if (this.activeTab === 'formulas') {
-      this.renderFormulasTab();
-    }
+    this.renderSimilarityTab();
+    this.renderFormulasTab();
   },
 
   /* ============================================================
@@ -1105,14 +1074,12 @@ window.ParametricDieEngine = {
     let svg = `<?xml version="1.0" encoding="UTF-8"?>\n`;
     svg += `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${flatW} ${flatH}" width="${flatW}mm" height="${flatH}mm">\n`;
 
-    // Creases
     svg += `  <g id="crease-matrix" stroke="#2563EB" stroke-width="0.5" stroke-dasharray="2,2" fill="none">\n`;
     this.segments.filter(s => !s.isDeleted && s.type === 'crease').forEach(s => {
       svg += `    <path d="${s.d}" />\n`;
     });
     svg += `  </g>\n`;
 
-    // Cuts
     svg += `  <g id="cut-blades" stroke="#DC2626" stroke-width="0.7" fill="none">\n`;
     this.segments.filter(s => !s.isDeleted && s.type !== 'crease').forEach(s => {
       svg += `    <path d="${s.d}" />\n`;
@@ -1183,7 +1150,8 @@ window.ParametricDieEngine = {
   },
 
   /* ============================================================
-     10. IMPORT EXTERNAL SVG/AI WITH ATOMIC DECOMPOSITION
+     10. IMPORT EXTERNAL SVG/AI WITH MACDORA PACKAGING TOPOLOGY DETECTION
+     Detects L, W, H, G, T automatically from crease lines and boundary
      ============================================================ */
   parseSvgString(svgText) {
     if (!svgText || !svgText.includes('<svg')) return;
@@ -1236,7 +1204,6 @@ window.ParametricDieEngine = {
         });
       } else if (tag === 'path') {
         const d = el.getAttribute('d') || '';
-        // Extract straight segments M x y L x y
         const subCommands = d.match(/[MLHV][^MLHV]*/gi) || [];
         let curX = 0, curY = 0;
         subCommands.forEach(cmd => {
@@ -1270,11 +1237,76 @@ window.ParametricDieEngine = {
     });
 
     if (importedSegs.length > 0) {
-      this.segments = importedSegs;
-      this.clusterSimilarityGroups();
-      this.recalculateTotals();
+      // Automatic Detection of L, W, H, G, T (MacDora Packaging Intelligence)
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      importedSegs.forEach(s => {
+        minX = Math.min(minX, s.x1, s.x2);
+        maxX = Math.max(maxX, s.x1, s.x2);
+        minY = Math.min(minY, s.y1, s.y2);
+        maxY = Math.max(maxY, s.y1, s.y2);
+      });
+
+      const vertCreases = importedSegs.filter(s => s.type === 'crease' && s.orientation === 'vertical' && s.lengthMm > 15);
+      const horizCreases = importedSegs.filter(s => s.type === 'crease' && s.orientation === 'horizontal' && s.lengthMm > 15);
+
+      const rawX = vertCreases.map(s => (s.x1 + s.x2) / 2);
+      const clustersX = [];
+      rawX.forEach(x => {
+        const match = clustersX.find(c => Math.abs(c.x - x) < 6);
+        if (match) { match.count++; } else { clustersX.push({ x: x, count: 1 }); }
+      });
+      clustersX.sort((a, b) => a.x - b.x);
+
+      const rawY = horizCreases.map(s => (s.y1 + s.y2) / 2);
+      const clustersY = [];
+      rawY.forEach(y => {
+        const match = clustersY.find(c => Math.abs(c.y - y) < 6);
+        if (match) { match.count++; } else { clustersY.push({ y: y, count: 1 }); }
+      });
+      clustersY.sort((a, b) => a.y - b.y);
+
+      // Height and Tuck Flap
+      if (clustersY.length >= 2) {
+        const yTop = clustersY[0].y;
+        const yBot = clustersY[clustersY.length - 1].y;
+        this.params.height = Math.max(20, Math.round(yBot - yTop));
+        this.params.topTuck = Math.max(12, Math.round(yTop - minY));
+      }
+
+      // Width, Length, Glue Flap
+      if (clustersX.length >= 4) {
+        const g = Math.round(clustersX[0].x - minX);
+        const w1 = Math.round(clustersX[1].x - clustersX[0].x);
+        const l1 = Math.round(clustersX[2].x - clustersX[1].x);
+        const w2 = Math.round(clustersX[3].x - clustersX[2].x);
+        const l2 = Math.round(maxX - clustersX[3].x);
+
+        this.params.glueFlap = Math.max(8, g);
+        this.params.length = Math.max(20, Math.round((Math.max(w1, l1) + Math.max(w2, l2)) / 2));
+        this.params.width = Math.max(15, Math.round((Math.min(w1, l1) + Math.min(w2, l2)) / 2));
+      } else {
+        const totalW = maxX - minX;
+        const totalH = maxY - minY;
+        this.params.glueFlap = 15;
+        this.params.length = Math.round((totalW - 15) * 0.32);
+        this.params.width = Math.round(((totalW - 15) - 2 * this.params.length) / 2);
+        this.params.height = Math.round(totalH * 0.55);
+        this.params.topTuck = 25;
+      }
+
+      // Re-synthesize clean parametric geometry based on detected L, W, H, G, T
+      this.synthesizeModelFromParams();
       this.render();
-      if (window.toast) window.toast(`فایل با ${importedSegs.length} خط تجزیه و آماده ویرایش شد ✓`);
+
+      const pUtils = window.PersianUtils || { fmtNum: (v) => String(v) };
+      const resPanel = document.getElementById('import-result-panel');
+      const resDims = document.getElementById('import-result-dims');
+      if (resPanel && resDims) {
+        resPanel.style.display = 'block';
+        resDims.innerHTML = `طول (L): <strong>${pUtils.fmtNum(this.params.length)} mm</strong> | عرض (W): <strong>${pUtils.fmtNum(this.params.width)} mm</strong> | ارتفاع (H): <strong>${pUtils.fmtNum(this.params.height)} mm</strong> | لبچسب (G): <strong>${pUtils.fmtNum(this.params.glueFlap)} mm</strong>`;
+      }
+
+      if (window.toast) window.toast(`ابعاد قالب استخراج شد: طول ${pUtils.fmtNum(this.params.length)}، عرض ${pUtils.fmtNum(this.params.width)}، ارتفاع ${pUtils.fmtNum(this.params.height)} mm ✓`);
     } else {
       this.synthesizeModelFromParams();
     }

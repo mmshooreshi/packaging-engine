@@ -504,10 +504,15 @@
                 </div>
               </div>
 
-              <div class="chips-grid" id="nest-sheet-sizes">
-                <div class="chip active" data-sheet="auto"><i class="ph ph-sparkle"></i> سایز بهینه</div>
-                <div class="chip" data-sheet="100x70">۱۰۰×۷۰</div>
-                <div class="chip" data-sheet="90x60">۹۰×۶۰</div>
+              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <div class="chips-grid" id="nest-sheet-sizes">
+                  <div class="chip active" data-sheet="auto"><i class="ph ph-sparkle"></i> سایز بهینه</div>
+                  <div class="chip" data-sheet="100x70">۱۰۰×۷۰</div>
+                  <div class="chip" data-sheet="90x60">۹۰×۶۰</div>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="App.refreshSheetNesting()" title="محاسبه مجدد شیت‌بندی و تولید فرم" style="padding: 4px 10px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 5px; height: 32px; white-space: nowrap;">
+                  <i class="ph ph-arrows-clockwise font-bold"></i> تولید مجدد شیت
+                </button>
               </div>
             </div>
 
@@ -1127,89 +1132,83 @@
           </div>
         </div>
 
-        <!-- TAB NAVIGATION & DETAILED INSPECTOR SECTION -->
-        <div class="diecut-tabs-nav">
-          <button class="diecut-tab-btn active" data-dtab="similarity" onclick="ParametricDieEngine.switchTab('similarity')">
-            <i class="ph ph-intersect"></i> دسته‌های هم‌سان و قرینه (Similarity & Symmetries)
-          </button>
-          <button class="diecut-tab-btn" data-dtab="segments" onclick="ParametricDieEngine.switchTab('segments')">
-            <i class="ph ph-tree-structure"></i> درخت کامل قطعات و تاریخچه حذفیات (<span id="tab-segments-count">0</span>)
-          </button>
-          <button class="diecut-tab-btn" data-dtab="formulas" onclick="ParametricDieEngine.switchTab('formulas')">
-            <i class="ph ph-function"></i> فرمول‌ها و هندسه شیت (Formulas & Math)
-          </button>
-        </div>
+        <!-- UNIFIED SMART INSPECTOR PANEL (replaces 3-tab complexity) -->
+        <div id="diecut-smart-inspector">
 
-        <!-- TAB 1: SIMILARITY GROUPS & MAPPING STUDIO -->
-        <div class="diecut-tab-content active" id="dtab-content-similarity">
-          <div class="card">
-            <div class="card-title">
-              <div class="card-title-left">
+          <!-- ROW A: Similarity groups (compact, inline, 2-col grid) -->
+          <div class="card" style="margin-bottom:12px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px 8px; border-bottom:1px solid var(--border-color);">
+              <div style="display:flex; align-items:center; gap:7px; font-weight:700; font-size:0.82rem; color:var(--graphite-text);">
                 <i class="ph ph-intersect" style="color:var(--brand-primary);"></i>
-                <span>شناسایی خودکار اجزای هم‌سان و نگاشت‌های هندسی</span>
-              </div>
-              <span style="font-size:0.75rem; color:var(--text-muted);">
-                خطوطی که طول و کارکرد یکسان دارند در یک دسته گروه‌بندی شده‌اند. با یک کلیک می‌توانید نوع، نگاشت یا حذف دسته را مدیریت کنید:
-              </span>
-            </div>
-            <div class="similarity-grid" id="diecut-similarity-container">
-              <!-- Dynamically Populated by ParametricDieEngine -->
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB 2: FULL ATOMIC SEGMENTS TREE & DELETION HISTORY -->
-        <div class="diecut-tab-content" id="dtab-content-segments">
-          <div class="card">
-            <div class="card-title">
-              <div class="card-title-left">
-                <i class="ph ph-list-dashes" style="color:var(--brand-primary);"></i>
-                <span>فهرست تفکیک‌شده تک‌تک خطوط و سگمنت‌های قالب</span>
+                دسته‌بندی اجزای قالب — نگاشت و ویرایش سریع
               </div>
               <div style="display:flex; align-items:center; gap:8px;">
-                <input type="text" class="input-box" id="segment-search-input" placeholder="جستجوی قطعه..." style="width:160px; height:28px; font-size:0.75rem;" oninput="ParametricDieEngine.filterSegmentsTable()">
-                <select class="input-box" id="segment-filter-type" style="height:28px; font-size:0.75rem;" onchange="ParametricDieEngine.filterSegmentsTable()">
-                  <option value="all">همه قطعات</option>
-                  <option value="cut">فقط تیغ‌ها (Cut)</option>
-                  <option value="crease">فقط خطوط تا (Crease)</option>
-                  <option value="glue">فقط لبه چسب (Glue)</option>
-                  <option value="perforation">فقط پرفراژ (Perf)</option>
-                  <option value="deleted">فقط حذف‌شده‌ها (Deleted)</option>
-                </select>
+                <button class="btn btn-outline btn-sm" id="btn-restore-deleted" style="display:none; color:#EF4444; border-color:rgba(239,68,68,0.3); font-size:0.73rem; padding:3px 8px;" onclick="ParametricDieEngine.restoreAllDeleted()">
+                  <i class="ph ph-arrow-counter-clockwise"></i> بازیابی حذف‌شده‌ها (<span id="deleted-count-badge">0</span>)
+                </button>
+                <span style="font-size:0.72rem; color:var(--text-muted);" id="tab-segments-count-wrap">
+                  <span id="tab-segments-count">0</span> قطعه
+                </span>
               </div>
             </div>
-            <div style="overflow-x:auto;">
-              <table class="layer-table" style="font-size:0.8rem; margin-top:4px;">
-                <thead>
-                  <tr>
-                    <th>شناسه و نام قطعه</th>
-                    <th>نوع خط</th>
-                    <th>طول واقعی (mm)</th>
-                    <th>نگاشت ابعادی</th>
-                    <th>دسته هم‌سان</th>
-                    <th style="text-align:center;">عملیات ویرایش / حذف</th>
-                  </tr>
-                </thead>
-                <tbody id="diecut-segments-tbody">
-                  <!-- Dynamically Populated by ParametricDieEngine -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB 3: EXTRACTED FORMULAS & PACKAGING ANALYTICS -->
-        <div class="diecut-tab-content" id="dtab-content-formulas">
-          <div class="card">
-            <div class="card-title">
-              <div class="card-title-left">
-                <i class="ph ph-function" style="color:var(--brand-primary);"></i>
-                <span>روابط ریاضی، ابعاد گسترده و دورریز شیت</span>
-              </div>
-            </div>
-            <div id="diecut-formulas-container">
+            <div class="similarity-grid" id="diecut-similarity-container" style="padding:10px 12px;">
               <!-- Dynamically Populated by ParametricDieEngine -->
             </div>
+          </div>
+
+          <!-- ROW B: Math Summary + Import Status (side by side on wide, stack on narrow) -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+
+            <!-- Left: Formula Panel -->
+            <div class="card" style="padding:12px 14px;">
+              <div style="font-weight:700; font-size:0.8rem; color:var(--graphite-text); margin-bottom:10px; display:flex; align-items:center; gap:5px;">
+                <i class="ph ph-function" style="color:var(--brand-primary);"></i> هندسه و ابعاد گسترده
+              </div>
+              <div id="diecut-formulas-container"></div>
+            </div>
+
+            <!-- Right: Import detected values / file info panel -->
+            <div class="card" style="padding:12px 14px;">
+              <div style="font-weight:700; font-size:0.8rem; color:var(--graphite-text); margin-bottom:10px; display:flex; align-items:center; gap:5px;">
+                <i class="ph ph-upload-simple" style="color:var(--brand-primary);"></i> واردسازی فایل قالب
+              </div>
+              <!-- Drop zone -->
+              <div id="diecut-drop-zone" style="border:2px dashed var(--border-color); border-radius:var(--radius-sm); padding:16px; text-align:center; cursor:pointer; transition:all 0.18s; background:var(--surface-base);"
+                   onclick="document.getElementById('file-diecut-main').click()"
+                   ondragover="event.preventDefault(); this.style.borderColor='var(--brand-primary)'; this.style.background='rgba(217,119,6,0.06)'"
+                   ondragleave="this.style.borderColor='var(--border-color)'; this.style.background='var(--surface-base)'"
+                   ondrop="DieCutImporter.handleDrop(event); this.style.borderColor='var(--border-color)'; this.style.background='var(--surface-base)'">
+                <i class="ph ph-file-vector" style="font-size:1.8rem; color:var(--text-dim); display:block; margin-bottom:6px;"></i>
+                <div style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">کشیدن و رها کردن فایل SVG / AI</div>
+                <div style="font-size:0.72rem; color:var(--text-dim); margin-top:3px;">یا کلیک برای انتخاب فایل</div>
+              </div>
+              <input type="file" id="file-diecut-main" accept=".svg,.ai,.eps,.pdf" style="display:none;" onchange="DieCutImporter.handleFileSelect(event)">
+
+              <!-- Import result panel (shown after import) -->
+              <div id="import-result-panel" style="display:none; margin-top:10px; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.2); border-radius:var(--radius-sm); padding:10px 12px;">
+                <div style="font-size:0.75rem; font-weight:700; color:#059669; margin-bottom:6px; display:flex; align-items:center; gap:5px;">
+                  <i class="ph ph-check-circle"></i> ابعاد استخراج‌شده از فایل
+                </div>
+                <div id="import-result-dims" style="font-size:0.78rem; color:var(--graphite-text);"></div>
+              </div>
+
+              <!-- Preset templates -->
+              <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border-color);">
+                <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:6px; font-weight:600;">قالب‌های آماده:</div>
+                <div style="display:flex; flex-wrap:wrap; gap:5px;">
+                  <button class="btn btn-outline btn-sm" style="font-size:0.72rem; padding:3px 8px;" onclick="ParametricDieEngine.loadTemplate('tuck_end')">
+                    <i class="ph ph-package"></i> دارویی Tuck-End
+                  </button>
+                  <button class="btn btn-outline btn-sm" style="font-size:0.72rem; padding:3px 8px;" onclick="ParametricDieEngine.loadTemplate('mailer_0427')">
+                    <i class="ph ph-envelope"></i> کیبوردی 0427
+                  </button>
+                  <button class="btn btn-outline btn-sm" style="font-size:0.72rem; padding:3px 8px;" onclick="ParametricDieEngine.loadTemplate('lock_bottom')">
+                    <i class="ph ph-lock-key"></i> ته‌قفلی خودکار
+                  </button>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 

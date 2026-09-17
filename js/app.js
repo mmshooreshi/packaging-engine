@@ -176,6 +176,19 @@ window.App = {
     if (window.SoundEngine) window.SoundEngine.playClick();
   },
 
+  refreshSheetNesting() {
+    if (window.NestingEngine) {
+      window.NestingEngine.optimize();
+      window.NestingEngine.renderCanvas();
+    }
+    if (window.CadEngine && window.LemonPack.activeCanvasTab === 'blueprint') {
+      window.CadEngine.renderBlueprint();
+    }
+    this.recalculate();
+    if (window.SoundEngine) window.SoundEngine.playClick();
+    if (window.toast) toast('شیت‌بندی و فرم چاپی مجدداً محاسبه و تولید شد ✓');
+  },
+
   toggleCurrency() {
     const cur = window.LemonPack.currency === 'toman' ? 'rial' : 'toman';
     window.LemonPack.currency = cur;
