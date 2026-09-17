@@ -1,0 +1,2074 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="لمون‌پک">
+  <meta name="theme-color" content="#F59E0B">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="description" content="استودیو محاسبات لمون پک — سامانه مهندسی بسته‌بندی، شیت‌بندی ۲بعدی و بهای تمام‌شده">
+  <title>استودیو محاسبات لمون پک — LemonPack Pro</title>
+
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="apple-touch-icon" href="./icon.svg">
+
+  <!-- Vazirmatn Font & Strict Tabular-Nums -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+
+  <!-- Phosphor Icons & Export Utilities -->
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <style>
+    /* ============================================================
+       LEMONPACK PRO DESIGN SYSTEM & COLOR PALETTE
+       ============================================================ */
+    :root {
+      --surface-base: #FAF8F5;
+      --surface-card: #FFFFFF;
+      --surface-subtle: #F3ECE1;
+      --brand-primary: #F59E0B;
+      --brand-primary-hover: #D97706;
+      --brand-glow: rgba(251, 191, 36, 0.4);
+      --cad-cut: #DC2626;
+      --cad-crease: #2563EB;
+      --cad-gripper: rgba(239, 68, 68, 0.15);
+      --cad-gutter: #E2E8F0;
+      --graphite-text: #1E293B;
+      --text-muted: #64748B;
+      --border-color: #E2D9CC;
+      --border-light: #F1EBE1;
+      --success: #10B981;
+      --danger: #EF4444;
+      --info: #3B82F6;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --font-main: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --hdr-h: 58px;
+      --nav-h: 66px;
+      --ease: cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    [data-theme="dark"] {
+      --surface-base: #0F172A;
+      --surface-card: #1E293B;
+      --surface-subtle: #243048;
+      --brand-primary: #F59E0B;
+      --brand-glow: rgba(245, 158, 11, 0.3);
+      --graphite-text: #F8FAFC;
+      --text-muted: #94A3B8;
+      --border-color: #334155;
+      --border-light: #1E293B;
+      --cad-gutter: #334155;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      font-family: var(--font-main);
+      background-color: var(--surface-base);
+      color: var(--graphite-text);
+      direction: rtl;
+      text-align: right;
+      font-size: 14px;
+      line-height: 1.5;
+      height: 100%;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Strict Tabular Nums for Precision Industrial Calculations */
+    .tabular-nums, .num, td, th, input[type="number"], .badge-num {
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+      direction: ltr;
+      display: inline-block;
+      text-align: left;
+    }
+
+    /* App Container */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      max-width: 1000px;
+      margin: 0 auto;
+      background: var(--surface-base);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Header */
+    .hdr {
+      height: var(--hdr-h);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface-card);
+      border-bottom: 1px solid var(--border-color);
+      z-index: 40;
+      flex-shrink: 0;
+    }
+    .hdr-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+    .hdr-logo {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #FDE68A, #F59E0B);
+      color: #78350F;
+      box-shadow: 0 2px 8px var(--brand-glow);
+    }
+    .hdr-logo svg { width: 22px; height: 22px; }
+    .hdr-title {
+      font-weight: 800;
+      font-size: 1.05rem;
+      letter-spacing: -0.3px;
+    }
+    .hdr-badge {
+      background: rgba(245, 158, 11, 0.15);
+      color: #B45309;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-right: 4px;
+    }
+    .hdr-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background: var(--surface-card);
+      color: var(--graphite-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-icon:hover {
+      background: var(--surface-subtle);
+      border-color: var(--brand-primary);
+    }
+    .btn-icon:active {
+      transform: scale(0.94);
+    }
+
+    /* Main Views Viewport */
+    .views-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    .view {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 16px 16px calc(var(--nav-h) + 16px) 16px;
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: opacity 0.22s var(--ease), transform 0.22s var(--ease);
+      display: none;
+    }
+    .view.active {
+      display: block;
+    }
+    .view.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    /* Cards & Layout */
+    .card {
+      background: var(--surface-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .card-title {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: var(--graphite-text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .card-title i {
+      color: var(--brand-primary);
+      font-size: 1.2rem;
+    }
+
+    /* Form Controls & Chips */
+    .field-group {
+      margin-bottom: 14px;
+    }
+    .field-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chips-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chip {
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background: var(--surface-base);
+      color: var(--graphite-text);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+    }
+    .chip:hover {
+      border-color: var(--brand-primary);
+    }
+    .chip.active {
+      background: var(--brand-primary);
+      border-color: var(--brand-primary);
+      color: #FFFFFF;
+      font-weight: 700;
+      box-shadow: 0 2px 8px var(--brand-glow);
+    }
+    [data-theme="dark"] .chip.active {
+      color: #0F172A;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+    .input-col {
+      flex: 1;
+    }
+    .input-box {
+      width: 100%;
+      height: 42px;
+      background: var(--surface-base);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0 12px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--graphite-text);
+      outline: none;
+      transition: border-color 0.15s;
+      direction: ltr;
+      text-align: center;
+    }
+    .input-box:focus {
+      border-color: var(--brand-primary);
+      background: #FFFFFF;
+      box-shadow: 0 0 0 3px var(--brand-glow);
+    }
+    [data-theme="dark"] .input-box:focus {
+      background: #1E293B;
+    }
+
+    /* Switch toggle */
+    .switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: var(--border-color);
+      transition: .25s;
+      border-radius: 24px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      right: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .25s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: var(--brand-primary);
+    }
+    input:checked + .slider:before {
+      transform: translateX(-20px);
+    }
+
+    /* Buttons */
+    .btn {
+      height: 42px;
+      padding: 0 16px;
+      border-radius: var(--radius-sm);
+      border: none;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.15s;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--brand-primary);
+      color: #FFFFFF;
+      box-shadow: 0 2px 8px var(--brand-glow);
+    }
+    .btn-primary:hover {
+      background: var(--brand-primary-hover);
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--graphite-text);
+    }
+    .btn-outline:hover {
+      background: var(--surface-subtle);
+      border-color: var(--brand-primary);
+    }
+    .btn-block {
+      width: 100%;
+    }
+
+    /* Nesting Canvas & Visualizer */
+    .canvas-card {
+      padding: 12px;
+    }
+    .hud-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .hud-stat {
+      background: var(--surface-base);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 6px 8px;
+      text-align: center;
+    }
+    .hud-label {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .hud-val {
+      font-size: 0.95rem;
+      font-weight: 900;
+      color: var(--graphite-text);
+    }
+    .hud-val.highlight {
+      color: var(--brand-primary);
+    }
+    .canvas-viewport {
+      width: 100%;
+      height: 380px;
+      background: #FFFFFF;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.03);
+    }
+    [data-theme="dark"] .canvas-viewport {
+      background: #151F32;
+    }
+    #nesting-canvas {
+      max-width: 100%;
+      max-height: 100%;
+      display: block;
+    }
+    .canvas-legend {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-top: 10px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+    }
+
+    /* Diagnostics & Calculation Breakdown Table */
+    .cogs-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .cogs-table th {
+      background: var(--surface-subtle);
+      padding: 8px 10px;
+      font-weight: 800;
+      color: var(--graphite-text);
+      text-align: right;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .cogs-table td {
+      padding: 10px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .cogs-table tr:last-child td {
+      border-bottom: none;
+      font-weight: 800;
+      font-size: 0.95rem;
+      background: rgba(245, 158, 11, 0.08);
+    }
+    .cogs-table .td-cost {
+      text-align: left;
+      font-weight: 700;
+    }
+
+    /* Customer Invoice Card */
+    .invoice-card {
+      border: 2px solid var(--brand-primary);
+      position: relative;
+      background: #FFFFFF;
+    }
+    [data-theme="dark"] .invoice-card {
+      background: #1E293B;
+    }
+    .invoice-badge {
+      position: absolute;
+      top: -12px;
+      left: 16px;
+      background: var(--brand-primary);
+      color: #FFFFFF;
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 2px 10px;
+      border-radius: 12px;
+    }
+    .tiered-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 0.78rem;
+    }
+    .tiered-table th, .tiered-table td {
+      padding: 6px 8px;
+      text-align: center;
+      border: 1px solid var(--border-color);
+    }
+    .tiered-table th {
+      background: var(--surface-subtle);
+      font-weight: 800;
+    }
+
+    /* Bottom Navigation Bar */
+    .bnav {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: var(--nav-h);
+      background: var(--surface-card);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      z-index: 50;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.72rem;
+      font-weight: 600;
+      gap: 3px;
+      transition: color 0.15s ease;
+      user-select: none;
+    }
+    .nav-item i {
+      font-size: 1.35rem;
+      transition: transform 0.15s ease;
+    }
+    .nav-item.active {
+      color: var(--brand-primary);
+      font-weight: 800;
+    }
+    .nav-item.active i {
+      transform: translateY(-2px);
+    }
+
+    /* PWA Update & Install Banners */
+    #update-banner, #pwa-bar {
+      position: fixed;
+      left: 16px;
+      right: 16px;
+      bottom: calc(var(--nav-h) + 12px);
+      max-width: 500px;
+      margin: 0 auto;
+      background: #1E293B;
+      color: #FFFFFF;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 999;
+      opacity: 0;
+      transform: translateY(20px);
+      pointer-events: none;
+      transition: all 0.25s var(--ease);
+    }
+    #update-banner.show, #pwa-bar.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .banner-text {
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+    .banner-btn {
+      background: var(--brand-primary);
+      color: #FFFFFF;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 6px 12px;
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: #1E293B;
+      color: #FFFFFF;
+      padding: 8px 18px;
+      border-radius: 24px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+      z-index: 10000;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s var(--ease);
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Drawer / Bottom Sheet for Daily Rates */
+    .drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(3px);
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s var(--ease);
+    }
+    .drawer-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .drawer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      max-width: 600px;
+      margin: 0 auto;
+      background: var(--surface-card);
+      border-top-left-radius: var(--radius-lg);
+      border-top-right-radius: var(--radius-lg);
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+      z-index: 1001;
+      transform: translateY(100%);
+      transition: transform 0.28s var(--ease);
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .drawer.show {
+      transform: translateY(0);
+    }
+    .drawer-hdr {
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+    .drawer-body {
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    /* Print-ready RTL A4 stylesheet */
+    @media print {
+      body {
+        background: #FFFFFF !important;
+        color: #000000 !important;
+        overflow: visible !important;
+      }
+      .hdr, .bnav, #update-banner, #pwa-bar, .no-print {
+        display: none !important;
+      }
+      .view {
+        position: static !important;
+        display: block !important;
+        opacity: 1 !important;
+        padding: 0 !important;
+      }
+      .card {
+        border: 1px solid #000 !important;
+        box-shadow: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Top App Header -->
+  <header class="hdr">
+    <div class="hdr-brand" onclick="go('cad')">
+      <div class="hdr-logo">
+        <i class="ph ph-package"></i>
+      </div>
+      <div>
+        <span class="hdr-title">لمون پک</span>
+        <span class="hdr-badge">Pro</span>
+      </div>
+    </div>
+    <div class="hdr-actions">
+      <button class="btn-icon" title="نرخ‌های روز بازار" onclick="openRatesDrawer()">
+        <i class="ph ph-sliders"></i>
+      </button>
+      <button class="btn-icon" title="تغییر تم" onclick="toggleTheme()">
+        <i class="ph ph-moon" id="theme-icon"></i>
+      </button>
+      <button class="btn-icon" id="btn-install" title="نصب اپلیکیشن" style="display:none;" onclick="triggerInstall()">
+        <i class="ph ph-download-simple"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Views Viewport -->
+  <div class="views-container">
+    
+    <!-- MODULE 1: مشخصات هندسی و قالب (CAD & Geometry) -->
+    <main class="view active visible" id="v-cad">
+      <div class="card">
+        <div class="card-title">
+          <i class="ph ph-shapes"></i>
+          <span>۱. مدل و هندسه بسته‌بندی</span>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">انتخاب مدل جعبه</label>
+          <div class="chips-grid" id="cad-models">
+            <div class="chip active" data-model="tuck_end"><i class="ph ph-package"></i> جعبه دارویی</div>
+            <div class="chip" data-model="mailer_0427"><i class="ph ph-envelope-simple"></i> کیبوردی / پستی 0427</div>
+            <div class="chip" data-model="lock_bottom"><i class="ph ph-lock-key"></i> ته قفلی</div>
+            <div class="chip" data-model="rigid_box"><i class="ph ph-cube"></i> هاردباکس</div>
+            <div class="chip" data-model="shopping_bag"><i class="ph ph-tote"></i> ساک دستی</div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">
+            <span>ابعاد خارجی نهایی (میلیمتر)</span>
+            <span class="tabular-nums text-muted" id="dims-preview">طول: ۱۲۰ × عرض: ۸۰ × ارتفاع: ۱۵۰</span>
+          </label>
+          <div class="input-row">
+            <div class="input-col">
+              <input type="number" class="input-box" id="inp-length" value="120" placeholder="طول" oninput="onCadChange()">
+            </div>
+            <div class="input-col">
+              <input type="number" class="input-box" id="inp-width" value="80" placeholder="عرض" oninput="onCadChange()">
+            </div>
+            <div class="input-col">
+              <input type="number" class="input-box" id="inp-height" value="150" placeholder="ارتفاع" oninput="onCadChange()">
+            </div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">
+            <span>ابعاد گسترده قطعه کار (Flat Die-cut mm)</span>
+            <span class="text-muted" style="font-size:0.7rem;">محاسبه شده با احتساب لبه‌ها و درپوش</span>
+          </label>
+          <div class="input-row">
+            <div class="input-col">
+              <input type="number" class="input-box" id="inp-flat-l" value="310" placeholder="طول گسترده" oninput="onCadChange()">
+            </div>
+            <div class="input-col">
+              <input type="number" class="input-box" id="inp-flat-w" value="220" placeholder="عرض گسترده" oninput="onCadChange()">
+            </div>
+          </div>
+        </div>
+
+        <div class="switch-row" style="border-top:1px solid var(--border-light); padding-top:10px;">
+          <div>
+            <div style="font-weight:700; font-size:0.85rem;">قالب در آرشیو موجود است</div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">در صورت فعال بودن، هزینه ساخت قالب لیزری صفر منظور می‌شود.</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="chk-archive-die" onchange="onCadChange()">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="field-group" style="margin-top:14px;">
+          <label class="field-label">تیراژ سفارش جعبه (تعداد)</label>
+          <input type="number" class="input-box" id="inp-order-qty" value="1000" step="100" oninput="onCadChange()">
+        </div>
+
+        <button class="btn btn-primary btn-block" onclick="go('materials')">
+          <span>مرحله بعد: انتخاب مقوا و خدمات</span>
+          <i class="ph ph-arrow-left"></i>
+        </button>
+      </div>
+    </main>
+
+    <!-- MODULE 2: مقوا و متریال (Materials & Finishes) -->
+    <main class="view" id="v-materials">
+      <div class="card">
+        <div class="card-title">
+          <i class="ph ph-stack"></i>
+          <span>۲. متریال مقوا و خدمات تکمیلی</span>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">نوع مقوا (Substrate)</label>
+          <div class="chips-grid" id="mat-substrates">
+            <div class="chip active" data-sub="inderboard"><i class="ph ph-check-circle"></i> ایندربرد (FBB) - اختصاصی جعبه</div>
+            <div class="chip" data-sub="glosse"><i class="ph ph-circle"></i> گلاسه - ساک دستی / بگ</div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">گرماژ مقوا (GSM)</label>
+          <div class="chips-grid" id="mat-gsm">
+            <div class="chip" data-gsm="200">۲۰۰ گرم</div>
+            <div class="chip" data-gsm="230">۲۳۰ گرم</div>
+            <div class="chip" data-gsm="250">۲۵۰ گرم</div>
+            <div class="chip" data-gsm="270">۲۷۰ گرم</div>
+            <div class="chip active" data-gsm="300">۳۰۰ گرم</div>
+            <div class="chip" data-gsm="350">۳۵۰ گرم</div>
+            <div class="chip" data-gsm="400">۴۰۰ گرم</div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">پوشش سلفون</label>
+          <div class="chips-grid" id="mat-lamination">
+            <div class="chip active" data-lam="matte">سلفون مات حرارتی</div>
+            <div class="chip" data-lam="gloss">سلفون براق</div>
+            <div class="chip" data-lam="velvet">مخملی (Soft Touch)</div>
+            <div class="chip" data-lam="none">بدون سلفون</div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">خدمات یووی (UV)</label>
+          <div class="chips-grid" id="mat-uv">
+            <div class="chip active" data-uv="spot">یووی موضعی برجسته</div>
+            <div class="chip" data-uv="cylinder">یووی سیلندری کامل</div>
+            <div class="chip" data-uv="none">بدون یووی</div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">جعبه‌چسبانی (Gluing)</label>
+          <div class="chips-grid" id="mat-gluing">
+            <div class="chip active" data-gluing="auto">لب‌چسب اتوماتیک کارتن</div>
+            <div class="chip" data-gluing="manual">چسب دستی</div>
+            <div class="chip" data-gluing="none">بدون چسبانی (شیت تخت)</div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">تعداد رنگ چاپ</label>
+          <div class="chips-grid" id="mat-colors">
+            <div class="chip active" data-colors="4">۴ رنگ CMYK استاندارد</div>
+            <div class="chip" data-colors="5">۵ رنگ (CMYK + رنگ پنتون/طلاکوب)</div>
+            <div class="chip" data-colors="1">تک رنگ</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:14px;">
+          <button class="btn btn-outline" style="flex:1" onclick="go('cad')"><i class="ph ph-arrow-right"></i> بازگشت</button>
+          <button class="btn btn-primary" style="flex:2" onclick="go('nesting')">چیدمان شیت <i class="ph ph-arrow-left"></i></button>
+        </div>
+      </div>
+    </main>
+
+    <!-- MODULE 3: چیدمان زنده فرم و شیت‌بندی (Interactive 2D Sheet Nesting) -->
+    <main class="view" id="v-nesting">
+      <div class="card canvas-card">
+        <div class="card-title">
+          <i class="ph ph-grid-four"></i>
+          <span>۳. چیدمان زنده فرم و شیت‌بندی ۲بعدی</span>
+        </div>
+
+        <!-- Live Calculation HUD -->
+        <div class="hud-bar">
+          <div class="hud-stat">
+            <div class="hud-label">تعداد در فرم (Ups)</div>
+            <div class="hud-val highlight tabular-nums" id="hud-ups">۶ کار</div>
+          </div>
+          <div class="hud-stat">
+            <div class="hud-label">سایز بهینه شیت</div>
+            <div class="hud-val tabular-nums" id="hud-sheet">۱۰۰ × ۷۰</div>
+          </div>
+          <div class="hud-stat">
+            <div class="hud-label">دستگاه متناظر</div>
+            <div class="hud-val" id="hud-press">۲.۵ ورقی</div>
+          </div>
+          <div class="hud-stat">
+            <div class="hud-label">دورریز (Waste)</div>
+            <div class="hud-val tabular-nums" id="hud-waste">۱۹.۸٪</div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">انتخاب ابعاد شیت کاغذ</label>
+          <div class="chips-grid" id="nest-sheet-sizes">
+            <div class="chip active" data-sheet="auto"><i class="ph ph-sparkle"></i> انتخاب خودکار کم‌مصرف‌ترین</div>
+            <div class="chip" data-sheet="100x70">۱۰۰ × ۷۰</div>
+            <div class="chip" data-sheet="90x60">۹۰ × ۶۰</div>
+            <div class="chip" data-sheet="100x80">۱۰۰ × ۸۰</div>
+            <div class="chip" data-sheet="120x80">۱۲۰ × ۸۰</div>
+          </div>
+        </div>
+
+        <!-- Interactive 2D Nesting Canvas -->
+        <div class="canvas-viewport">
+          <canvas id="nesting-canvas" width="600" height="420"></canvas>
+        </div>
+
+        <!-- CAD Elements Legend -->
+        <div class="canvas-legend">
+          <div class="legend-item">
+            <span class="legend-dot" style="background:#DC2626;"></span>
+            <span>خط تیغ (Cut Line)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot" style="background:#2563EB;"></span>
+            <span>خط تا (Crease Line)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot" style="background:rgba(239, 68, 68, 0.25);"></span>
+            <span>لب‌پنجه ماشین چاپ (۱.۵cm)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot" style="background:#E2E8F0; border:1px solid #CBD5E1;"></span>
+            <span>فاصله گاتر (۴mm)</span>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:16px;">
+          <button class="btn btn-outline" style="flex:1" onclick="go('materials')"><i class="ph ph-arrow-right"></i> متریال</button>
+          <button class="btn btn-primary" style="flex:2" onclick="go('invoice')">مشاهده بهای تمام‌شده و فاکتور <i class="ph ph-arrow-left"></i></button>
+        </div>
+      </div>
+    </main>
+
+    <!-- MODULE 5: بهای تمام‌شده و صدور پیش‌فاکتور (COGS & Invoicing) -->
+    <main class="view" id="v-invoice">
+      
+      <!-- Factory Diagnostic COGS Dashboard -->
+      <div class="card">
+        <div class="card-title">
+          <i class="ph ph-calculator"></i>
+          <span>آنالیز تشخیصی بهای تمام‌شده کارخانه (COGS)</span>
+        </div>
+
+        <table class="cogs-table">
+          <thead>
+            <tr>
+              <th>آیتم هزینه تولید</th>
+              <th>شاخص محاسباتی</th>
+              <th class="td-cost">مبلغ (تومان)</th>
+            </tr>
+          </thead>
+          <tbody id="cogs-tbody">
+            <tr>
+              <td>مقوای مصرفی (خام)</td>
+              <td class="tabular-nums" id="cogs-paper-sub">۲۰۰ برگ (۲ بند) • ۴۲ کیلوگرم</td>
+              <td class="td-cost tabular-nums" id="cogs-paper-val">۲۱,۸۴۰,۰۰۰</td>
+            </tr>
+            <tr>
+              <td>زینک‌های لیتوگرافی</td>
+              <td class="tabular-nums" id="cogs-plates-sub">۴ زینک ۲.۵ ورقی</td>
+              <td class="td-cost tabular-nums" id="cogs-plates-val">۵,۶۰۰,۰۰۰</td>
+            </tr>
+            <tr>
+              <td>اجرت چاپخانه (دور چاپ)</td>
+              <td class="tabular-nums" id="cogs-press-sub">۱ دور (پایه ۵,۰۰۰ برگ)</td>
+              <td class="td-cost tabular-nums" id="cogs-press-val">۱۳,۰۰۰,۰۰۰</td>
+            </tr>
+            <tr>
+              <td>سلفون‌کشی حرارتی</td>
+              <td class="tabular-nums" id="cogs-lam-sub">۱۰۰ × ۷۰ cm • ۲۰۰ شیت</td>
+              <td class="td-cost tabular-nums" id="cogs-lam-val">۴,۶۲۰,۰۰۰</td>
+            </tr>
+            <tr>
+              <td>لترپرس و ساخت قالب</td>
+              <td class="tabular-nums" id="cogs-die-sub">قالب جدید + اجرت تیغ</td>
+              <td class="td-cost tabular-nums" id="cogs-die-val">۷,۵۰۰,۰۰۰</td>
+            </tr>
+            <tr>
+              <td>جعبه‌چسبانی و ملزومات</td>
+              <td class="tabular-nums" id="cogs-finish-sub">۱,۰۰۰ عدد + چسب و لجستیک</td>
+              <td class="td-cost tabular-nums" id="cogs-finish-val">۲,۷۵۰,۰۰۰</td>
+            </tr>
+            <tr>
+              <td><strong>جمع کل بهای تمام‌شده (COGS)</strong></td>
+              <td class="tabular-nums">بدون احتساب سود</td>
+              <td class="td-cost tabular-nums" id="cogs-total-val" style="color:var(--brand-primary); font-size:1.1rem;">۵۵,۳۱۰,۰۰۰</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Customer Official Invoice Card -->
+      <div class="card invoice-card" id="printable-invoice">
+        <span class="invoice-badge">پیش‌فاکتور رسمی</span>
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px dashed var(--border-color); padding-bottom:8px;">
+          <div>
+            <h3 style="font-weight:900; font-size:1.15rem; color:var(--graphite-text);">استودیو بسته‌بندی لمون پک</h3>
+            <span style="font-size:0.75rem; color:var(--text-muted);">تخصصی‌ترین سیستم برآورد هزینه جعبه و کارتن</span>
+          </div>
+          <div style="text-align:left; font-size:0.75rem;" class="tabular-nums">
+            <div>تاریخ: <span id="inv-date">۱۴۰۳/۰۶/۲۷</span></div>
+            <div>شماره: <span id="inv-num">LP-84920</span></div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.8rem; margin-bottom:12px; background:var(--surface-base); padding:10px; border-radius:var(--radius-sm);">
+          <div>مدل: <strong id="inv-model-text">جعبه دارویی</strong></div>
+          <div>ابعاد: <strong class="tabular-nums" id="inv-dims-text">۱۲۰×۸۰×۱۵۰ mm</strong></div>
+          <div>مقوا: <strong id="inv-paper-text">ایندربرد ۳۰۰ گرم</strong></div>
+          <div>تیراژ: <strong class="tabular-nums" id="inv-qty-text">۱,۰۰۰ عدد</strong></div>
+        </div>
+
+        <!-- Tiered Pricing Table -->
+        <label class="field-label">مقایسه اقتصادی تیراژهای ۵ گانه</label>
+        <table class="tiered-table">
+          <thead>
+            <tr>
+              <th>تیراژ (تعداد)</th>
+              <th>قیمت واحد (تومان)</th>
+              <th>جمع کل پیش‌فاکتور</th>
+            </tr>
+          </thead>
+          <tbody id="tiered-tbody">
+            <!-- Populated reactively -->
+          </tbody>
+        </table>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:10px; border-top:2px solid var(--graphite-text);">
+          <div>
+            <div style="font-size:0.8rem; color:var(--text-muted);">قیمت واحد هر جعبه:</div>
+            <div style="font-weight:900; font-size:1.2rem; color:var(--brand-primary);" class="tabular-nums" id="inv-unit-price">۷۱,۹۰۰ تومان</div>
+          </div>
+          <div style="text-align:left;">
+            <div style="font-size:0.8rem; color:var(--text-muted);">مبلغ کل با احتساب ۳۰٪ سود:</div>
+            <div style="font-weight:900; font-size:1.25rem;" class="tabular-nums" id="inv-grand-total">۷۱,۹۰۳,۰۰۰ تومان</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:16px;" class="no-print">
+          <button class="btn btn-primary" style="flex:1" onclick="window.print()">
+            <i class="ph ph-printer"></i> چاپ فاکتور (A4)
+          </button>
+          <button class="btn btn-outline" style="flex:1" onclick="exportInvoicePdf()">
+            <i class="ph ph-file-pdf"></i> خروجی PDF
+          </button>
+          <button class="btn btn-outline" title="ارسال در پیام‌رسان" onclick="shareInvoice()">
+            <i class="ph ph-share-network"></i>
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- MODULE 4 & SYSTEM SETTINGS: تنظیمات و نرخ‌های روز بازار -->
+    <main class="view" id="v-settings">
+      <div class="card">
+        <div class="card-title">
+          <i class="ph ph-sliders"></i>
+          <span>۴. میز کنترل نرخ‌های روز بازار و تنظیمات</span>
+        </div>
+        <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:14px;">
+          متغیرهای زیر مستقیماً در محاسبات آنلاین بهای تمام‌شده اعمال شده و در LocalStorage ذخیره می‌گردند.
+        </p>
+
+        <div class="field-group">
+          <label class="field-label">قیمت هر کیلوگرم مقوا (تومان)</label>
+          <input type="number" class="input-box" id="set-paper-price" value="520000" oninput="saveRates()">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">هزینه واحد زینک ۲.۵ ورقی (تومان)</label>
+          <input type="number" class="input-box" id="set-plate-cost" value="1400000" oninput="saveRates()">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">اجرت هر دور چاپ ۵,۰۰۰ تایی (تومان)</label>
+          <input type="number" class="input-box" id="set-press-cost" value="13000000" oninput="saveRates()">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">نرخ سلفون به ازای هر سانتی‌متر مربع (تومان)</label>
+          <input type="number" step="0.1" class="input-box" id="set-lam-rate" value="3.3" oninput="saveRates()">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">اجرت پایه تیغ‌زنی لترپرس (تومان)</label>
+          <input type="number" class="input-box" id="set-letterpress-cost" value="4000000" oninput="saveRates()">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">هزینه پیش‌فرض ساخت قالب لیزری (تومان)</label>
+          <input type="number" class="input-box" id="set-die-cost" value="3500000" oninput="saveRates()">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">اجرت جعبه‌چسبانی به ازای هر جعبه (تومان)</label>
+          <input type="number" class="input-box" id="set-gluing-box" value="350" oninput="saveRates()">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">درصد حاشیه سود کارخانه (٪)</label>
+          <input type="number" class="input-box" id="set-profit-pct" value="30" oninput="saveRates()">
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:14px;">
+          <button class="btn btn-outline btn-block" onclick="resetDefaultRates()">
+            <i class="ph ph-arrow-counter-clockwise"></i> بازنشانی به نرخ‌های پیش‌فرض
+          </button>
+        </div>
+      </div>
+
+      <!-- App Info & Offline Cache Status -->
+      <div class="card">
+        <div class="card-title">
+          <i class="ph ph-info"></i>
+          <span>وضعیت سیستم و نسخه PWA</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.82rem; margin-bottom:8px;">
+          <span>نسخه وب‌اپلیکیشن:</span>
+          <strong class="tabular-nums" id="app-ver-display">1.0.0 (Build 1)</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.82rem; margin-bottom:8px;">
+          <span>وضعیت اتصال:</span>
+          <strong id="app-online-status" style="color:var(--success);">آفلاین-فرست آماده ✓</strong>
+        </div>
+        <button class="btn btn-outline btn-block" onclick="forceCheckAppUpdate()" style="margin-top:10px;">
+          <i class="ph ph-arrows-clockwise"></i> بررسی بروزرسانی جدید
+        </button>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Bottom Navigation Bar -->
+  <nav class="bnav">
+    <div class="nav-item active" data-tab="cad" onclick="go('cad')">
+      <i class="ph ph-shapes"></i>
+      <span>قالب و ابعاد</span>
+    </div>
+    <div class="nav-item" data-tab="materials" onclick="go('materials')">
+      <i class="ph ph-stack"></i>
+      <span>متریال و چاپ</span>
+    </div>
+    <div class="nav-item" data-tab="nesting" onclick="go('nesting')">
+      <i class="ph ph-grid-four"></i>
+      <span>شیت‌بندی</span>
+    </div>
+    <div class="nav-item" data-tab="invoice" onclick="go('invoice')">
+      <i class="ph ph-calculator"></i>
+      <span>بها و فاکتور</span>
+    </div>
+    <div class="nav-item" data-tab="settings" onclick="go('settings')">
+      <i class="ph ph-sliders"></i>
+      <span>نرخ‌های روز</span>
+    </div>
+  </nav>
+
+  <!-- PWA Install Banner -->
+  <div id="pwa-bar">
+    <div class="banner-text">
+      <div style="font-weight:800;">نصب وب‌اپلیکیشن لمون پک</div>
+      <div style="font-size:0.7rem; opacity:0.8;">کارکرد صددرصد آفلاین در کارگاه و چاپخانه</div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="banner-btn" onclick="triggerInstall()">نصب</button>
+      <button style="background:transparent; border:none; color:#AAA; cursor:pointer;" onclick="dismissInstallBanner()">✕</button>
+    </div>
+  </div>
+
+  <!-- PWA Auto-Update Banner -->
+  <div id="update-banner">
+    <div class="banner-text">
+      <div style="font-weight:800;">نسخه جدید منتشر شد 🚀</div>
+      <div style="font-size:0.7rem; opacity:0.8;">جهت بارگذاری آخرین امکانات کلیک کنید</div>
+    </div>
+    <button class="banner-btn" onclick="applyAppUpdate()">بروزرسانی فوری</button>
+  </div>
+
+  <!-- Toast Element -->
+  <div id="toast">پیام سیستم</div>
+
+  <!-- Quick Market Rates Drawer -->
+  <div class="drawer-overlay" id="rates-overlay" onclick="closeRatesDrawer()"></div>
+  <div class="drawer" id="rates-drawer">
+    <div class="drawer-hdr">
+      <div style="font-weight:800; display:flex; align-items:center; gap:6px;">
+        <i class="ph ph-sliders" style="color:var(--brand-primary);"></i>
+        <span>میز سریع نرخ‌های روز بازار</span>
+      </div>
+      <button class="btn-icon" style="width:28px; height:28px;" onclick="closeRatesDrawer()">✕</button>
+    </div>
+    <div class="drawer-body">
+      <div class="field-group">
+        <label class="field-label">قیمت هر کیلو مقوا (تومان)</label>
+        <input type="number" class="input-box" id="drw-paper-price" oninput="syncRateFromDrawer('paper-price', this.value)">
+      </div>
+      <div class="field-group">
+        <label class="field-label">هزینه واحد زینک (تومان)</label>
+        <input type="number" class="input-box" id="drw-plate-cost" oninput="syncRateFromDrawer('plate-cost', this.value)">
+      </div>
+      <div class="field-group">
+        <label class="field-label">اجرت دور چاپ ۵,۰۰۰ تایی (تومان)</label>
+        <input type="number" class="input-box" id="drw-press-cost" oninput="syncRateFromDrawer('press-cost', this.value)">
+      </div>
+      <div class="field-group">
+        <label class="field-label">درصد سود کارخانه (٪)</label>
+        <input type="number" class="input-box" id="drw-profit-pct" oninput="syncRateFromDrawer('profit-pct', this.value)">
+      </div>
+      <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="closeRatesDrawer()">
+        ثبت و اعمال آنی محاسبات
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   PACKAGING ENGINE & PWA CORE SCAFFOLD
+   ============================================================ */
+
+const STORAGE_KEY = 'lemonpack_config_v1';
+
+// Specification Machine Constraints & Defaults
+const MACHINE_CONSTRAINTS = {
+  pressClasses: [
+    { id: 'press_1_5', nameFa: 'دستگاه ۱.۵ ورقی', maxL: 50.0, maxW: 35.0 },
+    { id: 'press_2_5', nameFa: 'دستگاه ۲.۵ ورقی', maxL: 72.0, maxW: 52.0 },
+    { id: 'press_4_5', nameFa: 'دستگاه ۴.۵ ورقی', maxL: 100.0, maxW: 70.0 }
+  ],
+  gripperMarginCm: 1.5,
+  interGutterMm: 4.0,
+  safetyMarginMm: 5.0
+};
+
+const STANDARD_SHEETS = [
+  { length: 100, width: 70 },
+  { length: 90, width: 60 },
+  { length: 120, width: 70 },
+  { length: 100, width: 80 },
+  { length: 120, width: 80 },
+  { length: 100, width: 60 },
+  { length: 90, width: 70 }
+];
+
+const DEFAULT_RATES = {
+  paper_price_per_kg_toman: 520000,
+  plate_2_5_unit_cost_toman: 1400000,
+  default_plate_count_cmyk: 4,
+  press_run_base_impression_limit: 5000,
+  press_run_cost_per_5000_toman: 13000000,
+  lamination_rate_per_cm2_toman: 3.3,
+  letterpress_base_run_cost_toman: 4000000,
+  laser_die_fabrication_default_cost_toman: 3500000,
+  gluing_cost_per_box_toman: 350,
+  spot_uv_base_run_cost_toman: 2500000,
+  transport_and_logistics_fixed_toman: 1800000,
+  consumables_glue_toman: 600000,
+  profit_margin_percentage: 30.0
+};
+
+// Application State
+window.LemonPack = {
+  cad: {
+    model: 'tuck_end',
+    length: 120,
+    width: 80,
+    height: 150,
+    flatL: 310,
+    flatW: 220,
+    isDieInArchive: false,
+    orderQty: 1000
+  },
+  materials: {
+    substrate: 'inderboard',
+    gsm: 300,
+    lamination: 'matte',
+    uv: 'spot',
+    gluing: 'auto',
+    colors: 4
+  },
+  nesting: {
+    sheetL: 100,
+    sheetW: 70,
+    sheetMode: 'auto',
+    ups: 6,
+    wastePercentage: 19.8,
+    orientation: 'A',
+    pressClass: 'press_2_5'
+  },
+  rates: { ...DEFAULT_RATES }
+};
+
+/* ------------------------------------------------------------
+   Persian Digit & Formatting Utilities
+   ------------------------------------------------------------ */
+function e2p(str) {
+  if (str === null || str === undefined) return '';
+  const faDigits = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+  return String(str).replace(/\d/g, d => faDigits[d]);
+}
+
+function p2e(str) {
+  if (!str) return '';
+  const faDigits = '۰۱۲۳۴۵۶۷۸۹';
+  return String(str).replace(/[۰-۹]/g, w => faDigits.indexOf(w));
+}
+
+function fmtNum(n, decimals = 0) {
+  if (isNaN(n) || n === null) return '۰';
+  const num = Number(n);
+  const formatted = num.toLocaleString('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  });
+  return e2p(formatted);
+}
+
+function toast(msg, duration = 2200) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  if (navigator.vibrate) navigator.vibrate(15);
+  setTimeout(() => el.classList.remove('show'), duration);
+}
+
+/* ------------------------------------------------------------
+   Tab Navigation & Routing
+   ------------------------------------------------------------ */
+window.go = function(tabId, updateHash = true) {
+  const tabs = ['cad', 'materials', 'nesting', 'invoice', 'settings'];
+  if (!tabs.includes(tabId)) tabId = 'cad';
+
+  document.querySelectorAll('.view').forEach(v => {
+    v.classList.remove('visible');
+    setTimeout(() => v.classList.remove('active'), 50);
+  });
+
+  setTimeout(() => {
+    const target = document.getElementById('v-' + tabId);
+    if (target) {
+      target.classList.add('active');
+      target.scrollTop = 0;
+      requestAnimationFrame(() => target.classList.add('visible'));
+    }
+  }, 60);
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.tab === tabId);
+  });
+
+  if (updateHash) history.pushState(null, null, '#' + tabId);
+
+  if (tabId === 'nesting') {
+    renderNestingCanvas();
+  }
+  if (tabId === 'invoice') {
+    calculateAll();
+  }
+};
+
+window.addEventListener('hashchange', () => {
+  const h = location.hash.replace('#', '');
+  if (h) go(h, false);
+});
+
+/* ------------------------------------------------------------
+   Rate Controller & LocalStorage Persistence
+   ------------------------------------------------------------ */
+function loadSavedRates() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      window.LemonPack.rates = { ...DEFAULT_RATES, ...parsed };
+    }
+  } catch(e) {
+    console.warn('Error reading config from LocalStorage:', e);
+  }
+  syncRatesToInputs();
+}
+
+function syncRatesToInputs() {
+  const r = window.LemonPack.rates;
+  const setInp = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  setInp('set-paper-price', r.paper_price_per_kg_toman);
+  setInp('set-plate-cost', r.plate_2_5_unit_cost_toman);
+  setInp('set-press-cost', r.press_run_cost_per_5000_toman);
+  setInp('set-lam-rate', r.lamination_rate_per_cm2_toman);
+  setInp('set-letterpress-cost', r.letterpress_base_run_cost_toman);
+  setInp('set-die-cost', r.laser_die_fabrication_default_cost_toman);
+  setInp('set-gluing-box', r.gluing_cost_per_box_toman);
+  setInp('set-profit-pct', r.profit_margin_percentage);
+
+  // Sync drawer inputs too
+  setInp('drw-paper-price', r.paper_price_per_kg_toman);
+  setInp('drw-plate-cost', r.plate_2_5_unit_cost_toman);
+  setInp('drw-press-cost', r.press_run_cost_per_5000_toman);
+  setInp('drw-profit-pct', r.profit_margin_percentage);
+}
+
+window.saveRates = function() {
+  const getVal = (id, def) => {
+    const el = document.getElementById(id);
+    return el && el.value ? Number(p2e(el.value)) : def;
+  };
+  const r = window.LemonPack.rates;
+  r.paper_price_per_kg_toman = getVal('set-paper-price', DEFAULT_RATES.paper_price_per_kg_toman);
+  r.plate_2_5_unit_cost_toman = getVal('set-plate-cost', DEFAULT_RATES.plate_2_5_unit_cost_toman);
+  r.press_run_cost_per_5000_toman = getVal('set-press-cost', DEFAULT_RATES.press_run_cost_per_5000_toman);
+  r.lamination_rate_per_cm2_toman = getVal('set-lam-rate', DEFAULT_RATES.lamination_rate_per_cm2_toman);
+  r.letterpress_base_run_cost_toman = getVal('set-letterpress-cost', DEFAULT_RATES.letterpress_base_run_cost_toman);
+  r.laser_die_fabrication_default_cost_toman = getVal('set-die-cost', DEFAULT_RATES.laser_die_fabrication_default_cost_toman);
+  r.gluing_cost_per_box_toman = getVal('set-gluing-box', DEFAULT_RATES.gluing_cost_per_box_toman);
+  r.profit_margin_percentage = getVal('set-profit-pct', DEFAULT_RATES.profit_margin_percentage);
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(r));
+  calculateAll();
+};
+
+window.resetDefaultRates = function() {
+  window.LemonPack.rates = { ...DEFAULT_RATES };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_RATES));
+  syncRatesToInputs();
+  calculateAll();
+  toast('نرخ‌های روز بازار به پیش‌فرض بازنشانی شدند ✓');
+};
+
+/* Drawer Controller */
+window.openRatesDrawer = function() {
+  syncRatesToInputs();
+  document.getElementById('rates-overlay').classList.add('show');
+  document.getElementById('rates-drawer').classList.add('show');
+};
+
+window.closeRatesDrawer = function() {
+  document.getElementById('rates-overlay').classList.remove('show');
+  document.getElementById('rates-drawer').classList.remove('show');
+};
+
+window.syncRateFromDrawer = function(field, val) {
+  const num = Number(p2e(val));
+  if (field === 'paper-price') document.getElementById('set-paper-price').value = num;
+  if (field === 'plate-cost') document.getElementById('set-plate-cost').value = num;
+  if (field === 'press-cost') document.getElementById('set-press-cost').value = num;
+  if (field === 'profit-pct') document.getElementById('set-profit-pct').value = num;
+  saveRates();
+};
+
+/* ------------------------------------------------------------
+   UI Controls & Chip Selectors
+   ------------------------------------------------------------ */
+function setupChips() {
+  // CAD Models
+  document.querySelectorAll('#cad-models .chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#cad-models .chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      window.LemonPack.cad.model = chip.dataset.model;
+      autoComputeFlatDimensions();
+      calculateAll();
+    });
+  });
+
+  // Substrates
+  document.querySelectorAll('#mat-substrates .chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#mat-substrates .chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      window.LemonPack.materials.substrate = chip.dataset.sub;
+      calculateAll();
+    });
+  });
+
+  // GSM
+  document.querySelectorAll('#mat-gsm .chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#mat-gsm .chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      window.LemonPack.materials.gsm = Number(chip.dataset.gsm);
+      calculateAll();
+    });
+  });
+
+  // Lamination
+  document.querySelectorAll('#mat-lamination .chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#mat-lamination .chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      window.LemonPack.materials.lamination = chip.dataset.lam;
+      calculateAll();
+    });
+  });
+
+  // UV
+  document.querySelectorAll('#mat-uv .chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#mat-uv .chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      window.LemonPack.materials.uv = chip.dataset.uv;
+      calculateAll();
+    });
+  });
+
+  // Gluing
+  document.querySelectorAll('#mat-gluing .chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#mat-gluing .chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      window.LemonPack.materials.gluing = chip.dataset.gluing;
+      calculateAll();
+    });
+  });
+
+  // Color count
+  document.querySelectorAll('#mat-colors .chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#mat-colors .chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      window.LemonPack.materials.colors = Number(chip.dataset.colors);
+      calculateAll();
+    });
+  });
+
+  // Sheet sizes in Nesting tab
+  document.querySelectorAll('#nest-sheet-sizes .chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#nest-sheet-sizes .chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      window.LemonPack.nesting.sheetMode = chip.dataset.sheet;
+      optimizeSheetNesting();
+      renderNestingCanvas();
+      calculateAll();
+    });
+  });
+}
+
+window.onCadChange = function() {
+  const cad = window.LemonPack.cad;
+  cad.length = Number(document.getElementById('inp-length').value) || 120;
+  cad.width = Number(document.getElementById('inp-width').value) || 80;
+  cad.height = Number(document.getElementById('inp-height').value) || 150;
+  cad.orderQty = Number(document.getElementById('inp-order-qty').value) || 1000;
+  cad.isDieInArchive = document.getElementById('chk-archive-die').checked;
+
+  document.getElementById('dims-preview').textContent = 
+    `طول: ${e2p(cad.length)} × عرض: ${e2p(cad.width)} × ارتفاع: ${e2p(cad.height)}`;
+
+  // Update flat dims if user hasn't explicitly customized
+  autoComputeFlatDimensions();
+  optimizeSheetNesting();
+  calculateAll();
+};
+
+function autoComputeFlatDimensions() {
+  const cad = window.LemonPack.cad;
+  // Standard tuck-end flat projection rule
+  cad.flatL = (2 * cad.length) + (2 * cad.width) + 15; // with glue flap
+  cad.flatW = cad.height + (2 * cad.width) + 10; // with top/bottom tuck flaps
+  document.getElementById('inp-flat-l').value = Math.round(cad.flatL);
+  document.getElementById('inp-flat-w').value = Math.round(cad.flatW);
+}
+
+/* ------------------------------------------------------------
+   2D Sheet Nesting Optimization & Canvas Visualizer
+   ------------------------------------------------------------ */
+function optimizeSheetNesting() {
+  const cad = window.LemonPack.cad;
+  const flatLcm = (cad.flatL + MACHINE_CONSTRAINTS.interGutterMm) / 10;
+  const flatWcm = (cad.flatW + MACHINE_CONSTRAINTS.interGutterMm) / 10;
+  const gripper = MACHINE_CONSTRAINTS.gripperMarginCm;
+  const safety = (MACHINE_CONSTRAINTS.safetyMarginMm * 2) / 10;
+
+  let bestSheet = STANDARD_SHEETS[0];
+  let bestUps = 0;
+  let bestWaste = 100;
+  let bestOrientation = 'A';
+
+  const sheetsToTest = window.LemonPack.nesting.sheetMode === 'auto' 
+    ? STANDARD_SHEETS 
+    : [
+        {
+          length: Number(window.LemonPack.nesting.sheetMode.split('x')[0]),
+          width: Number(window.LemonPack.nesting.sheetMode.split('x')[1])
+        }
+      ];
+
+  sheetsToTest.forEach(s => {
+    const usableL = s.length - gripper - safety;
+    const usableW = s.width - safety;
+
+    // Orientation A
+    const upsA = Math.floor(usableL / flatLcm) * Math.floor(usableW / flatWcm);
+    // Orientation B (rotated 90deg)
+    const upsB = Math.floor(usableL / flatWcm) * Math.floor(usableW / flatLcm);
+
+    const maxUps = Math.max(upsA, upsB);
+    const orientation = upsA >= upsB ? 'A' : 'B';
+
+    if (maxUps > 0) {
+      const pieceArea = (cad.flatL * cad.flatW) / 100;
+      const sheetArea = s.length * s.width;
+      const waste = Math.max(0, 100 - (((maxUps * pieceArea) / sheetArea) * 100));
+
+      if (maxUps > bestUps || (maxUps === bestUps && waste < bestWaste)) {
+        bestUps = maxUps;
+        bestWaste = waste;
+        bestSheet = s;
+        bestOrientation = orientation;
+      }
+    }
+  });
+
+  const nest = window.LemonPack.nesting;
+  nest.sheetL = bestSheet.length;
+  nest.sheetW = bestSheet.width;
+  nest.ups = Math.max(1, bestUps || 1);
+  nest.wastePercentage = bestWaste.toFixed(1);
+  nest.orientation = bestOrientation;
+
+  // Press validation
+  if (nest.sheetL <= 50 && nest.sheetW <= 35) {
+    nest.pressClass = 'دستگاه ۱.۵ ورقی';
+  } else if (nest.sheetL <= 72 && nest.sheetW <= 52) {
+    nest.pressClass = 'دستگاه ۲.۵ ورقی';
+  } else {
+    nest.pressClass = 'دستگاه ۴.۵ ورقی';
+  }
+
+  // Update HUD
+  document.getElementById('hud-ups').textContent = `${e2p(nest.ups)} کار`;
+  document.getElementById('hud-sheet').textContent = `${e2p(nest.sheetL)} × ${e2p(nest.sheetW)}`;
+  document.getElementById('hud-press').textContent = nest.pressClass;
+  document.getElementById('hud-waste').textContent = `${e2p(nest.wastePercentage)}٪`;
+}
+
+function renderNestingCanvas() {
+  const canvas = document.getElementById('nesting-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const nest = window.LemonPack.nesting;
+  const cad = window.LemonPack.cad;
+
+  // Scale sheet into canvas with padding
+  const padding = 30;
+  const availW = w - (padding * 2);
+  const availH = h - (padding * 2);
+  const scale = Math.min(availW / nest.sheetL, availH / nest.sheetW);
+
+  const drawSheetW = nest.sheetL * scale;
+  const drawSheetH = nest.sheetW * scale;
+  const startX = (w - drawSheetW) / 2;
+  const startY = (h - drawSheetH) / 2;
+
+  // 1. Draw Main Sheet Outline
+  ctx.fillStyle = '#FAF8F5';
+  ctx.fillRect(startX, startY, drawSheetW, drawSheetH);
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(startX, startY, drawSheetW, drawSheetH);
+
+  // 2. Draw Gripper Margin (1.5 cm strip on right side for RTL)
+  const gripperDraw = MACHINE_CONSTRAINTS.gripperMarginCm * scale;
+  ctx.fillStyle = 'rgba(239, 68, 68, 0.18)';
+  ctx.fillRect(startX + drawSheetW - gripperDraw, startY, gripperDraw, drawSheetH);
+  ctx.strokeStyle = '#DC2626';
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(startX + drawSheetW - gripperDraw, startY);
+  ctx.lineTo(startX + drawSheetW - gripperDraw, startY + drawSheetH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Gripper Label
+  ctx.fillStyle = '#DC2626';
+  ctx.font = 'bold 9px Vazirmatn, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('لب‌پنجه', startX + drawSheetW - (gripperDraw / 2), startY + (drawSheetH / 2));
+
+  // 3. Draw Die-Cut Ups
+  const flatLcm = (cad.flatL + MACHINE_CONSTRAINTS.interGutterMm) / 10;
+  const flatWcm = (cad.flatW + MACHINE_CONSTRAINTS.interGutterMm) / 10;
+  const pieceW = (nest.orientation === 'A' ? flatLcm : flatWcm) * scale;
+  const pieceH = (nest.orientation === 'A' ? flatWcm : flatLcm) * scale;
+
+  const cols = Math.floor((nest.sheetL - MACHINE_CONSTRAINTS.gripperMarginCm) / (nest.orientation === 'A' ? flatLcm : flatWcm));
+  const rows = Math.floor(nest.sheetW / (nest.orientation === 'A' ? flatWcm : flatLcm));
+
+  let boxIndex = 1;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const bx = startX + 10 + (c * pieceW);
+      const by = startY + 10 + (r * pieceH);
+
+      // Red Cut Line
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.08)';
+      ctx.fillRect(bx, by, pieceW - 4, pieceH - 4);
+      ctx.strokeStyle = '#DC2626';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(bx, by, pieceW - 4, pieceH - 4);
+
+      // Blue Crease Line (mock fold line inside flat box)
+      ctx.strokeStyle = '#2563EB';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(bx, by + ((pieceH - 4) * 0.3));
+      ctx.lineTo(bx + pieceW - 4, by + ((pieceH - 4) * 0.3));
+      ctx.moveTo(bx, by + ((pieceH - 4) * 0.7));
+      ctx.lineTo(bx + pieceW - 4, by + ((pieceH - 4) * 0.7));
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Ups Number Badge
+      ctx.fillStyle = '#1E293B';
+      ctx.font = 'bold 10px Vazirmatn, sans-serif';
+      ctx.fillText(e2p(boxIndex++), bx + ((pieceW - 4) / 2), by + ((pieceH - 4) / 2) + 3);
+    }
+  }
+
+  // Dimensions label
+  ctx.fillStyle = '#64748B';
+  ctx.font = '10px Vazirmatn, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`ابعاد شیت: ${e2p(nest.sheetL)} × ${e2p(nest.sheetW)} cm`, w / 2, h - 10);
+}
+
+/* ------------------------------------------------------------
+   Mathematical Cost Engine (Iranian Print-House Production Rules)
+   ------------------------------------------------------------ */
+function calculateAll() {
+  const cad = window.LemonPack.cad;
+  const mat = window.LemonPack.materials;
+  const nest = window.LemonPack.nesting;
+  const rates = window.LemonPack.rates;
+
+  // Step 1: Sheet Weight (kg)
+  const weightPerSheetKg = (nest.sheetL * nest.sheetW * mat.gsm) / 10000000;
+
+  // Step 2: Procured Sheets (Band Rule: Ceil to 100)
+  const rawSheetsNeeded = Math.ceil(cad.orderQty / Math.max(1, nest.ups));
+  const procuredSheets = Math.ceil(rawSheetsNeeded / 100) * 100;
+  const bandsCount = Math.round(procuredSheets / 100);
+
+  // Step 3: Paper Cost
+  const costPaper = Math.round(procuredSheets * weightPerSheetKg * rates.paper_price_per_kg_toman);
+
+  // Step 4: Plates Cost
+  const plateCount = mat.colors;
+  const costPlates = plateCount * rates.plate_2_5_unit_cost_toman;
+
+  // Step 5: Press Run Cost (Impression Limit 5,000)
+  const runsCount = Math.max(1, Math.ceil(procuredSheets / rates.press_run_base_impression_limit));
+  const costPrinting = runsCount * rates.press_run_cost_per_5000_toman;
+
+  // Step 6: Lamination Cost
+  const costLamination = mat.lamination !== 'none'
+    ? Math.round(nest.sheetL * nest.sheetW * rates.lamination_rate_per_cm2_toman * procuredSheets)
+    : 0;
+
+  // Step 7: Letterpress & Die
+  const costDie = cad.isDieInArchive ? 0 : rates.laser_die_fabrication_default_cost_toman;
+  const costDieCutting = costDie + rates.letterpress_base_run_cost_toman;
+
+  // Step 8: Finishing, Gluing, UV, Consumables & Logistics
+  const costGluing = mat.gluing !== 'none' ? cad.orderQty * rates.gluing_cost_per_box_toman : 0;
+  const costUV = mat.uv !== 'none' ? rates.spot_uv_base_run_cost_toman : 0;
+  const costFinishing = Math.round(costGluing + costUV + rates.consumables_glue_toman + rates.transport_and_logistics_fixed_toman);
+
+  // Step 9: COGS Aggregation
+  const totalCogs = costPaper + costPlates + costPrinting + costLamination + costDieCutting + costFinishing;
+
+  // Step 10: Commercial Invoice with Margin
+  const marginMultiplier = 1 + (rates.profit_margin_percentage / 100);
+  const grandTotal = Math.round(totalCogs * marginMultiplier);
+  const unitPrice = Math.round(grandTotal / cad.orderQty);
+
+  // Update Diagnostic COGS Table
+  const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  setTxt('cogs-paper-sub', `${fmtNum(procuredSheets)} برگ (${fmtNum(bandsCount)} بند) • ${fmtNum((procuredSheets * weightPerSheetKg), 1)} کیلوگرم`);
+  setTxt('cogs-paper-val', fmtNum(costPaper));
+  setTxt('cogs-plates-sub', `${fmtNum(plateCount)} زینک ۲.۵ ورقی`);
+  setTxt('cogs-plates-val', fmtNum(costPlates));
+  setTxt('cogs-press-sub', `${fmtNum(runsCount)} دور (${fmtNum(procuredSheets)} شیت)`);
+  setTxt('cogs-press-val', fmtNum(costPrinting));
+  setTxt('cogs-lam-sub', mat.lamination !== 'none' ? `${fmtNum(nest.sheetL)}×${fmtNum(nest.sheetW)} cm • ${fmtNum(procuredSheets)} برگ` : 'بدون سلفون');
+  setTxt('cogs-lam-val', fmtNum(costLamination));
+  setTxt('cogs-die-sub', cad.isDieInArchive ? 'قالب در آرشیو + اجرت تیغ‌زنی' : 'قالب جدید لیزری + اجرت تیغ');
+  setTxt('cogs-die-val', fmtNum(costDieCutting));
+  setTxt('cogs-finish-sub', `${fmtNum(cad.orderQty)} جعبه + چسب، لجستیک و یووی`);
+  setTxt('cogs-finish-val', fmtNum(costFinishing));
+  setTxt('cogs-total-val', `${fmtNum(totalCogs)} تومان`);
+
+  // Update Official Invoice Card
+  setTxt('inv-model-text', getModelName(cad.model));
+  setTxt('inv-dims-text', `${e2p(cad.length)}×${e2p(cad.width)}×${e2p(cad.height)} mm`);
+  setTxt('inv-paper-text', `${mat.substrate === 'inderboard' ? 'ایندربرد' : 'گلاسه'} ${e2p(mat.gsm)} گرم`);
+  setTxt('inv-qty-text', `${fmtNum(cad.orderQty)} عدد`);
+  setTxt('inv-unit-price', `${fmtNum(unitPrice)} تومان`);
+  setTxt('inv-grand-total', `${fmtNum(grandTotal)} تومان`);
+
+  // Populate Tiered Quantities Table
+  populateTieredTable(unitPrice, grandTotal);
+}
+
+function getModelName(model) {
+  const map = {
+    tuck_end: 'جعبه دارویی',
+    mailer_0427: 'کیبوردی / پستی 0427',
+    lock_bottom: 'ته قفلی',
+    rigid_box: 'هاردباکس',
+    shopping_bag: 'ساک دستی'
+  };
+  return map[model] || model;
+}
+
+function populateTieredTable(currentUnit, currentTotal) {
+  const tbody = document.getElementById('tiered-tbody');
+  if (!tbody) return;
+  const tiers = [500, 1000, 2500, 5000, 10000];
+  const cad = window.LemonPack.cad;
+  const rates = window.LemonPack.rates;
+  const nest = window.LemonPack.nesting;
+  const mat = window.LemonPack.materials;
+
+  const weightPerSheet = (nest.sheetL * nest.sheetW * mat.gsm) / 10000000;
+  const fixedCost = (mat.colors * rates.plate_2_5_unit_cost_toman) +
+    (cad.isDieInArchive ? 0 : rates.laser_die_fabrication_default_cost_toman) +
+    rates.letterpress_base_run_cost_toman +
+    rates.transport_and_logistics_fixed_toman;
+
+  let html = '';
+  tiers.forEach(qty => {
+    const rawSheets = Math.ceil(qty / Math.max(1, nest.ups));
+    const procured = Math.ceil(rawSheets / 100) * 100;
+    const runs = Math.max(1, Math.ceil(procured / 5000));
+
+    const paperCost = procured * weightPerSheet * rates.paper_price_per_kg_toman;
+    const printCost = runs * rates.press_run_cost_per_5000_toman;
+    const lamCost = mat.lamination !== 'none' ? nest.sheetL * nest.sheetW * rates.lamination_rate_per_cm2_toman * procured : 0;
+    const gluingCost = qty * rates.gluing_cost_per_box_toman;
+
+    const tierCogs = fixedCost + paperCost + printCost + lamCost + gluingCost;
+    const tierTotal = Math.round(tierCogs * (1 + (rates.profit_margin_percentage / 100)));
+    const tierUnit = Math.round(tierTotal / qty);
+
+    const isCurrent = qty === cad.orderQty;
+    html += `
+      <tr style="${isCurrent ? 'background:rgba(245,158,11,0.12); font-weight:800;' : ''}">
+        <td class="tabular-nums">${fmtNum(qty)} عدد</td>
+        <td class="tabular-nums" style="color:var(--brand-primary);">${fmtNum(tierUnit)} ت</td>
+        <td class="tabular-nums">${fmtNum(tierTotal)} ت</td>
+      </tr>
+    `;
+  });
+  tbody.innerHTML = html;
+}
+
+/* ------------------------------------------------------------
+   Invoice Export & Sharing Actions
+   ------------------------------------------------------------ */
+window.exportInvoicePdf = async function() {
+  const el = document.getElementById('printable-invoice');
+  toast('در حال ساخت سند PDF...');
+  try {
+    const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#FAF8F5' });
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const pdf = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const imgW = 190;
+    const imgH = (canvas.height * imgW) / canvas.width;
+    pdf.addImage(imgData, 'JPEG', 10, 10, imgW, imgH);
+    pdf.save(`LemonPack_Invoice_${Date.now()}.pdf`);
+    toast('فاکتور با موفقیت ذخیره شد ✓');
+  } catch(e) {
+    console.error(e);
+    toast('خطا در صدور PDF');
+  }
+};
+
+window.shareInvoice = function() {
+  const cad = window.LemonPack.cad;
+  const unit = document.getElementById('inv-unit-price').innerText;
+  const total = document.getElementById('inv-grand-total').innerText;
+  const text = `استودیو بسته‌بندی لمون‌پک 📦\nمدل: ${getModelName(cad.model)}\nتیراژ: ${fmtNum(cad.orderQty)} عدد\nقیمت واحد: ${unit}\nمبلغ کل: ${total}`;
+  if (navigator.share) {
+    navigator.share({ title: 'پیش‌فاکتور لمون پک', text }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(text).then(() => toast('متن پیش‌فاکتور کپی شد ✓'));
+  }
+};
+
+/* ------------------------------------------------------------
+   Theme Switcher
+   ------------------------------------------------------------ */
+window.toggleTheme = function() {
+  const isDark = document.body.dataset.theme === 'dark';
+  document.body.dataset.theme = isDark ? 'light' : 'dark';
+  document.getElementById('theme-icon').className = isDark ? 'ph ph-moon' : 'ph ph-sun';
+  renderNestingCanvas();
+};
+
+/* ------------------------------------------------------------
+   PWA Installation & Auto-Update Engine
+   ------------------------------------------------------------ */
+let deferredInstallPrompt = null;
+let waitingServiceWorker = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const installBtn = document.getElementById('btn-install');
+  if (installBtn) installBtn.style.display = 'inline-flex';
+  const pwaBar = document.getElementById('pwa-bar');
+  if (pwaBar) pwaBar.classList.add('show');
+});
+
+window.triggerInstall = function() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then(() => {
+      deferredInstallPrompt = null;
+      dismissInstallBanner();
+    });
+  } else {
+    toast('از منوی مرورگر Add to Home Screen را انتخاب کنید.');
+  }
+};
+
+window.dismissInstallBanner = function() {
+  const pwaBar = document.getElementById('pwa-bar');
+  if (pwaBar) pwaBar.classList.remove('show');
+};
+
+function showUpdateBanner() {
+  const b = document.getElementById('update-banner');
+  if (b) b.classList.add('show');
+}
+
+window.applyAppUpdate = async function() {
+  toast('در حال بروزرسانی کش...');
+  try {
+    if (waitingServiceWorker) {
+      waitingServiceWorker.postMessage({ action: 'skipWaiting' });
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  } catch(e) {}
+  setTimeout(() => window.location.reload(true), 400);
+};
+
+async function checkVersionManifest() {
+  try {
+    const res = await fetch('./version.json?_=' + Date.now(), { cache: 'no-store' });
+    if (res.ok) {
+      const info = await res.json();
+      if (info && info.version) {
+        document.getElementById('app-ver-display').textContent = `${info.version} (Build ${info.build || 1})`;
+      }
+    }
+  } catch(e) {}
+}
+
+window.forceCheckAppUpdate = async function() {
+  toast('بررسی نسخه جدید...');
+  await checkVersionManifest();
+  if ('serviceWorker' in navigator) {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (reg) await reg.update();
+  }
+  toast('آخرین نسخه لمون‌پک فعال است ✓');
+};
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'APP_UPDATE_AVAILABLE') {
+      showUpdateBanner();
+    }
+  });
+
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((reg) => {
+    if (reg.waiting) {
+      waitingServiceWorker = reg.waiting;
+      showUpdateBanner();
+    }
+
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      if (newWorker) {
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            waitingServiceWorker = newWorker;
+            showUpdateBanner();
+          }
+        });
+      }
+    });
+
+    setInterval(() => {
+      reg.update().catch(() => {});
+      checkVersionManifest();
+    }, 30000);
+  });
+
+  let isRefreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!isRefreshing) {
+      isRefreshing = true;
+      window.location.reload();
+    }
+  });
+}
+
+/* ------------------------------------------------------------
+   INITIALIZATION
+   ------------------------------------------------------------ */
+document.addEventListener('DOMContentLoaded', () => {
+  setupChips();
+  loadSavedRates();
+  optimizeSheetNesting();
+  calculateAll();
+  checkVersionManifest();
+
+  // Set date
+  try {
+    document.getElementById('inv-date').textContent = new Date().toLocaleDateString('fa-IR');
+  } catch(e) {}
+
+  // Routing init
+  const initialTab = location.hash.replace('#', '') || 'cad';
+  go(initialTab, false);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+{
+  "id": "lemonpack-packaging-engine",
+  "name": "استودیو محاسبات لمون پک — LemonPack Pro",
+  "short_name": "لمون‌پک",
+  "description": "سامانه مهندسی و محاسبات صنعتی جعبه‌سازی، شیت‌بندی ۲بعدی و صدور پیش‌فاکتور چاپخانه",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "dir": "rtl",
+  "lang": "fa-IR",
+  "background_color": "#FAF8F5",
+  "theme_color": "#F59E0B",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

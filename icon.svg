@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FAF8F5"/>
+      <stop offset="100%" stop-color="#F3EFEA"/>
+    </linearGradient>
+    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FBBF24"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <linearGradient id="darkAmberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#B45309"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#F59E0B" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Base Rounded Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  <rect x="12" y="12" width="488" height="488" rx="100" fill="none" stroke="#E2D9CC" stroke-width="3"/>
+
+  <!-- Packaging Die-Cut Box Graphic -->
+  <g transform="translate(256, 250)" filter="url(#shadow)">
+    <!-- Top Face (Flap) -->
+    <path d="M 0 -130 L 130 -55 L 0 20 L -130 -55 Z" fill="url(#amberGrad)" stroke="#1E293B" stroke-width="4" stroke-linejoin="round"/>
+    
+    <!-- Left Face -->
+    <path d="M -130 -55 L 0 20 L 0 160 L -130 85 Z" fill="#D97706" stroke="#1E293B" stroke-width="4" stroke-linejoin="round"/>
+    
+    <!-- Right Face -->
+    <path d="M 0 20 L 130 -55 L 130 85 L 0 160 Z" fill="url(#darkAmberGrad)" stroke="#1E293B" stroke-width="4" stroke-linejoin="round"/>
+    
+    <!-- CAD Cut & Crease Overlay lines -->
+    <!-- Red Cut Line Flap Accent -->
+    <path d="M -65 -92.5 L 0 -55 L 65 -92.5" fill="none" stroke="#DC2626" stroke-width="5" stroke-linecap="round"/>
+    <!-- Blue Crease Lines -->
+    <path d="M 0 -130 L 0 20" fill="none" stroke="#2563EB" stroke-width="4" stroke-dasharray="8 6"/>
+    <path d="M -130 -55 L 0 20 L 130 -55" fill="none" stroke="#2563EB" stroke-width="4" stroke-dasharray="8 6"/>
+  </g>
+
+  <!-- Precision Measurement Marks -->
+  <circle cx="106" cy="106" r="6" fill="#F59E0B"/>
+  <circle cx="406" cy="106" r="6" fill="#F59E0B"/>
+  <circle cx="106" cy="406" r="6" fill="#F59E0B"/>
+  <circle cx="406" cy="406" r="6" fill="#F59E0B"/>
+
+  <!-- CAD Crosshairs -->
+  <path d="M 96 106 L 116 106 M 106 96 L 106 116" stroke="#94A3B8" stroke-width="2.5"/>
+  <path d="M 396 106 L 416 106 M 406 96 L 406 116" stroke="#94A3B8" stroke-width="2.5"/>
+  <path d="M 96 406 L 116 406 M 106 396 L 106 416" stroke="#94A3B8" stroke-width="2.5"/>
+  <path d="M 396 406 L 416 406 M 406 396 L 406 416" stroke="#94A3B8" stroke-width="2.5"/>
+</svg>
