@@ -693,9 +693,15 @@ window.go = function(tabId) {
         window.ParametricDieEngine.params.height = cad.height || 150;
         window.ParametricDieEngine.params.glueFlap = cad.glueFlap || 15;
         window.ParametricDieEngine.params.topTuck = cad.tuckFlap || 25;
-        window.ParametricDieEngine.synthesizeModelFromParams();
+        if (typeof window.ParametricDieEngine.synthesizeModelFromParams === 'function') {
+          window.ParametricDieEngine.synthesizeModelFromParams();
+        } else if (typeof window.ParametricDieEngine.synthesizeModel === 'function') {
+          window.ParametricDieEngine.synthesizeModel();
+        }
       }
-      window.ParametricDieEngine.render();
+      if (typeof window.ParametricDieEngine.render === 'function') {
+        window.ParametricDieEngine.render();
+      }
     } else if (window.DieCutImporter) {
       window.DieCutImporter.renderPreviewCanvas();
     }

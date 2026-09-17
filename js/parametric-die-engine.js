@@ -179,12 +179,13 @@ window.ParametricDieEngine = {
   },
 
   /* ============================================================
-     2. AUTOMATIC TOPOLOGY DETECTOR FROM SVG (Auto-Calibration)
+     2. SVG UPLOAD, FULL PARSER & CAD ANALYSIS
      ============================================================ */
   handleFileSelect(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
     this.processFile(file);
+    event.target.value = '';
   },
 
   handleDrop(event) {
@@ -203,6 +204,114 @@ window.ParametricDieEngine = {
     reader.readAsText(file);
   },
 
+  normalizeColor(colorStr) {
+    if (!colorStr) return null;
+    let s = colorStr.trim().toLowerCase();
+    if (s === 'none' || s === 'transparent') return 'none';
+    const named = {
+      yellow: '#ffff00', gold: '#ffd700', red: '#dc2626', crimson: '#dc143c',
+      blue: '#2563eb', navy: '#000080', green: '#059669', lime: '#00ff00',
+      magenta: '#ff00ff', cyan: '#00ffff', black: '#000000', gray: '#6b7280',
+      grey: '#6b7280', orange: '#ea580c'
+    };
+    if (named[s]) return named[s];
+    if (s.startsWith('rgb')) {
+      const nums = s.replace(/[^\d,]/g, '').split(',').map(Number);
+      if (nums.length >= 3) {
+        return '#' + nums.slice(0, 3).map(x => Math.max(0, Math.min(255, x)).toString(16).padStart(2, '0')).join('');
+      }
+    }
+    if (s.startsWith('#') && s.length === 4) {
+      return '#' + s[1] + s[1] + s[2] + s[2] + s[3] + s[3];
+    }
+    return s;
+  },
+
+  extractCssRules(doc) {
+    const cssMap = {};
+    const styles = doc.querySelectorAll('style');
+    styles.forEach(st => {
+      const cssText = st.textContent || '';
+      const regex = /\.([a-zA-Z0-9_-]+)\s*\{([^}]+)\}/g;
+      let match;
+      while ((match = regex.exec(cssText)) !== null) {
+        const className = match[1];
+        const decls = match[2];
+        cssMap[className] = cssMap[className] || {};
+        const propRegex = /([a-zA-Z-]+)\s*:\s*([^;]+)/g;
+        let propMatch;
+        while ((propMatch = propRegex.exec(decls)) !== null) {
+          const propName = propMatch[1].trim().toLowerCase();
+          const propVal = propMatch[2].trim();
+          cssMap[className][propName] = propVal;
+        }
+      }
+    });
+    return cssMap;
+  },
+
+  resolveStroke(el, cssMap) {
+    if (el.style && el.style.stroke) {
+      const norm = this.normalizeColor(el.style.stroke);
+      if (norm && norm !== 'none') return norm;
+    }
+    const attrStroke = el.getAttribute('stroke');
+    if (attrStroke) {
+      const norm = this.normalizeColor(attrStroke);
+      if (norm && norm !== 'none') return norm;
+    }
+    const classAttr = el.getAttribute('class');
+    if (classAttr) {
+      for (const cls of classAttr.split(/\s+/)) {
+        if (cssMap[cls] && cssMap[cls]['stroke']) {
+          const norm = this.normalizeColor(cssMap[cls]['stroke']);
+          if (norm && norm !== 'none') return norm;
+        }
+      }
+    }
+    let p = el.parentElement;
+    while (p && p.tagName.toLowerCase() !== 'svg') {
+      if (p.style && p.style.stroke) {
+        const norm = this.normalizeColor(p.style.stroke);
+        if (norm && norm !== 'none') return norm;
+      }
+      const ps = p.getAttribute('stroke');
+      if (ps) {
+        const norm = this.normalizeColor(ps);
+        if (norm && norm !== 'none') return norm;
+      }
+      p = p.parentElement;
+    }
+    return '#dc2626';
+  },
+
+  resolveDash(el, cssMap) {
+    if (el.style && el.style.strokeDasharray) return el.style.strokeDasharray;
+    if (el.getAttribute('stroke-dasharray')) return el.getAttribute('stroke-dasharray');
+    const classAttr = el.getAttribute('class');
+    if (classAttr) {
+      for (const cls of classAttr.split(/\s+/)) {
+        if (cssMap[cls] && cssMap[cls]['stroke-dasharray']) {
+          return cssMap[cls]['stroke-dasharray'];
+        }
+      }
+    }
+    return '';
+  },
+
+  classifyType(stroke, dash, name) {
+    const s = (stroke || '').toLowerCase();
+    const isDash = !!dash && dash !== 'none' && dash !== '0';
+    if (s.includes('yellow') || s.includes('ffff00') || s.includes('ffd700')) return 'guide';
+    if (isDash || s.includes('blue') || s.includes('cyan') || s.includes('2563eb') || s.includes('0000ff') || (name && (name.includes('crease') || name.includes('fold') || name.includes('ta')))) {
+      return 'crease';
+    }
+    if (s.includes('green') || s.includes('059669') || s.includes('10b981') || (name && (name.includes('glue') || name.includes('chasb')))) {
+      return 'glue';
+    }
+    return 'cut';
+  },
+
   parseSvgString(svgText) {
     if (!svgText || !svgText.includes('<svg')) return;
     this.rawSvgString = svgText;
@@ -213,119 +322,242 @@ window.ParametricDieEngine = {
     const svgEl = doc.querySelector('svg');
     if (!svgEl) return;
 
+    const cssMap = this.extractCssRules(doc);
+
+    // Determine scale to millimeters
+    let scaleToMm = 1.0;
+    const widthAttr = svgEl.getAttribute('width') || '';
+    const heightAttr = svgEl.getAttribute('height') || '';
+    const viewBoxAttr = svgEl.getAttribute('viewBox') || '';
+
+    let vbW = 0, vbH = 0;
+    if (viewBoxAttr) {
+      const vbParts = viewBoxAttr.trim().split(/[\s,]+/).map(Number);
+      if (vbParts.length === 4) {
+        vbW = vbParts[2];
+        vbH = vbParts[3];
+      }
+    }
+
+    const parseUnit = (str) => {
+      if (!str) return null;
+      const num = parseFloat(str);
+      if (isNaN(num)) return null;
+      if (str.endsWith('mm')) return num;
+      if (str.endsWith('cm')) return num * 10;
+      if (str.endsWith('in')) return num * 25.4;
+      if (str.endsWith('pt')) return num * (25.4 / 72);
+      if (str.endsWith('px')) return num * (25.4 / 96);
+      return num;
+    };
+
+    const physicalW = parseUnit(widthAttr);
+    if (physicalW && vbW > 0) {
+      scaleToMm = physicalW / vbW;
+    } else if (widthAttr.endsWith('pt') || (!physicalW && vbW > 1200)) {
+      scaleToMm = 25.4 / 72;
+    }
+
+    // Extract all vector paths & geometry
+    const elements = doc.querySelectorAll('path, line, rect, polyline, polygon, circle, ellipse');
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    const elements = doc.querySelectorAll('path, line, rect, polyline, polygon');
-    const detectedSegs = [];
-    let segId = 1;
+    const rawPaths = [];
+    let pIdx = 1;
 
     elements.forEach(el => {
       const tag = el.tagName.toLowerCase();
-      const stroke = (el.getAttribute('stroke') || el.style.stroke || '#DC2626').toLowerCase();
-      const dash = el.getAttribute('stroke-dasharray') || el.style.strokeDasharray || '';
-      const isCrease = !!dash || stroke.includes('blue') || stroke.includes('cyan') || stroke.includes('2563eb') || stroke.includes('0000ff');
+      let d = '';
 
-      if (tag === 'line') {
+      if (tag === 'path') {
+        d = el.getAttribute('d') || '';
+      } else if (tag === 'line') {
         const x1 = parseFloat(el.getAttribute('x1') || 0);
         const y1 = parseFloat(el.getAttribute('y1') || 0);
         const x2 = parseFloat(el.getAttribute('x2') || 0);
         const y2 = parseFloat(el.getAttribute('y2') || 0);
-        minX = Math.min(minX, x1, x2); maxX = Math.max(maxX, x1, x2);
-        minY = Math.min(minY, y1, y2); maxY = Math.max(maxY, y1, y2);
-        detectedSegs.push({
-          id: `seg_${segId++}`,
-          type: isCrease ? 'crease' : 'cut',
-          x1, y1, x2, y2,
-          lengthMm: Number(Math.hypot(x2 - x1, y2 - y1).toFixed(1)),
-          isHoriz: Math.abs(y2 - y1) < 1.5,
-          isVert: Math.abs(x2 - x1) < 1.5
-        });
-      } else if (tag === 'path') {
-        const d = el.getAttribute('d') || '';
-        const subCommands = d.match(/[MLHV][^MLHV]*/gi) || [];
-        let cx = 0, cy = 0;
-        subCommands.forEach(cmd => {
-          const type = cmd[0].toUpperCase();
-          const nums = (cmd.match(/-?[\d.]+(?:e-?\d+)?/gi) || []).map(Number);
-          if (type === 'M' && nums.length >= 2) {
-            cx = nums[0]; cy = nums[1];
-          } else if (type === 'L' && nums.length >= 2) {
-            const nx = nums[0], ny = nums[1];
-            minX = Math.min(minX, cx, nx); maxX = Math.max(maxX, cx, nx);
-            minY = Math.min(minY, cy, ny); maxY = Math.max(maxY, cy, ny);
-            detectedSegs.push({
-              id: `seg_${segId++}`,
-              type: isCrease ? 'crease' : 'cut',
-              x1: cx, y1: cy, x2: nx, y2: ny,
-              lengthMm: Number(Math.hypot(nx - cx, ny - cy).toFixed(1)),
-              isHoriz: Math.abs(ny - cy) < 1.5,
-              isVert: Math.abs(nx - cx) < 1.5
-            });
-            cx = nx; cy = ny;
+        d = `M ${x1} ${y1} L ${x2} ${y2}`;
+      } else if (tag === 'rect') {
+        const x = parseFloat(el.getAttribute('x') || 0);
+        const y = parseFloat(el.getAttribute('y') || 0);
+        const rw = parseFloat(el.getAttribute('width') || 0);
+        const rh = parseFloat(el.getAttribute('height') || 0);
+        d = `M ${x} ${y} H ${x + rw} V ${y + rh} H ${x} Z`;
+      } else if (tag === 'polyline' || tag === 'polygon') {
+        const pts = (el.getAttribute('points') || '').trim().split(/[\s,]+/);
+        if (pts.length >= 2) {
+          d = `M ${pts[0]} ${pts[1]}`;
+          for (let i = 2; i < pts.length; i += 2) {
+            d += ` L ${pts[i]} ${pts[i+1]}`;
           }
-        });
+          if (tag === 'polygon') d += ' Z';
+        }
+      } else if (tag === 'circle') {
+        const cx = parseFloat(el.getAttribute('cx') || 0);
+        const cy = parseFloat(el.getAttribute('cy') || 0);
+        const r = parseFloat(el.getAttribute('r') || 0);
+        d = `M ${cx - r} ${cy} A ${r} ${r} 0 1 0 ${cx + r} ${cy} A ${r} ${r} 0 1 0 ${cx - r} ${cy} Z`;
       }
+
+      if (!d.trim()) return;
+
+      const nums = (d.match(/-?[\d.]+(?:e-?\d+)?/gi) || []).map(Number);
+      for (let i = 0; i < nums.length - 1; i += 2) {
+        const x = nums[i];
+        const y = nums[i+1];
+        if (!isNaN(x) && !isNaN(y)) {
+          minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+        }
+      }
+
+      const stroke = this.resolveStroke(el, cssMap);
+      const dash = this.resolveDash(el, cssMap);
+      const name = el.getAttribute('id') || (el.parentElement ? el.parentElement.getAttribute('id') : '');
+      const type = this.classifyType(stroke, dash, name);
+
+      rawPaths.push({
+        id: `custom_${pIdx++}`,
+        dRaw: d,
+        stroke,
+        dash,
+        type
+      });
     });
 
-    if (minX !== Infinity && maxX !== -Infinity) {
-      const totalW = maxX - minX;
-      const totalH = maxY - minY;
-
-      const vertCreases = detectedSegs.filter(s => s.type === 'crease' && s.isVert && s.lengthMm > 15);
-      const horizCreases = detectedSegs.filter(s => s.type === 'crease' && s.isHoriz && s.lengthMm > 15);
-
-      const rawX = vertCreases.map(s => (s.x1 + s.x2) / 2);
-      const clustersX = [];
-      rawX.forEach(x => {
-        const match = clustersX.find(c => Math.abs(c.x - x) < 6);
-        if (match) match.count++; else clustersX.push({ x: x, count: 1 });
-      });
-      clustersX.sort((a, b) => a.x - b.x);
-
-      const rawY = horizCreases.map(s => (s.y1 + s.y2) / 2);
-      const clustersY = [];
-      rawY.forEach(y => {
-        const match = clustersY.find(c => Math.abs(c.y - y) < 6);
-        if (match) match.count++; else clustersY.push({ y: y, count: 1 });
-      });
-      clustersY.sort((a, b) => a.y - b.y);
-
-      if (clustersY.length >= 2) {
-        this.params.height = Math.max(20, Math.round(clustersY[clustersY.length - 1].y - clustersY[0].y));
-        this.params.topTuck = Math.max(12, Math.round(clustersY[0].y - minY));
-      } else {
-        this.params.height = Math.round(totalH * 0.55);
-        this.params.topTuck = 25;
-      }
-
-      if (clustersX.length >= 4) {
-        const g = Math.round(clustersX[0].x - minX);
-        const w1 = Math.round(clustersX[1].x - clustersX[0].x);
-        const l1 = Math.round(clustersX[2].x - clustersX[1].x);
-        const w2 = Math.round(clustersX[3].x - clustersX[2].x);
-        const l2 = Math.round(maxX - clustersX[3].x);
-        this.params.glueFlap = Math.max(8, g);
-        this.params.length = Math.max(20, Math.round((Math.max(w1, l1) + Math.max(w2, l2)) / 2));
-        this.params.width = Math.max(15, Math.round((Math.min(w1, l1) + Math.min(w2, l2)) / 2));
-      } else {
-        this.params.glueFlap = 15;
-        this.params.length = Math.round((totalW - 15) * 0.32);
-        this.params.width = Math.round(((totalW - 15) - 2 * this.params.length) / 2);
-      }
+    if (minX === Infinity || rawPaths.length === 0) {
+      if (window.toast) window.toast('خطا: هیچ مسیر برداری معتبری در فایل یافت نشد.');
+      return;
     }
 
-    this.synthesizeModel();
+    const rawW = maxX - minX;
+    const rawH = maxY - minY;
+
+    const normalizedPaths = [];
+    let totalCutLen = 0;
+    let totalCreaseLen = 0;
+    const segs = [];
+    let sIdx = 1;
+
+    rawPaths.forEach(rp => {
+      let approxLen = 0;
+      let prevPt = null;
+      const cmdRegex = /([a-df-z])([^a-df-z]*)/gi;
+      let m;
+      let newD = '';
+
+      while ((m = cmdRegex.exec(rp.dRaw)) !== null) {
+        const cmd = m[1];
+        const coords = (m[2].match(/-?[\d.]+(?:e-?\d+)?/gi) || []).map(Number);
+        newD += cmd + ' ';
+
+        for (let i = 0; i < coords.length; i += 2) {
+          if (i + 1 < coords.length) {
+            let px = coords[i];
+            let py = coords[i+1];
+            if (cmd === cmd.toUpperCase()) {
+              px = (px - minX) * scaleToMm;
+              py = (py - minY) * scaleToMm;
+            } else {
+              px = px * scaleToMm;
+              py = py * scaleToMm;
+            }
+            newD += `${px.toFixed(2)},${py.toFixed(2)} `;
+
+            if (prevPt) {
+              const dDist = Math.hypot(px - prevPt.x, py - prevPt.y);
+              approxLen += dDist;
+              segs.push({
+                id: `seg_${sIdx++}`,
+                x1: prevPt.x,
+                y1: prevPt.y,
+                x2: px,
+                y2: py,
+                d: `M ${prevPt.x.toFixed(2)} ${prevPt.y.toFixed(2)} L ${px.toFixed(2)} ${py.toFixed(2)}`,
+                type: rp.type,
+                lengthMm: Number(dDist.toFixed(1)),
+                isHoriz: Math.abs(py - prevPt.y) < 1.0,
+                isVert: Math.abs(px - prevPt.x) < 1.0
+              });
+            }
+            prevPt = { x: px, y: py };
+          } else {
+            newD += `${(coords[i] * scaleToMm).toFixed(2)} `;
+          }
+        }
+      }
+
+      if (rp.type === 'crease') totalCreaseLen += approxLen;
+      else totalCutLen += approxLen;
+
+      normalizedPaths.push({
+        id: rp.id,
+        d: newD.trim() || rp.dRaw,
+        type: rp.type,
+        stroke: rp.type === 'crease' ? '#2563EB' : (rp.type === 'glue' ? '#10B981' : '#DC2626'),
+        strokeDash: rp.type === 'crease' ? '4,3' : '',
+        lengthMm: Number(approxLen.toFixed(1)),
+        visible: true
+      });
+    });
+
+    const flatW = Math.max(10, Math.round(rawW * scaleToMm));
+    const flatH = Math.max(10, Math.round(rawH * scaleToMm));
+
+    this.calculated.flatWidth = flatW;
+    this.calculated.flatHeight = flatH;
+    this.calculated.totalBladeLengthMm = Math.round(totalCutLen || flatW * 2 + flatH * 2);
+    this.calculated.totalCreaseLengthMm = Math.round(totalCreaseLen || flatW);
+    this.calculated.areaCm2 = Number(((flatW * flatH) / 100).toFixed(1));
+
+    this.customPaths = normalizedPaths;
+    this.segments = segs.length > 0 ? segs : normalizedPaths.map(p => ({
+      id: p.id,
+      x1: 0, y1: 0, x2: flatW, y2: flatH,
+      d: p.d,
+      type: p.type,
+      lengthMm: p.lengthMm
+    }));
+
+    const vertCreases = segs.filter(s => s.type === 'crease' && s.isVert && s.lengthMm > 15);
+    const horizCreases = segs.filter(s => s.type === 'crease' && s.isHoriz && s.lengthMm > 15);
+
+    if (horizCreases.length >= 2) {
+      const ys = horizCreases.map(s => s.y1).sort((a,b)=>a-b);
+      this.params.height = Math.max(10, Math.round(ys[ys.length-1] - ys[0]));
+      this.params.topTuck = Math.max(10, Math.round(ys[0]));
+    } else {
+      this.params.height = Math.round(flatH * 0.55);
+      this.params.topTuck = 25;
+    }
+
+    if (vertCreases.length >= 4) {
+      const xs = vertCreases.map(s => s.x1).sort((a,b)=>a-b);
+      const w1 = Math.round(xs[1] - xs[0]);
+      const l1 = Math.round(xs[2] - xs[1]);
+      this.params.glueFlap = Math.max(8, Math.round(xs[0]));
+      this.params.length = Math.max(20, Math.max(w1, l1));
+      this.params.width = Math.max(15, Math.min(w1, l1));
+    } else {
+      this.params.glueFlap = 15;
+      this.params.length = Math.round((flatW - 15) * 0.32);
+      this.params.width = Math.round(((flatW - 15) - 2 * this.params.length) / 2);
+    }
+
+    document.querySelectorAll('[data-die-template]').forEach(btn => btn.classList.remove('active'));
+
     this.resetView();
     this.render();
 
     const pUtils = window.PersianUtils || { fmtNum: v => String(v) };
     if (window.SoundEngine) window.SoundEngine.playClick();
     if (window.toast) {
-      window.toast(`قالب هوشمند شناسایی شد: طول ${pUtils.fmtNum(this.params.length)}، عرض ${pUtils.fmtNum(this.params.width)}، ارتفاع ${pUtils.fmtNum(this.params.height)} mm ✓`);
+      window.toast(`قالب SVG با موفقیت تفکیک شد: ابعاد گسترده ${pUtils.fmtNum(flatW)} × ${pUtils.fmtNum(flatH)} mm ✓`);
     }
   },
 
   loadTemplate(type) {
     this.isCustomImport = false;
+    this.customPaths = [];
     if (type === 'tuck_end') {
       this.params = { length: 120, width: 80, height: 150, glueFlap: 15, topTuck: 25, dustFlap: 15 };
     } else if (type === 'mailer_0427') {
@@ -358,18 +590,20 @@ window.ParametricDieEngine = {
     cad.flatL = this.calculated.flatWidth;
     cad.flatW = this.calculated.flatHeight;
 
+    const pathsToSend = this.isCustomImport && this.customPaths.length > 0 ? this.customPaths : this.segments.map(s => ({
+      id: s.id,
+      d: s.d,
+      originalStroke: s.type === 'crease' ? '#2563EB' : '#DC2626',
+      strokeDash: s.type === 'crease' ? '4,3' : '',
+      type: s.type,
+      visible: true
+    }));
+
     cad.customDie = {
       active: true,
       widthMm: cad.flatL,
       heightMm: cad.flatW,
-      paths: this.segments.map(s => ({
-        id: s.id,
-        d: s.d,
-        originalStroke: s.type === 'crease' ? '#2563EB' : '#DC2626',
-        strokeDash: s.type === 'crease' ? '4,3' : '',
-        type: s.type,
-        visible: true
-      })),
+      paths: pathsToSend,
       bounds: { minX: 0, minY: 0, width: cad.flatL, height: cad.flatW }
     };
 
@@ -398,16 +632,30 @@ window.ParametricDieEngine = {
     const flatH = this.calculated.flatHeight;
     let svg = `<?xml version="1.0" encoding="UTF-8"?>\n`;
     svg += `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${flatW} ${flatH}" width="${flatW}mm" height="${flatH}mm">\n`;
-    svg += `  <g id="crease-matrix" stroke="#2563EB" stroke-width="0.6" stroke-dasharray="3,2" fill="none">\n`;
-    this.segments.filter(s => s.type === 'crease').forEach(s => {
-      svg += `    <path d="${s.d}" />\n`;
-    });
-    svg += `  </g>\n`;
-    svg += `  <g id="cut-blades" stroke="#DC2626" stroke-width="0.8" fill="none">\n`;
-    this.segments.filter(s => s.type !== 'crease').forEach(s => {
-      svg += `    <path d="${s.d}" />\n`;
-    });
-    svg += `  </g>\n`;
+
+    if (this.isCustomImport && this.customPaths.length > 0) {
+      svg += `  <g id="crease-matrix" stroke="#2563EB" stroke-width="0.6" stroke-dasharray="3,2" fill="none">\n`;
+      this.customPaths.filter(p => p.type === 'crease').forEach(p => {
+        svg += `    <path d="${p.d}" />\n`;
+      });
+      svg += `  </g>\n`;
+      svg += `  <g id="cut-blades" stroke="#DC2626" stroke-width="0.8" fill="none">\n`;
+      this.customPaths.filter(p => p.type !== 'crease').forEach(p => {
+        svg += `    <path d="${p.d}" />\n`;
+      });
+      svg += `  </g>\n`;
+    } else {
+      svg += `  <g id="crease-matrix" stroke="#2563EB" stroke-width="0.6" stroke-dasharray="3,2" fill="none">\n`;
+      this.segments.filter(s => s.type === 'crease').forEach(s => {
+        svg += `    <path d="${s.d}" />\n`;
+      });
+      svg += `  </g>\n`;
+      svg += `  <g id="cut-blades" stroke="#DC2626" stroke-width="0.8" fill="none">\n`;
+      this.segments.filter(s => s.type !== 'crease').forEach(s => {
+        svg += `    <path d="${s.d}" />\n`;
+      });
+      svg += `  </g>\n`;
+    }
     svg += `</svg>`;
 
     const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
@@ -583,67 +831,110 @@ window.ParametricDieEngine = {
       ctx.beginPath(); ctx.moveTo(-40, y); ctx.lineTo(flatW + 40, y); ctx.stroke();
     }
 
-    const p = this.params;
-    const x1 = p.glueFlap;
-    const x2 = p.glueFlap + p.width;
-    const x3 = p.glueFlap + p.width + p.length;
-    const x4 = p.glueFlap + p.width + p.length + p.width;
-    const x5 = p.glueFlap + p.width + p.length + p.width + p.length;
-    const y2 = p.topTuck + p.width;
-    const y3 = p.topTuck + p.width + p.height;
+    if (!this.isCustomImport) {
+      const p = this.params;
+      const x1 = p.glueFlap;
+      const x2 = p.glueFlap + p.width;
+      const x3 = p.glueFlap + p.width + p.length;
+      const x4 = p.glueFlap + p.width + p.length + p.width;
+      const x5 = p.glueFlap + p.width + p.length + p.width + p.length;
+      const y2 = p.topTuck + p.width;
+      const y3 = p.topTuck + p.width + p.height;
 
-    // Draw Panel Backgrounds & Persian Typography
-    const drawPanel = (px, py, pw, ph, label, dimText) => {
-      ctx.save();
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.025)';
-      ctx.fillRect(px + 1, py + 1, pw - 2, ph - 2);
+      // Draw Panel Backgrounds & Persian Typography
+      const drawPanel = (px, py, pw, ph, label, dimText) => {
+        ctx.save();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.025)';
+        ctx.fillRect(px + 1, py + 1, pw - 2, ph - 2);
 
-      ctx.font = `bold ${Math.max(10, Math.min(14, pw * 0.14))}px Peyda, sans-serif`;
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(label, px + pw / 2, py + ph / 2 - 6);
+        ctx.font = `bold ${Math.max(10, Math.min(14, pw * 0.14))}px Peyda, sans-serif`;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, px + pw / 2, py + ph / 2 - 6);
 
-      ctx.font = `bold ${Math.max(9, Math.min(12, pw * 0.12))}px Peyda, sans-serif`;
-      ctx.fillStyle = '#D97706';
-      ctx.fillText(dimText, px + pw / 2, py + ph / 2 + 10);
-      ctx.restore();
-    };
+        ctx.font = `bold ${Math.max(9, Math.min(12, pw * 0.12))}px Peyda, sans-serif`;
+        ctx.fillStyle = '#D97706';
+        ctx.fillText(dimText, px + pw / 2, py + ph / 2 + 10);
+        ctx.restore();
+      };
 
-    drawPanel(0, y2, x1, p.height, 'لبچسب G', `${pUtils.fmtNum(p.glueFlap)} mm`);
-    drawPanel(x1, y2, p.width, p.height, 'پهلو چپ (W)', `${pUtils.fmtNum(p.width)} × ${pUtils.fmtNum(p.height)}`);
-    drawPanel(x2, y2, p.length, p.height, 'بدنه جلو (L)', `${pUtils.fmtNum(p.length)} × ${pUtils.fmtNum(p.height)}`);
-    drawPanel(x3, y2, p.width, p.height, 'پهلو راست (W)', `${pUtils.fmtNum(p.width)} × ${pUtils.fmtNum(p.height)}`);
-    drawPanel(x4, y2, p.length, p.height, 'بدنه پشت (L)', `${pUtils.fmtNum(p.length)} × ${pUtils.fmtNum(p.height)}`);
-    drawPanel(x2, 0, p.length, p.topTuck, 'درب بالا (T)', `${pUtils.fmtNum(p.topTuck)} mm`);
-    drawPanel(x4, y3 + p.width, p.length, p.topTuck, 'درب پایین (T)', `${pUtils.fmtNum(p.topTuck)} mm`);
+      drawPanel(0, y2, x1, p.height, 'لبچسب G', `${pUtils.fmtNum(p.glueFlap)} mm`);
+      drawPanel(x1, y2, p.width, p.height, 'پهلو چپ (W)', `${pUtils.fmtNum(p.width)} × ${pUtils.fmtNum(p.height)}`);
+      drawPanel(x2, y2, p.length, p.height, 'بدنه جلو (L)', `${pUtils.fmtNum(p.length)} × ${pUtils.fmtNum(p.height)}`);
+      drawPanel(x3, y2, p.width, p.height, 'پهلو راست (W)', `${pUtils.fmtNum(p.width)} × ${pUtils.fmtNum(p.height)}`);
+      drawPanel(x4, y2, p.length, p.height, 'بدنه پشت (L)', `${pUtils.fmtNum(p.length)} × ${pUtils.fmtNum(p.height)}`);
+      drawPanel(x2, 0, p.length, p.topTuck, 'درب بالا (T)', `${pUtils.fmtNum(p.topTuck)} mm`);
+      drawPanel(x4, y3 + p.width, p.length, p.topTuck, 'درب پایین (T)', `${pUtils.fmtNum(p.topTuck)} mm`);
 
-    // Draw Line Segments
-    this.segments.forEach(s => {
-      ctx.save();
-      if (s.type === 'cut') {
-        ctx.strokeStyle = '#EF4444';
-        ctx.lineWidth = 1.8 / scale;
-        ctx.setLineDash([]);
-      } else if (s.type === 'crease') {
-        ctx.strokeStyle = '#3B82F6';
-        ctx.lineWidth = 1.4 / scale;
-        ctx.setLineDash([4 / scale, 3 / scale]);
-      } else {
-        ctx.strokeStyle = '#10B981';
-        ctx.lineWidth = 1.6 / scale;
-        ctx.setLineDash([]);
-      }
+      // Draw Line Segments
+      this.segments.forEach(s => {
+        ctx.save();
+        if (s.type === 'cut') {
+          ctx.strokeStyle = '#EF4444';
+          ctx.lineWidth = 1.8 / scale;
+          ctx.setLineDash([]);
+        } else if (s.type === 'crease') {
+          ctx.strokeStyle = '#3B82F6';
+          ctx.lineWidth = 1.4 / scale;
+          ctx.setLineDash([4 / scale, 3 / scale]);
+        } else {
+          ctx.strokeStyle = '#10B981';
+          ctx.lineWidth = 1.6 / scale;
+          ctx.setLineDash([]);
+        }
 
-      ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
-      ctx.restore();
-    });
+        ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
+        ctx.restore();
+      });
 
-    // Draw Crisp CAD Dimension Leader Lines (L, W, H, Total Flat)
-    this.drawDimension(ctx, x2, y3 + 12, x3, y3 + 12, `طول L: ${pUtils.fmtNum(p.length)} mm`, '#F59E0B', scale);
-    this.drawDimension(ctx, x1, y3 + 26, x2, y3 + 26, `عرض W: ${pUtils.fmtNum(p.width)} mm`, '#38BDF8', scale);
-    this.drawDimension(ctx, x5 + 14, y2, x5 + 14, y3, `ارتفاع H: ${pUtils.fmtNum(p.height)} mm`, '#34D399', scale);
-    this.drawDimension(ctx, 0, -14, x5, -14, `عرض شیت گسترده: ${pUtils.fmtNum(flatW)} mm`, '#A78BFA', scale);
+      // Draw Crisp CAD Dimension Leader Lines (L, W, H, Total Flat)
+      this.drawDimension(ctx, x2, y3 + 12, x3, y3 + 12, `طول L: ${pUtils.fmtNum(p.length)} mm`, '#F59E0B', scale);
+      this.drawDimension(ctx, x1, y3 + 26, x2, y3 + 26, `عرض W: ${pUtils.fmtNum(p.width)} mm`, '#38BDF8', scale);
+      this.drawDimension(ctx, x5 + 14, y2, x5 + 14, y3, `ارتفاع H: ${pUtils.fmtNum(p.height)} mm`, '#34D399', scale);
+      this.drawDimension(ctx, 0, -14, x5, -14, `عرض شیت گسترده: ${pUtils.fmtNum(flatW)} mm`, '#A78BFA', scale);
+    } else {
+      // CUSTOM IMPORTED SVG DIE RENDERING
+      const pathsToDraw = this.customPaths.length > 0 ? this.customPaths : this.segments;
+      pathsToDraw.forEach(p => {
+        ctx.save();
+        if (p.type === 'cut') {
+          ctx.strokeStyle = '#EF4444';
+          ctx.lineWidth = 1.8 / scale;
+          ctx.setLineDash([]);
+        } else if (p.type === 'crease') {
+          ctx.strokeStyle = '#3B82F6';
+          ctx.lineWidth = 1.4 / scale;
+          ctx.setLineDash([4 / scale, 3 / scale]);
+        } else if (p.type === 'glue') {
+          ctx.strokeStyle = '#10B981';
+          ctx.lineWidth = 1.6 / scale;
+          ctx.setLineDash([]);
+        } else {
+          ctx.strokeStyle = '#F59E0B';
+          ctx.lineWidth = 1.2 / scale;
+          ctx.setLineDash([2 / scale, 2 / scale]);
+        }
+
+        if (p.d) {
+          try {
+            const p2d = new Path2D(p.d);
+            ctx.stroke(p2d);
+          } catch (e) {
+            if (p.x1 !== undefined && p.x2 !== undefined) {
+              ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke();
+            }
+          }
+        } else if (p.x1 !== undefined && p.x2 !== undefined) {
+          ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke();
+        }
+        ctx.restore();
+      });
+
+      // Outer Bounding Box Dimensions
+      this.drawDimension(ctx, 0, flatH + 14, flatW, flatH + 14, `عرض گسترده قالب: ${pUtils.fmtNum(flatW)} mm`, '#A78BFA', scale);
+      this.drawDimension(ctx, flatW + 14, 0, flatW + 14, flatH, `طول گسترده قالب: ${pUtils.fmtNum(flatH)} mm`, '#38BDF8', scale);
+    }
 
     ctx.restore();
   },
