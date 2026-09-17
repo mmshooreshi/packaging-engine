@@ -2,6 +2,12 @@
    OFFICIAL IRANIAN INDUSTRIAL COMMERCIAL INVOICE & JOB TICKET STYLES
    ============================================================ */
 
+.doc-wrapper {
+  max-width: 900px;
+  margin: 16px auto;
+  padding: 0 16px 40px 16px;
+}
+
 .doc-switcher {
   display: flex;
   gap: 8px;
@@ -10,58 +16,67 @@
 
 .doc-tab {
   flex: 1;
-  padding: 8px 12px;
+  padding: 10px 14px;
   text-align: center;
   border-radius: var(--radius-sm);
-  background: var(--surface-subtle);
+  background: var(--surface-card);
   border: 1px solid var(--border-color);
-  font-weight: 700;
-  font-size: 0.82rem;
+  font-weight: 800;
+  font-size: 0.84rem;
   cursor: pointer;
   color: var(--text-muted);
   transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.doc-tab:hover {
+  background: var(--surface-subtle);
+  color: var(--graphite-text);
 }
 
 .doc-tab.active {
   background: var(--brand-primary);
   color: #FFFFFF;
   border-color: var(--brand-primary);
-  box-shadow: 0 2px 6px var(--brand-glow);
+  box-shadow: 0 2px 8px var(--brand-glow);
 }
 
 /* Official Document Container */
 .official-doc {
-  background: #FFFFFF;
-  color: #0F172A;
-  border: 1.5px solid #CBD5E1;
+  background: #FFFFFF !important;
+  color: #0F172A !important;
+  border: 1.5px solid #64748B;
   border-radius: 4px;
-  padding: 16px;
+  padding: 20px;
   position: relative;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
   font-size: 11.5px;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 [data-theme="dark"] .official-doc {
-  background: #FFFFFF;
-  color: #0F172A;
+  background: #FFFFFF !important;
+  color: #0F172A !important;
 }
 
-/* Document Header Matrix */
+/* Header Table */
 .doc-header-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .doc-header-table td {
-  border: 1px solid #94A3B8;
-  padding: 6px 10px;
+  border: 1.5px solid #475569;
+  padding: 8px 12px;
   vertical-align: middle;
 }
 
 .doc-title-main {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 900;
   color: #0F172A;
   text-align: center;
@@ -69,15 +84,15 @@
 }
 
 .doc-title-sub {
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 700;
   color: #475569;
   text-align: center;
 }
 
 .doc-meta-cell {
-  font-size: 10px;
-  line-height: 1.6;
+  font-size: 10.5px;
+  line-height: 1.7;
 }
 
 .doc-meta-cell strong {
@@ -88,45 +103,45 @@
 .party-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .party-table th {
-  background: #F1F5F9;
+  background: #E2E8F0;
   font-weight: 900;
-  font-size: 10.5px;
+  font-size: 11px;
   text-align: right;
-  padding: 4px 8px;
-  border: 1px solid #94A3B8;
-  color: #1E293B;
+  padding: 5px 10px;
+  border: 1px solid #64748B;
+  color: #0F172A;
 }
 
 .party-table td {
-  border: 1px solid #94A3B8;
-  padding: 4px 8px;
-  font-size: 10px;
+  border: 1px solid #64748B;
+  padding: 6px 10px;
+  font-size: 10.5px;
 }
 
 /* Packaging Technical Specification Matrix */
 .specs-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .specs-table th {
-  background: #F8FAFC;
+  background: #F1F5F9;
   font-weight: 800;
-  font-size: 9.5px;
-  padding: 4px 6px;
-  border: 1px solid #94A3B8;
+  font-size: 10px;
+  padding: 6px 8px;
+  border: 1px solid #64748B;
   text-align: center;
 }
 
 .specs-table td {
-  border: 1px solid #94A3B8;
-  padding: 4px 6px;
-  font-size: 9.5px;
+  border: 1px solid #64748B;
+  padding: 6px 8px;
+  font-size: 10px;
   text-align: center;
 }
 
@@ -134,22 +149,22 @@
 .fin-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .fin-table th {
   background: #E2E8F0;
   font-weight: 900;
-  font-size: 10px;
+  font-size: 10.5px;
   padding: 6px 8px;
-  border: 1px solid #64748B;
+  border: 1.5px solid #475569;
   text-align: center;
 }
 
 .fin-table td {
-  border: 1px solid #94A3B8;
-  padding: 5px 8px;
-  font-size: 10px;
+  border: 1px solid #64748B;
+  padding: 6px 8px;
+  font-size: 10.5px;
   text-align: center;
 }
 
@@ -170,27 +185,27 @@
 .tier-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .tier-table th {
   background: #F1F5F9;
   font-weight: 800;
-  font-size: 9.5px;
-  padding: 4px 6px;
-  border: 1px solid #94A3B8;
+  font-size: 10px;
+  padding: 5px 8px;
+  border: 1px solid #64748B;
   text-align: center;
 }
 
 .tier-table td {
   border: 1px solid #CBD5E1;
-  padding: 4px 6px;
-  font-size: 9.5px;
+  padding: 5px 8px;
+  font-size: 10px;
   text-align: center;
 }
 
 .tier-table tr.current-tier td {
-  background: #FEF3C7;
+  background: #FEF3C7 !important;
   font-weight: 900;
   color: #92400E;
   border: 1.5px solid #D97706;
@@ -198,11 +213,11 @@
 
 /* Totals and Persian Words Block */
 .total-words-box {
-  border: 1.5px solid #94A3B8;
+  border: 1.5px solid #475569;
   background: #F8FAFC;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-radius: 4px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -210,64 +225,65 @@
 
 .words-text {
   font-weight: 800;
-  font-size: 10.5px;
-  color: #1E293B;
+  font-size: 11px;
+  color: #0F172A;
 }
 
 .grand-num-text {
   font-weight: 900;
-  font-size: 13px;
+  font-size: 14px;
   color: #B45309;
 }
 
 /* Legal Trade Terms */
 .terms-box {
   border: 1px solid #CBD5E1;
-  padding: 6px 10px;
-  font-size: 8.5px;
-  color: #475569;
-  margin-bottom: 12px;
-  line-height: 1.5;
+  padding: 8px 12px;
+  font-size: 9px;
+  color: #334155;
+  margin-bottom: 14px;
+  line-height: 1.6;
   background: #FAFAFA;
 }
 
 .terms-box ol {
-  padding-right: 14px;
+  padding-right: 16px;
 }
 
 /* Signature and Stamp Blocks */
 .sign-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-top: 8px;
+  gap: 16px;
+  margin-top: 10px;
 }
 
 .sign-box {
-  border: 1px dashed #94A3B8;
-  height: 80px;
-  padding: 6px 10px;
+  border: 1px dashed #64748B;
+  height: 90px;
+  padding: 8px 12px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   text-align: center;
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 700;
   position: relative;
+  background: #FFFFFF;
 }
 
 .stamp-badge {
   position: absolute;
-  bottom: 8px;
+  bottom: 10px;
   left: 50%;
-  transform: translateX(-50%) rotate(-5deg);
+  transform: translateX(-50%) rotate(-4deg);
   border: 1.5px solid #DC2626;
   color: #DC2626;
-  font-size: 8px;
+  font-size: 8.5px;
   font-weight: 900;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 3px;
-  opacity: 0.65;
+  opacity: 0.7;
   pointer-events: none;
 }
 
@@ -289,21 +305,20 @@
     margin: 0 !important;
   }
   
-  .hdr, .bnav, .doc-switcher, .no-print, #update-banner, #pwa-bar, #toast, .drawer, .drawer-overlay, .modal-overlay, .studio-col:not(:has(.official-doc)) {
+  .hdr, .bnav, .doc-switcher, .no-print, #update-banner, #pwa-bar, #toast, .drawer, .drawer-overlay, .modal-overlay, #view-studio, #view-diecut, #view-rates {
     display: none !important;
   }
   
-  .studio-grid {
+  #view-invoice {
     display: block !important;
-    padding: 0 !important;
-  }
-  
-  .views-container, .view {
-    position: static !important;
-    display: block !important;
-    opacity: 1 !important;
     padding: 0 !important;
     overflow: visible !important;
+  }
+  
+  .doc-wrapper {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   
   .official-doc {

@@ -2,7 +2,7 @@
    LEMONPACK PRO - MASTER ORCHESTRATOR & PWA ENGINE
    ============================================================ */
 
-const STORAGE_KEY = 'lemonpack_config_v2';
+const STORAGE_KEY = 'lemonpack_config_v3';
 
 const DEFAULT_RATES = {
   paper_price_per_kg_toman: 520000,
@@ -57,8 +57,8 @@ window.LemonPack = {
   rates: Object.assign({}, DEFAULT_RATES),
   currency: 'toman',
   lengthUnit: 'mm',
-  viewMode: 'studio', // 'studio' or 'steps'
-  activeCanvasTab: 'nesting' // 'nesting' or 'blueprint'
+  currentTab: 'studio',
+  activeCanvasTab: 'nesting'
 };
 
 window.toast = function(msg, duration = 2200) {
@@ -74,12 +74,23 @@ window.App = {
   init() {
     this.loadRates();
     this.setupChips();
-    window.CadEngine.init();
-    window.CadEngine.recalculateFlatDimensions();
-    window.InvoiceEngine.init();
+    if (window.CadEngine) {
+      window.CadEngine.init();
+      window.CadEngine.recalculateFlatDimensions();
+    }
+    if (window.InvoiceEngine) {
+      window.InvoiceEngine.init();
+    }
     this.recalculate();
     this.setupPwa();
     this.setupAccordion();
+
+    // Init Date
+    try {
+      const d = new Date().toLocaleDateString('fa-IR');
+      const dEl = document.getElementById('inv-date-disp');
+      if (dEl) dEl.textContent = d;
+    } catch(e) {}
   },
 
   setupAccordion() {
@@ -96,14 +107,20 @@ window.App = {
   },
 
   recalculate() {
-    window.NestingEngine.optimize();
-    if (window.LemonPack.activeCanvasTab === 'nesting') {
-      window.NestingEngine.renderCanvas();
-    } else {
-      window.CadEngine.renderBlueprint();
+    if (window.NestingEngine) {
+      window.NestingEngine.optimize();
+      if (window.LemonPack.activeCanvasTab === 'nesting') {
+        window.NestingEngine.renderCanvas();
+      } else if (window.CadEngine) {
+        window.CadEngine.renderBlueprint();
+      }
     }
-    window.CostEngine.calculate();
-    window.InvoiceEngine.render();
+    if (window.CostEngine) {
+      window.CostEngine.calculate();
+    }
+    if (window.InvoiceEngine) {
+      window.InvoiceEngine.render();
+    }
   },
 
   switchCanvasTab(tab) {
@@ -117,12 +134,12 @@ window.App = {
       if (nestCanvas) nestCanvas.style.display = 'block';
       if (blueCanvas) blueCanvas.style.display = 'none';
       if (legend) legend.style.display = 'flex';
-      window.NestingEngine.renderCanvas();
+      if (window.NestingEngine) window.NestingEngine.renderCanvas();
     } else {
       if (nestCanvas) nestCanvas.style.display = 'none';
       if (blueCanvas) blueCanvas.style.display = 'block';
       if (legend) legend.style.display = 'none';
-      window.CadEngine.renderBlueprint();
+      if (window.CadEngine) window.CadEngine.renderBlueprint();
     }
     if (window.SoundEngine) window.SoundEngine.playClick();
   },
@@ -131,7 +148,7 @@ window.App = {
     const cur = window.LemonPack.currency === 'toman' ? 'rial' : 'toman';
     window.LemonPack.currency = cur;
     const btn = document.getElementById('btn-currency-toggle');
-    if (btn) btn.textContent = cur === 'toman' ? 'تومان' : 'ریال';
+    if (btn) btn.innerHTML = '<i class="ph ph-coins"></i> ' + (cur === 'toman' ? 'تومان' : 'ریال');
     this.recalculate();
     if (window.SoundEngine) window.SoundEngine.playClick();
     toast('واحد پولی به ' + (cur === 'toman' ? 'تومان' : 'ریال') + ' تغییر یافت ✓');
@@ -144,21 +161,6 @@ window.App = {
     if (btn) btn.textContent = u;
     this.recalculate();
     if (window.SoundEngine) window.SoundEngine.playClick();
-  },
-
-  toggleViewMode() {
-    const mode = window.LemonPack.viewMode === 'studio' ? 'steps' : 'studio';
-    window.LemonPack.viewMode = mode;
-    document.body.classList.toggle('view-mode-studio', mode === 'studio');
-    document.body.classList.toggle('view-mode-steps', mode === 'steps');
-    const btn = document.getElementById('btn-view-mode');
-    if (btn) {
-      btn.innerHTML = mode === 'studio' 
-        ? '<i class="ph ph-squares-four"></i> استودیو' 
-        : '<i class="ph ph-steps"></i> گام‌به‌گام';
-    }
-    if (window.SoundEngine) window.SoundEngine.playClick();
-    toast(mode === 'studio' ? 'نمای استودیوی یکپارچه فعال شد' : 'نمای گام‌به‌گام فعال شد');
   },
 
   toggleTheme() {
@@ -219,19 +221,17 @@ window.App = {
   },
 
   setupChips() {
-    // Model chips
     document.querySelectorAll('[data-model]').forEach(chip => {
       chip.addEventListener('click', () => {
         document.querySelectorAll('[data-model]').forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
         window.LemonPack.cad.model = chip.dataset.model;
-        window.CadEngine.recalculateFlatDimensions();
+        if (window.CadEngine) window.CadEngine.recalculateFlatDimensions();
         this.recalculate();
         if (window.SoundEngine) window.SoundEngine.playClick();
       });
     });
 
-    // Substrate chips
     document.querySelectorAll('[data-sub]').forEach(chip => {
       chip.addEventListener('click', () => {
         document.querySelectorAll('[data-sub]').forEach(c => c.classList.remove('active'));
@@ -242,7 +242,6 @@ window.App = {
       });
     });
 
-    // GSM chips
     document.querySelectorAll('[data-gsm]').forEach(chip => {
       chip.addEventListener('click', () => {
         document.querySelectorAll('[data-gsm]').forEach(c => c.classList.remove('active'));
@@ -253,7 +252,6 @@ window.App = {
       });
     });
 
-    // Lamination chips
     document.querySelectorAll('[data-lam]').forEach(chip => {
       chip.addEventListener('click', () => {
         document.querySelectorAll('[data-lam]').forEach(c => c.classList.remove('active'));
@@ -264,18 +262,6 @@ window.App = {
       });
     });
 
-    // UV chips
-    document.querySelectorAll('[data-uv]').forEach(chip => {
-      chip.addEventListener('click', () => {
-        document.querySelectorAll('[data-uv]').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        window.LemonPack.materials.uv = chip.dataset.uv;
-        this.recalculate();
-        if (window.SoundEngine) window.SoundEngine.playClick();
-      });
-    });
-
-    // Gluing chips
     document.querySelectorAll('[data-gluing]').forEach(chip => {
       chip.addEventListener('click', () => {
         document.querySelectorAll('[data-gluing]').forEach(c => c.classList.remove('active'));
@@ -286,18 +272,6 @@ window.App = {
       });
     });
 
-    // Colors chips
-    document.querySelectorAll('[data-colors]').forEach(chip => {
-      chip.addEventListener('click', () => {
-        document.querySelectorAll('[data-colors]').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        window.LemonPack.materials.colors = Number(chip.dataset.colors);
-        this.recalculate();
-        if (window.SoundEngine) window.SoundEngine.playClick();
-      });
-    });
-
-    // Sheet size chips
     document.querySelectorAll('[data-sheet]').forEach(chip => {
       chip.addEventListener('click', () => {
         document.querySelectorAll('[data-sheet]').forEach(c => c.classList.remove('active'));
@@ -317,7 +291,7 @@ window.App = {
     cad.orderQty = Number(document.getElementById('inp-order-qty').value) || 1000;
     cad.isDieInArchive = document.getElementById('chk-archive-die') ? document.getElementById('chk-archive-die').checked : false;
 
-    window.CadEngine.recalculateFlatDimensions();
+    if (window.CadEngine) window.CadEngine.recalculateFlatDimensions();
     this.recalculate();
   },
 
@@ -329,22 +303,39 @@ window.App = {
 };
 
 window.go = function(tabId) {
-  document.querySelectorAll('.view').forEach(v => {
-    v.classList.remove('visible');
-    setTimeout(() => v.classList.remove('active'), 50);
-  });
-  setTimeout(() => {
-    const target = document.getElementById('v-' + tabId);
-    if (target) {
-      target.classList.add('active');
-      target.scrollTop = 0;
-      requestAnimationFrame(() => target.classList.add('visible'));
-    }
-  }, 60);
+  if (tabId === 'cad') tabId = 'studio';
+  window.LemonPack.currentTab = tabId;
 
-  document.querySelectorAll('.nav-item').forEach(item => {
+  document.querySelectorAll('.main-tab-view').forEach(v => {
+    v.style.display = 'none';
+  });
+
+  const target = document.getElementById('view-' + tabId);
+  if (target) {
+    target.style.display = 'block';
+  }
+
+  document.querySelectorAll('.top-nav-item, .bnav-item').forEach(item => {
     item.classList.toggle('active', item.dataset.tab === tabId);
   });
+
+  if (tabId === 'studio') {
+    window.App.recalculate();
+  } else if (tabId === 'invoice') {
+    if (window.InvoiceEngine) {
+      window.InvoiceEngine.switchDoc('commercial');
+      window.InvoiceEngine.render();
+    }
+  } else if (tabId === 'jobticket') {
+    if (window.InvoiceEngine) {
+      window.InvoiceEngine.switchDoc('jobticket');
+      window.InvoiceEngine.render();
+    }
+  } else if (tabId === 'diecut') {
+    if (window.DieCutImporter) {
+      window.DieCutImporter.renderPreviewCanvas();
+    }
+  }
 
   if (window.SoundEngine) window.SoundEngine.playClick();
 };

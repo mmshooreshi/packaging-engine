@@ -150,28 +150,79 @@ window.NestingEngine = {
       for (let c = 0; c < cols; c++) {
         const bx = startX + 8 + (c * pieceW);
         const by = startY + 8 + (r * pieceH);
+        const cellW = pieceW - 3;
+        const cellH = pieceH - 3;
 
-        ctx.fillStyle = 'rgba(217, 119, 6, 0.08)';
-        ctx.fillRect(bx, by, pieceW - 3, pieceH - 3);
-        ctx.strokeStyle = '#DC2626';
-        ctx.lineWidth = 1.2;
-        ctx.strokeRect(bx, by, pieceW - 3, pieceH - 3);
+        ctx.fillStyle = 'rgba(217, 119, 6, 0.06)';
+        ctx.fillRect(bx, by, cellW, cellH);
 
-        ctx.strokeStyle = '#2563EB';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([3, 3]);
-        ctx.beginPath();
-        ctx.moveTo(bx, by + ((pieceH - 3) * 0.3));
-        ctx.lineTo(bx + pieceW - 3, by + ((pieceH - 3) * 0.3));
-        ctx.moveTo(bx, by + ((pieceH - 3) * 0.7));
-        ctx.lineTo(bx + pieceW - 3, by + ((pieceH - 3) * 0.7));
-        ctx.stroke();
-        ctx.setLineDash([]);
+        // If custom SVG diecut is active, draw miniature vector contours in each nested cell
+        if (cad.customDie && cad.customDie.active && cad.customDie.paths && cad.customDie.paths.length > 0) {
+          const b = cad.customDie.bounds || { minX: 0, minY: 0, width: cad.flatL, height: cad.flatW };
+          const pScale = Math.min((cellW - 4) / b.width, (cellH - 4) / b.height);
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(bx, by, cellW, cellH);
+          ctx.clip();
+
+          ctx.translate(bx + cellW / 2, by + cellH / 2);
+          ctx.scale(pScale, pScale);
+          ctx.translate(-b.minX - b.width / 2, -b.minY - b.height / 2);
+
+          cad.customDie.paths.forEach(p => {
+            if (!p.visible || p.type === 'ignore') return;
+            if (p.type === 'cut') {
+              ctx.strokeStyle = '#DC2626';
+              ctx.lineWidth = 1.2 / pScale;
+              ctx.setLineDash([]);
+            } else if (p.type === 'crease') {
+              ctx.strokeStyle = '#2563EB';
+              ctx.lineWidth = 0.9 / pScale;
+              ctx.setLineDash([3 / pScale, 3 / pScale]);
+            } else if (p.type === 'glue') {
+              ctx.strokeStyle = '#059669';
+              ctx.lineWidth = 1.2 / pScale;
+              ctx.setLineDash([]);
+            } else if (p.type === 'guide') {
+              ctx.strokeStyle = '#EAB308';
+              ctx.lineWidth = 0.8 / pScale;
+              ctx.setLineDash([2 / pScale, 2 / pScale]);
+            } else {
+              ctx.strokeStyle = '#94A3B8';
+              ctx.lineWidth = 0.8 / pScale;
+              ctx.setLineDash([]);
+            }
+
+            try {
+              const path2d = new Path2D(p.d);
+              ctx.stroke(path2d);
+            } catch (e) {}
+          });
+
+          ctx.restore();
+        } else {
+          // Parametric fallback box
+          ctx.strokeStyle = '#DC2626';
+          ctx.lineWidth = 1.2;
+          ctx.strokeRect(bx, by, cellW, cellH);
+
+          ctx.strokeStyle = '#2563EB';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.moveTo(bx, by + (cellH * 0.3));
+          ctx.lineTo(bx + cellW, by + (cellH * 0.3));
+          ctx.moveTo(bx, by + (cellH * 0.7));
+          ctx.lineTo(bx + cellW, by + (cellH * 0.7));
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
 
         ctx.fillStyle = '#1E293B';
         ctx.font = 'bold 10px Peyda, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(pUtils.e2p(boxIndex++), bx + ((pieceW - 3) / 2), by + ((pieceH - 3) / 2) + 3);
+        ctx.fillText(pUtils.e2p(boxIndex++), bx + (cellW / 2), by + (cellH / 2) + 3);
       }
     }
 

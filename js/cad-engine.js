@@ -131,9 +131,86 @@ window.CadEngine = {
 
     const cad = window.LemonPack.cad;
     const padding = 35;
+    const pUtils = window.PersianUtils || { e2p: function(v){ return v; } };
+
+    // If Custom Vector Die is imported and active, render the true vector blueprint
+    if (cad.customDie && cad.customDie.active && cad.customDie.paths && cad.customDie.paths.length > 0) {
+      const b = cad.customDie.bounds || { minX: 0, minY: 0, width: cad.flatL, height: cad.flatW };
+      const scale = Math.min((w - padding * 2) / b.width, (h - padding * 2) / b.height);
+      const boxW = b.width * scale;
+      const boxH = b.height * scale;
+      const startX = (w - boxW) / 2;
+      const startY = (h - boxH) / 2;
+
+      ctx.fillStyle = '#FAF8F5';
+      ctx.fillRect(startX, startY, boxW, boxH);
+
+      ctx.save();
+      ctx.translate(w / 2, h / 2);
+      ctx.scale(scale, scale);
+      ctx.translate(-b.minX - b.width / 2, -b.minY - b.height / 2);
+
+      cad.customDie.paths.forEach(p => {
+        if (!p.visible || p.type === 'ignore') return;
+
+        if (p.type === 'cut') {
+          ctx.strokeStyle = '#DC2626';
+          ctx.lineWidth = 1.8 / scale;
+          ctx.setLineDash([]);
+        } else if (p.type === 'crease') {
+          ctx.strokeStyle = '#2563EB';
+          ctx.lineWidth = 1.4 / scale;
+          ctx.setLineDash([4 / scale, 3 / scale]);
+        } else if (p.type === 'glue') {
+          ctx.strokeStyle = '#059669';
+          ctx.lineWidth = 1.8 / scale;
+          ctx.setLineDash([]);
+        } else if (p.type === 'guide') {
+          ctx.strokeStyle = '#EAB308';
+          ctx.lineWidth = 1.2 / scale;
+          ctx.setLineDash([3 / scale, 3 / scale]);
+        } else {
+          ctx.strokeStyle = '#94A3B8';
+          ctx.lineWidth = 1 / scale;
+          ctx.setLineDash([]);
+        }
+
+        try {
+          const path2d = new Path2D(p.d);
+          ctx.stroke(path2d);
+        } catch (e) {}
+      });
+
+      ctx.restore();
+
+      // Dimension extension lines
+      ctx.strokeStyle = '#D97706';
+      ctx.fillStyle = '#D97706';
+      ctx.lineWidth = 1;
+      ctx.font = 'bold 11px Peyda, sans-serif';
+      ctx.textAlign = 'center';
+
+      ctx.fillText(pUtils.e2p(cad.flatL) + ' mm (طول گسترده قالب برداری)', w / 2, startY - 12);
+      ctx.beginPath();
+      ctx.moveTo(startX, startY - 6);
+      ctx.lineTo(startX + boxW, startY - 6);
+      ctx.stroke();
+
+      ctx.save();
+      ctx.translate(startX - 14, h / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText(pUtils.e2p(cad.flatW) + ' mm (عرض گسترده)', 0, 0);
+      ctx.restore();
+      ctx.beginPath();
+      ctx.moveTo(startX - 6, startY);
+      ctx.lineTo(startX - 6, startY + boxH);
+      ctx.stroke();
+      return;
+    }
+
+    // Default Parametric CAD Blueprint
     const drawW = w - (padding * 2);
     const drawH = h - (padding * 2);
-
     const scale = Math.min(drawW / Math.max(1, cad.flatL), drawH / Math.max(1, cad.flatW));
     const boxW = cad.flatL * scale;
     const boxH = cad.flatW * scale;
@@ -195,7 +272,6 @@ window.CadEngine = {
     ctx.font = 'bold 11px Peyda, sans-serif';
     ctx.textAlign = 'center';
 
-    const pUtils = window.PersianUtils || { e2p: function(v){ return v; } };
     ctx.fillText(pUtils.e2p(cad.flatL) + ' mm', w / 2, startY - 12);
     ctx.beginPath();
     ctx.moveTo(startX, startY - 6);

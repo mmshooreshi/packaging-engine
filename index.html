@@ -26,12 +26,12 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
-<body class="view-mode-studio">
+<body>
 
 <div id="app">
   <!-- Header Bar -->
   <header class="hdr">
-    <div class="hdr-brand" onclick="go('cad')">
+    <div class="hdr-brand" onclick="go('studio')">
       <div class="hdr-logo">
         <i class="ph ph-package"></i>
       </div>
@@ -40,6 +40,22 @@
         <span class="hdr-badge">Industrial Pro</span>
       </div>
     </div>
+
+    <!-- Top Navigation Menu (Desktop) -->
+    <nav class="top-nav">
+      <div class="top-nav-item active" data-tab="studio" onclick="go('studio')">
+        <i class="ph ph-squares-four"></i> میز کار استودیو
+      </div>
+      <div class="top-nav-item" data-tab="invoice" onclick="go('invoice')">
+        <i class="ph ph-file-text"></i> پیش‌فاکتور رسمی تجاری
+      </div>
+      <div class="top-nav-item" data-tab="diecut" onclick="go('diecut')">
+        <i class="ph ph-vector-three"></i> واردسازی و تفکیک قالب
+      </div>
+      <div class="top-nav-item" data-tab="rates" onclick="go('rates')">
+        <i class="ph ph-sliders"></i> نرخ‌های روز بازار
+      </div>
+    </nav>
 
     <!-- Quick Action Controls -->
     <div class="hdr-actions">
@@ -52,11 +68,8 @@
       <button class="btn-icon" id="btn-sound-toggle" title="صدای کلیک: روشن" onclick="SoundEngine.toggleSound()">
         <i class="ph ph-speaker-high"></i>
       </button>
-      <button class="btn-toolbar-toggle" id="btn-view-mode" title="تغییر چیدمان صفحه" onclick="App.toggleViewMode()">
-        <i class="ph ph-squares-four"></i> استودیو
-      </button>
-      <button class="btn-icon" title="نرخ‌های روز بازار" onclick="openRatesDrawer()">
-        <i class="ph ph-sliders"></i>
+      <button class="btn-icon" title="چاپ مستقیم A4" onclick="window.print()">
+        <i class="ph ph-printer"></i>
       </button>
       <button class="btn-icon" title="تغییر تم" onclick="App.toggleTheme()">
         <i class="ph ph-moon" id="theme-icon"></i>
@@ -67,305 +80,305 @@
   <!-- Main Viewport -->
   <div class="main-viewport">
     
-    <!-- DESKTOP ALL-IN-ONE STUDIO COMMAND CENTER -->
-    <div class="studio-grid">
-      
-      <!-- Panel 1: CAD Parameters, Margins & Materials -->
-      <div class="studio-col">
-        <div class="card">
-          <div class="card-title">
-            <div class="card-title-left">
-              <i class="ph ph-shapes"></i>
-              <span>۱. مشخصات هندسی و ابعاد جعبه</span>
-            </div>
-          </div>
-
-          <div class="field-group">
-            <label class="field-label">مدل جعبه</label>
-            <div class="chips-grid" id="cad-models-studio">
-              <div class="chip active" data-model="tuck_end"><i class="ph ph-package"></i> دارویی</div>
-              <div class="chip" data-model="mailer_0427"><i class="ph ph-envelope-simple"></i> کیبوردی 0427</div>
-              <div class="chip" data-model="lock_bottom"><i class="ph ph-lock-key"></i> ته قفلی</div>
-              <div class="chip" data-model="rigid_box"><i class="ph ph-cube"></i> هاردباکس</div>
-            </div>
-          </div>
-
-          <div class="field-group">
-            <label class="field-label">ابعاد خارجی (طول × عرض × ارتفاع)</label>
-            <div class="input-row">
-              <div class="input-col input-wrap">
-                <input type="number" class="input-box" id="inp-length" value="120" oninput="App.onCadInputChange()">
-                <span class="input-unit">L</span>
-              </div>
-              <div class="input-col input-wrap">
-                <input type="number" class="input-box" id="inp-width" value="80" oninput="App.onCadInputChange()">
-                <span class="input-unit">W</span>
-              </div>
-              <div class="input-col input-wrap">
-                <input type="number" class="input-box" id="inp-height" value="150" oninput="App.onCadInputChange()">
-                <span class="input-unit">H</span>
+    <!-- VIEW 1: DESKTOP ALL-IN-ONE STUDIO COMMAND CENTER -->
+    <div class="main-tab-view" id="view-studio" style="display:block;">
+      <div class="studio-grid">
+        
+        <!-- Panel 1: CAD Parameters, Margins & Materials -->
+        <div class="studio-col">
+          <div class="card">
+            <div class="card-title">
+              <div class="card-title-left">
+                <i class="ph ph-shapes"></i>
+                <span>۱. مشخصات هندسی و ابعاد جعبه</span>
               </div>
             </div>
-          </div>
 
-          <!-- Advanced Flaps & Margins Accordion -->
-          <div class="accordion">
-            <div class="accordion-hdr">
-              <span><i class="ph ph-ruler"></i> تنظیمات پیشرفته ابعاد گسترده و حاشیه‌ها</span>
-              <i class="ph ph-caret-down"></i>
+            <div class="field-group">
+              <label class="field-label">مدل جعبه</label>
+              <div class="chips-grid" id="cad-models-studio">
+                <div class="chip active" data-model="tuck_end"><i class="ph ph-package"></i> دارویی</div>
+                <div class="chip" data-model="mailer_0427"><i class="ph ph-envelope-simple"></i> کیبوردی 0427</div>
+                <div class="chip" data-model="lock_bottom"><i class="ph ph-lock-key"></i> ته قفلی</div>
+                <div class="chip" data-model="rigid_box"><i class="ph ph-cube"></i> هاردباکس</div>
+              </div>
             </div>
-            <div class="accordion-body">
-              <div class="field-group">
-                <label class="field-label">پریست‌های مهندسی حاشیه</label>
-                <div class="chips-grid">
-                  <div class="chip" onclick="CadEngine.applyPreset('standard_pharma')">استاندارد</div>
-                  <div class="chip" onclick="CadEngine.applyPreset('economical')">اقتصادی</div>
-                  <div class="chip" onclick="CadEngine.applyPreset('heavy_duty')">صادراتی</div>
-                </div>
-              </div>
 
-              <div class="input-row" style="margin-bottom:8px;">
-                <div class="input-col">
-                  <label class="field-label">لبه چسب (mm)</label>
-                  <input type="number" class="input-box" id="inp-glue-flap" value="15" oninput="LemonPack.cad.glueFlap=Number(this.value); CadEngine.recalculateFlatDimensions(); App.recalculate();">
-                </div>
-                <div class="input-col">
-                  <label class="field-label">زبانه درپوش (mm)</label>
-                  <input type="number" class="input-box" id="inp-tuck-flap" value="18" oninput="LemonPack.cad.tuckFlap=Number(this.value); CadEngine.recalculateFlatDimensions(); App.recalculate();">
-                </div>
-              </div>
-
+            <div class="field-group">
+              <label class="field-label">ابعاد خارجی (طول × عرض × ارتفاع)</label>
               <div class="input-row">
-                <div class="input-col">
-                  <label class="field-label">گوشواره‌ها (mm)</label>
-                  <input type="number" class="input-box" id="inp-dust-flap" value="15" oninput="LemonPack.cad.dustFlap=Number(this.value); CadEngine.recalculateFlatDimensions(); App.recalculate();">
+                <div class="input-col input-wrap">
+                  <input type="number" class="input-box" id="inp-length" value="120" oninput="App.onCadInputChange()">
+                  <span class="input-unit">L</span>
                 </div>
-                <div class="input-col">
-                  <label class="field-label">لقی خط تا (mm)</label>
-                  <input type="number" class="input-box" id="inp-crease-gap" value="2" oninput="LemonPack.cad.creaseGap=Number(this.value); CadEngine.recalculateFlatDimensions(); App.recalculate();">
+                <div class="input-col input-wrap">
+                  <input type="number" class="input-box" id="inp-width" value="80" oninput="App.onCadInputChange()">
+                  <span class="input-unit">W</span>
+                </div>
+                <div class="input-col input-wrap">
+                  <input type="number" class="input-box" id="inp-height" value="150" oninput="App.onCadInputChange()">
+                  <span class="input-unit">H</span>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Custom Die-cut Importer Button -->
-          <button class="btn btn-outline btn-block" style="margin-bottom:12px;" onclick="DieCutImporter.openModal()">
-            <i class="ph ph-upload-simple"></i> واردسازی فایل قالب (.ai و .svg)
-          </button>
-
-          <div class="field-group">
-            <label class="field-label">تیراژ سفارش (تعداد)</label>
-            <input type="number" class="input-box" id="inp-order-qty" value="1000" step="100" oninput="App.onCadInputChange()">
-          </div>
-
-          <div class="switch-row" style="border-top:1px solid var(--border-light); padding-top:8px;">
-            <div>
-              <div style="font-weight:700; font-size:0.8rem;">قالب در آرشیو موجود است</div>
-              <div style="font-size:0.68rem; color:var(--text-muted);">هزینه ساخت قالب لیزری صفر منظور می‌گردد.</div>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="chk-archive-die" onchange="App.onCadInputChange()">
-              <span class="slider"></span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Materials Card -->
-        <div class="card">
-          <div class="card-title">
-            <div class="card-title-left">
-              <i class="ph ph-stack"></i>
-              <span>۲. متریال مقوا و خدمات</span>
-            </div>
-          </div>
-
-          <div class="field-group">
-            <label class="field-label">نوع مقوا</label>
-            <div class="chips-grid" id="mat-substrates">
-              <div class="chip active" data-sub="inderboard">ایندربرد (FBB)</div>
-              <div class="chip" data-sub="glosse">گلاسه</div>
-            </div>
-          </div>
-
-          <div class="field-group">
-            <label class="field-label">گرماژ مقوا (GSM)</label>
-            <div class="chips-grid" id="mat-gsm">
-              <div class="chip" data-gsm="250">۲۵۰ گرم</div>
-              <div class="chip active" data-gsm="300">۳۰۰ گرم</div>
-              <div class="chip" data-gsm="350">۳۵۰ گرم</div>
-              <div class="chip" data-gsm="400">۴۰۰ گرم</div>
-            </div>
-          </div>
-
-          <div class="field-group">
-            <label class="field-label">پوشش سلفون</label>
-            <div class="chips-grid" id="mat-lamination">
-              <div class="chip active" data-lam="matte">سلفون مات</div>
-              <div class="chip" data-lam="gloss">براق</div>
-              <div class="chip" data-lam="none">بدون سلفون</div>
-            </div>
-          </div>
-
-          <div class="field-group">
-            <label class="field-label">جعبه‌چسبانی</label>
-            <div class="chips-grid" id="mat-gluing">
-              <div class="chip active" data-gluing="auto">لب‌چسب اتوماتیک</div>
-              <div class="chip" data-gluing="manual">چسب دستی</div>
-              <div class="chip" data-gluing="none">شیت خام</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Panel 2: Interactive Sheet Canvas & Blueprint -->
-      <div class="studio-col">
-        <div class="card canvas-card">
-          <div class="canvas-toolbar">
-            <div class="canvas-tabs">
-              <div class="canvas-tab active" data-tab="nesting" onclick="App.switchCanvasTab('nesting')">
-                <i class="ph ph-grid-four"></i> شیت‌بندی ۲بعدی
+            <!-- Advanced Flaps & Margins Accordion -->
+            <div class="accordion">
+              <div class="accordion-hdr">
+                <span><i class="ph ph-ruler"></i> تنظیمات پیشرفته ابعاد گسترده و حاشیه‌ها</span>
+                <i class="ph ph-caret-down"></i>
               </div>
-              <div class="canvas-tab" data-tab="blueprint" onclick="App.switchCanvasTab('blueprint')">
-                <i class="ph ph-blueprint"></i> بلوپرینت فنی گسترده
+              <div class="accordion-body">
+                <div class="field-group">
+                  <label class="field-label">پریست‌های مهندسی حاشیه</label>
+                  <div class="chips-grid">
+                    <div class="chip" onclick="CadEngine.applyPreset('standard_pharma')">استاندارد</div>
+                    <div class="chip" onclick="CadEngine.applyPreset('economical')">اقتصادی</div>
+                    <div class="chip" onclick="CadEngine.applyPreset('heavy_duty')">صادراتی</div>
+                  </div>
+                </div>
+
+                <div class="input-row" style="margin-bottom:8px;">
+                  <div class="input-col">
+                    <label class="field-label">لبه چسب (mm)</label>
+                    <input type="number" class="input-box" id="inp-glue-flap" value="15" oninput="LemonPack.cad.glueFlap=Number(this.value); CadEngine.recalculateFlatDimensions(); App.recalculate();">
+                  </div>
+                  <div class="input-col">
+                    <label class="field-label">زبانه درپوش (mm)</label>
+                    <input type="number" class="input-box" id="inp-tuck-flap" value="18" oninput="LemonPack.cad.tuckFlap=Number(this.value); CadEngine.recalculateFlatDimensions(); App.recalculate();">
+                  </div>
+                </div>
+
+                <div class="input-row">
+                  <div class="input-col">
+                    <label class="field-label">گوشواره‌ها (mm)</label>
+                    <input type="number" class="input-box" id="inp-dust-flap" value="15" oninput="LemonPack.cad.dustFlap=Number(this.value); CadEngine.recalculateFlatDimensions(); App.recalculate();">
+                  </div>
+                  <div class="input-col">
+                    <label class="field-label">لقی خط تا (mm)</label>
+                    <input type="number" class="input-box" id="inp-crease-gap" value="2" oninput="LemonPack.cad.creaseGap=Number(this.value); CadEngine.recalculateFlatDimensions(); App.recalculate();">
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div class="chips-grid" id="nest-sheet-sizes">
-              <div class="chip active" data-sheet="auto"><i class="ph ph-sparkle"></i> سایز بهینه</div>
-              <div class="chip" data-sheet="100x70">۱۰۰×۷۰</div>
-              <div class="chip" data-sheet="90x60">۹۰×۶۰</div>
+            <!-- Custom Die-cut Importer Button -->
+            <button class="btn btn-outline btn-block" style="margin-bottom:12px;" onclick="go('diecut')">
+              <i class="ph ph-upload-simple"></i> واردسازی و تفکیک قالب (.ai و .svg)
+            </button>
+
+            <div class="field-group">
+              <label class="field-label">تیراژ سفارش (تعداد)</label>
+              <input type="number" class="input-box" id="inp-order-qty" value="1000" step="100" oninput="App.onCadInputChange()">
+            </div>
+
+            <div class="switch-row" style="border-top:1px solid var(--border-light); padding-top:8px;">
+              <div>
+                <div style="font-weight:700; font-size:0.8rem;">قالب در آرشیو موجود است</div>
+                <div style="font-size:0.68rem; color:var(--text-muted);">هزینه ساخت قالب لیزری صفر منظور می‌گردد.</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="chk-archive-die" onchange="App.onCadInputChange()">
+                <span class="slider"></span>
+              </label>
             </div>
           </div>
 
-          <!-- HUD Stats -->
-          <div class="hud-bar">
-            <div class="hud-stat">
-              <div class="hud-label">تعداد در فرم (Ups)</div>
-              <div class="hud-val highlight tabular-nums" id="hud-ups">۶ کار</div>
+          <!-- Materials Card -->
+          <div class="card">
+            <div class="card-title">
+              <div class="card-title-left">
+                <i class="ph ph-stack"></i>
+                <span>۲. متریال مقوا و خدمات</span>
+              </div>
             </div>
-            <div class="hud-stat">
-              <div class="hud-label">سایز شیت کاغذ</div>
-              <div class="hud-val tabular-nums" id="hud-sheet">۱۰۰ × ۷۰</div>
-            </div>
-            <div class="hud-stat">
-              <div class="hud-label">ماشین چاپ</div>
-              <div class="hud-val" id="hud-press">۲.۵ ورقی</div>
-            </div>
-            <div class="hud-stat">
-              <div class="hud-label">دورریز (Waste)</div>
-              <div class="hud-val tabular-nums" id="hud-waste">۱۹.۸٪</div>
-            </div>
-          </div>
 
-          <!-- Viewport -->
-          <div class="canvas-viewport">
-            <canvas id="nesting-canvas" width="650" height="420"></canvas>
-            <canvas id="blueprint-canvas" width="650" height="420" style="display:none;"></canvas>
-          </div>
+            <div class="field-group">
+              <label class="field-label">نوع مقوا</label>
+              <div class="chips-grid" id="mat-substrates">
+                <div class="chip active" data-sub="inderboard">ایندربرد (FBB)</div>
+                <div class="chip" data-sub="glosse">گلاسه</div>
+              </div>
+            </div>
 
-          <!-- Legend -->
-          <div class="canvas-legend" id="canvas-legend-wrap">
-            <div class="legend-item">
-              <span class="legend-dot" style="background:#DC2626;"></span>
-              <span>خط تیغ (Cut Line)</span>
+            <div class="field-group">
+              <label class="field-label">گرماژ مقوا (GSM)</label>
+              <div class="chips-grid" id="mat-gsm">
+                <div class="chip" data-gsm="250">۲۵۰ گرم</div>
+                <div class="chip active" data-gsm="300">۳۰۰ گرم</div>
+                <div class="chip" data-gsm="350">۳۵۰ گرم</div>
+                <div class="chip" data-gsm="400">۴۰۰ گرم</div>
+              </div>
             </div>
-            <div class="legend-item">
-              <span class="legend-dot" style="background:#2563EB;"></span>
-              <span>خط تا (Crease Rule)</span>
+
+            <div class="field-group">
+              <label class="field-label">پوشش سلفون</label>
+              <div class="chips-grid" id="mat-lamination">
+                <div class="chip active" data-lam="matte">سلفون مات</div>
+                <div class="chip" data-lam="gloss">براق</div>
+                <div class="chip" data-lam="none">بدون سلفون</div>
+              </div>
             </div>
-            <div class="legend-item">
-              <span class="legend-dot" style="background:rgba(220,38,38,0.25);"></span>
-              <span>لب‌پنجه (1.5cm)</span>
+
+            <div class="field-group">
+              <label class="field-label">جعبه‌چسبانی</label>
+              <div class="chips-grid" id="mat-gluing">
+                <div class="chip active" data-gluing="auto">لب‌چسب اتوماتیک</div>
+                <div class="chip" data-gluing="manual">چسب دستی</div>
+                <div class="chip" data-gluing="none">شیت خام</div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Panel 3: Live Rates & Official Invoice Quick View -->
-      <div class="studio-col">
-        <div class="card">
-          <div class="card-title">
-            <div class="card-title-left">
-              <i class="ph ph-calculator"></i>
-              <span>۳. آنالیز بهای تمام‌شده و صدور سند</span>
+        <!-- Panel 2: Interactive Sheet Canvas & Blueprint -->
+        <div class="studio-col">
+          <div class="card canvas-card">
+            <div class="canvas-toolbar">
+              <div class="canvas-tabs">
+                <div class="canvas-tab active" data-tab="nesting" onclick="App.switchCanvasTab('nesting')">
+                  <i class="ph ph-grid-four"></i> شیت‌بندی ۲بعدی
+                </div>
+                <div class="canvas-tab" data-tab="blueprint" onclick="App.switchCanvasTab('blueprint')">
+                  <i class="ph ph-blueprint"></i> بلوپرینت فنی گسترده
+                </div>
+              </div>
+
+              <div class="chips-grid" id="nest-sheet-sizes">
+                <div class="chip active" data-sheet="auto"><i class="ph ph-sparkle"></i> سایز بهینه</div>
+                <div class="chip" data-sheet="100x70">۱۰۰×۷۰</div>
+                <div class="chip" data-sheet="90x60">۹۰×۶۰</div>
+              </div>
             </div>
-            <button class="btn btn-outline btn-sm" onclick="go('invoice')">
-              <i class="ph ph-file-text"></i> سند کامل
-            </button>
-          </div>
 
-          <table class="cogs-table">
-            <thead>
-              <tr>
-                <th>آیتم هزینه</th>
-                <th>شاخص فنی</th>
-                <th class="td-cost">مبلغ</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>مقوای مصرفی</td>
-                <td class="tabular-nums" id="cogs-paper-sub">-</td>
-                <td class="td-cost tabular-nums" id="cogs-paper-val">-</td>
-              </tr>
-              <tr>
-                <td>زینک لیتوگرافی</td>
-                <td class="tabular-nums" id="cogs-plates-sub">-</td>
-                <td class="td-cost tabular-nums" id="cogs-plates-val">-</td>
-              </tr>
-              <tr>
-                <td>اجرت چاپ افست</td>
-                <td class="tabular-nums" id="cogs-press-sub">-</td>
-                <td class="td-cost tabular-nums" id="cogs-press-val">-</td>
-              </tr>
-              <tr>
-                <td>سلفون حرارتی</td>
-                <td class="tabular-nums" id="cogs-lam-sub">-</td>
-                <td class="td-cost tabular-nums" id="cogs-lam-val">-</td>
-              </tr>
-              <tr>
-                <td>قالب و لترپرس</td>
-                <td class="tabular-nums" id="cogs-die-sub">-</td>
-                <td class="td-cost tabular-nums" id="cogs-die-val">-</td>
-              </tr>
-              <tr>
-                <td>چسبانی و لجستیک</td>
-                <td class="tabular-nums" id="cogs-finish-sub">-</td>
-                <td class="td-cost tabular-nums" id="cogs-finish-val">-</td>
-              </tr>
-              <tr>
-                <td><strong>بهای تمام‌شده (COGS)</strong></td>
-                <td>بدون سود</td>
-                <td class="td-cost tabular-nums" id="cogs-total-val" style="color:var(--brand-primary); font-weight:900;">-</td>
-              </tr>
-            </tbody>
-          </table>
+            <!-- HUD Stats -->
+            <div class="hud-bar">
+              <div class="hud-stat">
+                <div class="hud-label">تعداد در فرم (Ups)</div>
+                <div class="hud-val highlight tabular-nums" id="hud-ups">۶ کار</div>
+              </div>
+              <div class="hud-stat">
+                <div class="hud-label">سایز شیت کاغذ</div>
+                <div class="hud-val tabular-nums" id="hud-sheet">۱۰۰ × ۷۰</div>
+              </div>
+              <div class="hud-stat">
+                <div class="hud-label">ماشین چاپ</div>
+                <div class="hud-val" id="hud-press">۲.۵ ورقی</div>
+              </div>
+              <div class="hud-stat">
+                <div class="hud-label">دورریز (Waste)</div>
+                <div class="hud-val tabular-nums" id="hud-waste">۱۹.۸٪</div>
+              </div>
+            </div>
 
-          <!-- Quick Action Buttons -->
-          <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px;">
-            <button class="btn btn-primary btn-block" onclick="go('invoice')">
-              <i class="ph ph-printer"></i> مشاهده پیش‌فاکتور رسمی و چاپ A4
-            </button>
-            <button class="btn btn-outline btn-block" onclick="InvoiceEngine.shareWhatsApp()">
-              <i class="ph ph-whatsapp-logo" style="color:#25D366;"></i> ارسال استعلام در واتس‌اپ
-            </button>
+            <!-- Viewport -->
+            <div class="canvas-viewport">
+              <canvas id="nesting-canvas" width="650" height="420"></canvas>
+              <canvas id="blueprint-canvas" width="650" height="420" style="display:none;"></canvas>
+            </div>
+
+            <!-- Legend -->
+            <div class="canvas-legend" id="canvas-legend-wrap">
+              <div class="legend-item">
+                <span class="legend-dot" style="background:#DC2626;"></span>
+                <span>خط تیغ (Cut Line)</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot" style="background:#2563EB;"></span>
+                <span>خط تا (Crease Rule)</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot" style="background:rgba(220,38,38,0.25);"></span>
+                <span>لب‌پنجه (1.5cm)</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
+        <!-- Panel 3: Live Rates & Official Invoice Quick View -->
+        <div class="studio-col">
+          <div class="card">
+            <div class="card-title">
+              <div class="card-title-left">
+                <i class="ph ph-calculator"></i>
+                <span>۳. آنالیز بهای تمام‌شده و صدور سند</span>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="go('invoice')">
+                <i class="ph ph-file-text"></i> سند کامل
+              </button>
+            </div>
+
+            <table class="cogs-table">
+              <thead>
+                <tr>
+                  <th>آیتم هزینه</th>
+                  <th>شاخص فنی</th>
+                  <th class="td-cost">مبلغ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>مقوای مصرفی</td>
+                  <td class="tabular-nums" id="cogs-paper-sub">-</td>
+                  <td class="td-cost tabular-nums" id="cogs-paper-val">-</td>
+                </tr>
+                <tr>
+                  <td>زینک لیتوگرافی</td>
+                  <td class="tabular-nums" id="cogs-plates-sub">-</td>
+                  <td class="td-cost tabular-nums" id="cogs-plates-val">-</td>
+                </tr>
+                <tr>
+                  <td>اجرت چاپ افست</td>
+                  <td class="tabular-nums" id="cogs-press-sub">-</td>
+                  <td class="td-cost tabular-nums" id="cogs-press-val">-</td>
+                </tr>
+                <tr>
+                  <td>سلفون حرارتی</td>
+                  <td class="tabular-nums" id="cogs-lam-sub">-</td>
+                  <td class="td-cost tabular-nums" id="cogs-lam-val">-</td>
+                </tr>
+                <tr>
+                  <td>قالب و لترپرس</td>
+                  <td class="tabular-nums" id="cogs-die-sub">-</td>
+                  <td class="td-cost tabular-nums" id="cogs-die-val">-</td>
+                </tr>
+                <tr>
+                  <td>چسبانی و لجستیک</td>
+                  <td class="tabular-nums" id="cogs-finish-sub">-</td>
+                  <td class="td-cost tabular-nums" id="cogs-finish-val">-</td>
+                </tr>
+                <tr>
+                  <td><strong>بهای تمام‌شده (COGS)</strong></td>
+                  <td>بدون سود</td>
+                  <td class="td-cost tabular-nums" id="cogs-total-val" style="color:var(--brand-primary); font-weight:900;">-</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- Quick Action Buttons -->
+            <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px;">
+              <button class="btn btn-primary btn-block" onclick="go('invoice')">
+                <i class="ph ph-printer"></i> مشاهده پیش‌فاکتور رسمی و چاپ A4
+              </button>
+              <button class="btn btn-outline btn-block" onclick="InvoiceEngine.shareWhatsApp()">
+                <i class="ph ph-whatsapp-logo" style="color:#25D366;"></i> ارسال استعلام در واتس‌اپ
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
 
-    <!-- TABBED VIEWS (For Mobile & Document Center) -->
-    <div class="views-container">
-      
-      <!-- Module 4: بهای تمام‌شده و پیش‌فاکتور رسمی -->
-      <main class="view" id="v-invoice">
+    <!-- VIEW 2: OFFICIAL INVOICE & FACTORY JOB-TICKET (Full View) -->
+    <div class="main-tab-view" id="view-invoice" style="display:none;">
+      <div class="doc-wrapper">
         <div class="doc-switcher no-print">
           <div class="doc-tab active" data-doc="commercial" onclick="InvoiceEngine.switchDoc('commercial')">
             <i class="ph ph-file-text"></i> پیش‌فاکتور رسمی تجاری (مشتری)
           </div>
           <div class="doc-tab" data-doc="jobticket" onclick="InvoiceEngine.switchDoc('jobticket')">
-            <i class="ph ph-clipboard-text"></i> برگه دستور تولید و کارخانه (Job Ticket)
+            <i class="ph ph-clipboard-text"></i> کاربرگ دستور تولید کارخانه (Job Ticket)
           </div>
         </div>
 
@@ -375,8 +388,8 @@
           <table class="doc-header-table">
             <tr>
               <td style="width:25%; text-align:right;">
-                <div style="font-weight:900; font-size:11px;">مجتمع چاپ و بسته‌بندی لمون‌پک</div>
-                <div style="font-size:8.5px; color:#475569;">سامانه طراحی مهندسی و تولید صنعتی</div>
+                <div style="font-weight:900; font-size:12px;">مجتمع چاپ و بسته‌بندی لمون‌پک</div>
+                <div style="font-size:9px; color:#475569;">سامانه طراحی مهندسی و تولید صنعتی</div>
               </td>
               <td style="width:50%;">
                 <div class="doc-title-main">پیش‌فاکتور رسمی فروش کالا و خدمات</div>
@@ -475,7 +488,7 @@
           </table>
 
           <!-- 5-Tier Runs Comparison -->
-          <div style="font-weight:800; font-size:9.5px; margin-bottom:4px; color:#1E293B;">تحلیل صرفه اقتصادی تیراژهای پنج‌گانه (Economies of Scale):</div>
+          <div style="font-weight:800; font-size:10px; margin-bottom:4px; color:#1E293B;">تحلیل صرفه اقتصادی تیراژهای پنج‌گانه (Economies of Scale):</div>
           <table class="tier-table">
             <thead>
               <tr>
@@ -529,8 +542,8 @@
           <table class="doc-header-table">
             <tr>
               <td style="width:30%;">
-                <div style="font-weight:900;">کاربرگ دستور تولید و آنالیز کارخانه</div>
-                <div style="font-size:9px; color:#475569;">Factory Diagnostic Job-Ticket</div>
+                <div style="font-weight:900; font-size:12px;">کاربرگ دستور تولید و آنالیز کارخانه</div>
+                <div style="font-size:9.5px; color:#475569;">Factory Diagnostic Job-Ticket</div>
               </td>
               <td style="width:40%; text-align:center;">
                 <div class="doc-title-main">کارت فنی خط چاپ و دایکات</div>
@@ -573,144 +586,139 @@
             <i class="ph ph-file-pdf"></i> ذخیره PDF
           </button>
           <button class="btn btn-outline" style="flex:1" onclick="InvoiceEngine.shareWhatsApp()">
-            <i class="ph ph-share-network"></i> ارسال پیش‌فاکتور
+            <i class="ph ph-share-network"></i> ارسال پیش‌فاکتور در واتس‌اپ
           </button>
         </div>
-      </main>
+      </div>
+    </div>
 
+    <!-- VIEW 3: VECTOR DIE-CUT IMPORTER WORKSPACE -->
+    <div class="main-tab-view" id="view-diecut" style="display:none;">
+      <div style="max-width:900px; margin:20px auto; padding:0 16px;">
+        <div class="card">
+          <div class="card-title">
+            <div class="card-title-left">
+              <i class="ph ph-vector-three"></i>
+              <span>واردسازی و تفکیک لایه‌های برداری قالب (.ai و .svg)</span>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="DieCutImporter.applyToProject(); go('studio');">
+              <i class="ph ph-check"></i> اعمال در استودیو
+            </button>
+          </div>
+
+          <div class="dropzone" id="dropzone-main" onclick="document.getElementById('file-diecut-main').click()" ondragover="event.preventDefault(); this.classList.add('dragover');" ondragleave="this.classList.remove('dragover');" ondrop="DieCutImporter.handleDrop(event)">
+            <i class="ph ph-cloud-arrow-up"></i>
+            <div style="font-weight:800; font-size:1rem; margin-bottom:4px;">فایل خط تیغ خود را اینجا رها کنید</div>
+            <div style="font-size:0.78rem; color:var(--text-muted);">پشتیبانی از فایل‌های Illustrator (.ai)، SVG و PDF برداری</div>
+            <input type="file" id="file-diecut-main" accept=".svg,.ai,.eps,.pdf" style="display:none;" onchange="DieCutImporter.handleFileSelect(event)">
+          </div>
+
+          <div style="margin-top:16px;">
+            <label class="field-label">پیش‌نمایش زنده خطوط و کالیبراسیون مقیاس</label>
+            <div style="width:100%; height:260px; background:#151F32; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center;">
+              <canvas id="diecut-preview-canvas" width="750" height="250"></canvas>
+            </div>
+          </div>
+
+          <div style="margin-top:16px;">
+            <label class="field-label">جدول تفکیک و تطبیق لایه‌های تیغ و خط تا</label>
+            <table class="layer-table">
+              <thead>
+                <tr>
+                  <th>رنگ / خط‌استروک</th>
+                  <th>تعداد مسیر</th>
+                  <th>نقش در خط تولید</th>
+                  <th>نمایش</th>
+                </tr>
+              </thead>
+              <tbody id="layer-tbody">
+                <tr>
+                  <td colspan="4" style="color:var(--text-muted);">هنوز فایلی انتخاب نشده است (از دراپ‌زون بالا فایل قالب را بارگذاری کنید)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 4: DAILY RATES MANAGEMENT -->
+    <div class="main-tab-view" id="view-rates" style="display:none;">
+      <div style="max-width:700px; margin:20px auto; padding:0 16px;">
+        <div class="card">
+          <div class="card-title">
+            <div class="card-title-left">
+              <i class="ph ph-sliders"></i>
+              <span>میز کنترل نرخ‌های روز بازار و استهلاک</span>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">قیمت هر کیلوگرم مقوا (تومان)</label>
+            <input type="number" class="input-box" id="set-paper-price" oninput="App.saveRates()">
+          </div>
+          <div class="field-group">
+            <label class="field-label">هزینه واحد زینک ۲.۵ ورقی (تومان)</label>
+            <input type="number" class="input-box" id="set-plate-cost" oninput="App.saveRates()">
+          </div>
+          <div class="field-group">
+            <label class="field-label">اجرت هر دور چاپ ۵,۰۰۰ تایی (تومان)</label>
+            <input type="number" class="input-box" id="set-press-cost" oninput="App.saveRates()">
+          </div>
+          <div class="field-group">
+            <label class="field-label">نرخ سلفون هر سانتی‌متر مربع (تومان)</label>
+            <input type="number" step="0.1" class="input-box" id="set-lam-rate" oninput="App.saveRates()">
+          </div>
+          <div class="field-group">
+            <label class="field-label">اجرت پایه تیغ‌زنی لترپرس (تومان)</label>
+            <input type="number" class="input-box" id="set-letterpress-cost" oninput="App.saveRates()">
+          </div>
+          <div class="field-group">
+            <label class="field-label">هزینه ساخت قالب لیزری (تومان)</label>
+            <input type="number" class="input-box" id="set-die-cost" oninput="App.saveRates()">
+          </div>
+          <div class="field-group">
+            <label class="field-label">اجرت جعبه‌چسبانی به ازای هر جعبه (تومان)</label>
+            <input type="number" class="input-box" id="set-gluing-box" oninput="App.saveRates()">
+          </div>
+          <div class="field-group">
+            <label class="field-label">درصد حاشیه سود کارخانه (٪)</label>
+            <input type="number" class="input-box" id="set-profit-pct" value="30" oninput="App.saveRates()">
+          </div>
+          <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="go('studio')">
+            ثبت و بازگشت به استودیو
+          </button>
+        </div>
+      </div>
     </div>
 
   </div>
 
   <!-- Mobile Bottom Navigation Bar -->
   <nav class="bnav">
-    <div class="nav-item active" data-tab="cad" onclick="go('cad')">
-      <i class="ph ph-shapes"></i>
-      <span>قالب و ابعاد</span>
+    <div class="bnav-item active" data-tab="studio" onclick="go('studio')">
+      <i class="ph ph-squares-four"></i>
+      <span>استودیو</span>
     </div>
-    <div class="nav-item" data-tab="materials" onclick="go('materials')">
-      <i class="ph ph-stack"></i>
-      <span>متریال</span>
-    </div>
-    <div class="nav-item" data-tab="nesting" onclick="go('nesting')">
-      <i class="ph ph-grid-four"></i>
-      <span>شیت‌بندی</span>
-    </div>
-    <div class="nav-item" data-tab="invoice" onclick="go('invoice')">
+    <div class="bnav-item" data-tab="invoice" onclick="go('invoice')">
       <i class="ph ph-file-text"></i>
-      <span>بها و فاکتور</span>
+      <span>پیش‌فاکتور</span>
+    </div>
+    <div class="bnav-item" data-tab="diecut" onclick="go('diecut')">
+      <i class="ph ph-vector-three"></i>
+      <span>قالب</span>
+    </div>
+    <div class="bnav-item" data-tab="rates" onclick="go('rates')">
+      <i class="ph ph-sliders"></i>
+      <span>نرخ‌ها</span>
     </div>
   </nav>
 
-  <!-- Quick Market Rates Drawer -->
-  <div class="drawer-overlay" id="rates-overlay" onclick="closeRatesDrawer()"></div>
-  <div class="drawer" id="rates-drawer">
-    <div class="drawer-hdr">
-      <div style="font-weight:800; display:flex; align-items:center; gap:6px;">
-        <i class="ph ph-sliders" style="color:var(--brand-primary);"></i>
-        <span>میز سریع نرخ‌های روز بازار</span>
-      </div>
-      <button class="btn-icon" style="width:28px; height:28px;" onclick="closeRatesDrawer()">✕</button>
-    </div>
-    <div class="drawer-body">
-      <div class="field-group">
-        <label class="field-label">قیمت هر کیلو مقوا (تومان)</label>
-        <input type="number" class="input-box" id="set-paper-price" oninput="App.saveRates()">
-      </div>
-      <div class="field-group">
-        <label class="field-label">هزینه واحد زینک ۲.۵ ورقی (تومان)</label>
-        <input type="number" class="input-box" id="set-plate-cost" oninput="App.saveRates()">
-      </div>
-      <div class="field-group">
-        <label class="field-label">اجرت دور چاپ ۵,۰۰۰ تایی (تومان)</label>
-        <input type="number" class="input-box" id="set-press-cost" oninput="App.saveRates()">
-      </div>
-      <div class="field-group">
-        <label class="field-label">نرخ سلفون هر سانتی‌متر مربع (تومان)</label>
-        <input type="number" step="0.1" class="input-box" id="set-lam-rate" oninput="App.saveRates()">
-      </div>
-      <div class="field-group">
-        <label class="field-label">اجرت پایه تیغ‌زنی لترپرس (تومان)</label>
-        <input type="number" class="input-box" id="set-letterpress-cost" oninput="App.saveRates()">
-      </div>
-      <div class="field-group">
-        <label class="field-label">هزینه ساخت قالب لیزری (تومان)</label>
-        <input type="number" class="input-box" id="set-die-cost" oninput="App.saveRates()">
-      </div>
-      <div class="field-group">
-        <label class="field-label">اجرت جعبه‌چسبانی به ازای هر جعبه (تومان)</label>
-        <input type="number" class="input-box" id="set-gluing-box" oninput="App.saveRates()">
-      </div>
-      <div class="field-group">
-        <label class="field-label">درصد حاشیه سود کارخانه (٪)</label>
-        <input type="number" class="input-box" id="set-profit-pct" value="30" oninput="App.saveRates()">
-      </div>
-      <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="closeRatesDrawer()">
-        ثبت و بازگشت
-      </button>
-    </div>
-  </div>
-
-  <!-- DIE-CUT VECTOR IMPORTER & LAYER REFINER MODAL -->
-  <div class="modal-overlay" id="diecut-modal">
-    <div class="modal-card">
-      <div class="modal-hdr">
-        <div style="font-weight:800; display:flex; align-items:center; gap:8px;">
-          <i class="ph ph-vector-three" style="color:var(--brand-primary);"></i>
-          <span>واردسازی و تفکیک لایه‌های برداری قالب (.ai و .svg)</span>
-        </div>
-        <button class="btn-icon" style="width:28px; height:28px;" onclick="DieCutImporter.closeModal()">✕</button>
-      </div>
-
-      <div class="modal-body">
-        <div class="dropzone" id="dropzone" onclick="document.getElementById('file-diecut').click()" ondragover="event.preventDefault(); this.classList.add('dragover');" ondragleave="this.classList.remove('dragover');" ondrop="DieCutImporter.handleDrop(event)">
-          <i class="ph ph-cloud-arrow-up"></i>
-          <div style="font-weight:800; font-size:0.95rem; margin-bottom:4px;">فایل خط تیغ خود را اینجا رها کنید</div>
-          <div style="font-size:0.75rem; color:var(--text-muted);">پشتیبانی کامل از فایل‌های Illustrator (.ai)، SVG و PDF برداری</div>
-          <input type="file" id="file-diecut" accept=".svg,.ai,.eps,.pdf" style="display:none;" onchange="DieCutImporter.handleFileSelect(event)">
-        </div>
-
-        <div style="margin-top:14px;">
-          <label class="field-label">پیش‌نمایش زنده خطوط و تفکیک لایه‌ها</label>
-          <div style="width:100%; height:200px; background:#151F32; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center;">
-            <canvas id="diecut-preview-canvas" width="600" height="200"></canvas>
-          </div>
-        </div>
-
-        <div style="margin-top:14px;">
-          <label class="field-label">جدول تفکیک و تطبیق لایه‌های تیغ و خط تا</label>
-          <table class="layer-table">
-            <thead>
-              <tr>
-                <th>رنگ / خط‌استروک</th>
-                <th>تعداد مسیر</th>
-                <th>نقش در خط تولید</th>
-                <th>نمایش</th>
-              </tr>
-            </thead>
-            <tbody id="layer-tbody">
-              <tr>
-                <td colspan="4" style="color:var(--text-muted);">هنوز فایلی انتخاب نشده است (یا از قالب‌های آماده استفاده کنید)</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="modal-ftr">
-        <button class="btn btn-outline" onclick="DieCutImporter.closeModal()">انصراف</button>
-        <button class="btn btn-primary" onclick="DieCutImporter.applyToProject()">
-          <i class="ph ph-check"></i> اعمال در شیت‌بندی و محاسبات
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Toast -->
+  <!-- Toast Element -->
   <div id="toast">پیام سیستم</div>
 </div>
 
-<!-- Modular Scripts -->
+<!-- Modular Scripts with Cache Busting -->
 <script src="./js/audio.js?v=3.0.0"></script>
 <script src="./js/persian-utils.js?v=3.0.0"></script>
 <script src="./js/cad-engine.js?v=3.0.0"></script>
