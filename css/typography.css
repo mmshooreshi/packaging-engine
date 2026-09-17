@@ -4,7 +4,7 @@
 
 @font-face {
   font-family: 'Peyda';
-  src: url('./fonts/PeydaWeb-Thin.woff2') format('woff2');
+  src: url('../fonts/PeydaWeb-Thin.woff2') format('woff2');
   font-weight: 100;
   font-style: normal;
   font-display: swap;
@@ -12,7 +12,7 @@
 
 @font-face {
   font-family: 'Peyda';
-  src: url('./fonts/peydaWeb-extralight.woff2') format('woff2');
+  src: url('../fonts/peydaWeb-extralight.woff2') format('woff2');
   font-weight: 200;
   font-style: normal;
   font-display: swap;
@@ -20,7 +20,7 @@
 
 @font-face {
   font-family: 'Peyda';
-  src: url('./fonts/peydaWeb-light.woff2') format('woff2');
+  src: url('../fonts/peydaWeb-light.woff2') format('woff2');
   font-weight: 300;
   font-style: normal;
   font-display: swap;
@@ -28,7 +28,7 @@
 
 @font-face {
   font-family: 'Peyda';
-  src: url('./fonts/PeydaWeb-Regular.woff2') format('woff2');
+  src: url('../fonts/PeydaWeb-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -36,7 +36,7 @@
 
 @font-face {
   font-family: 'Peyda';
-  src: url('./fonts/PeydaWeb-Medium.woff2') format('woff2');
+  src: url('../fonts/PeydaWeb-Medium.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -44,7 +44,7 @@
 
 @font-face {
   font-family: 'Peyda';
-  src: url('./fonts/PeydaWeb-SemiBold.woff2') format('woff2');
+  src: url('../fonts/PeydaWeb-SemiBold.woff2') format('woff2');
   font-weight: 600;
   font-style: normal;
   font-display: swap;
@@ -52,7 +52,7 @@
 
 @font-face {
   font-family: 'Peyda';
-  src: url('./fonts/PeydaWeb-Bold.woff2') format('woff2');
+  src: url('../fonts/PeydaWeb-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -60,7 +60,7 @@
 
 @font-face {
   font-family: 'Peyda';
-  src: url('./fonts/PeydaWeb-ExtraBold.woff2') format('woff2');
+  src: url('../fonts/PeydaWeb-ExtraBold.woff2') format('woff2');
   font-weight: 800;
   font-style: normal;
   font-display: swap;
@@ -68,7 +68,7 @@
 
 @font-face {
   font-family: 'Peyda';
-  src: url('./fonts/PeydaWeb-Black.woff2') format('woff2');
+  src: url('../fonts/PeydaWeb-Black.woff2') format('woff2');
   font-weight: 900;
   font-style: normal;
   font-display: swap;
