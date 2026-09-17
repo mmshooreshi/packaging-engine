@@ -938,3 +938,60 @@ input:checked + .slider:before {
     overflow: visible;
   }
 }
+
+/* Parametric Die-Cut Studio Styles */
+.diecut-hud {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+@media (max-width: 768px) {
+  .diecut-hud {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.diecut-hud-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.diecut-hud-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.diecut-hud-val {
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: var(--graphite-text);
+}
+
+.diecut-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 16px;
+}
+@media (max-width: 960px) {
+  .diecut-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.feature-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.feature-row.selected {
+  background: rgba(217, 119, 6, 0.12) !important;
+  border-right: 3px solid var(--brand-primary);
+}

@@ -601,53 +601,135 @@
       </div>
     </div>
 
-    <!-- VIEW 3: VECTOR DIE-CUT IMPORTER WORKSPACE -->
+    <!-- VIEW 3: VECTOR DIE-CUT IMPORTER & PARAMETRIC FORMULA STUDIO -->
     <div class="main-tab-view" id="view-diecut" style="display:none;">
-      <div style="max-width:900px; margin:20px auto; padding:0 16px;">
-        <div class="card">
+      <div style="max-width:1150px; margin:20px auto; padding:0 16px;">
+        
+        <!-- Live HUD Status Metrics -->
+        <div class="diecut-hud">
+          <div class="diecut-hud-card">
+            <span class="diecut-hud-label"><i class="ph ph-cube" style="color:#3B82F6;"></i> ابعاد ۳بعدی جعبه (L×W×H)</span>
+            <span class="diecut-hud-val" id="diecut-3d-box-dims">۱۲۰ × ۸۰ × ۱۵۰ mm</span>
+          </div>
+          <div class="diecut-hud-card">
+            <span class="diecut-hud-label"><i class="ph ph-bounding-box" style="color:#10B981;"></i> ابعاد شیت گسترده (Flat Size)</span>
+            <span class="diecut-hud-val" id="diecut-flat-dims">۴۱۵ × ۲۶۶ mm</span>
+          </div>
+          <div class="diecut-hud-card">
+            <span class="diecut-hud-label"><i class="ph ph-scissors" style="color:#EF4444;"></i> متراژ تیغ و خط تا</span>
+            <span class="diecut-hud-val" id="diecut-blade-len" style="font-size:0.88rem;">۱,۸۴۰ mm تیغ / ۱,۱۲۰ mm تا</span>
+          </div>
+          <div class="diecut-hud-card">
+            <span class="diecut-hud-label"><i class="ph ph-scroll" style="color:#F59E0B;"></i> مساحت مقوای مصرفی</span>
+            <span class="diecut-hud-val" id="diecut-card-area">۱,۱۰۳.۹ cm²</span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
           <div class="card-title">
             <div class="card-title-left">
-              <i class="ph ph-vector-three"></i>
-              <span>واردسازی و تفکیک لایه‌های برداری قالب (.ai و .svg)</span>
+              <i class="ph ph-vector-three" style="color:var(--brand-primary);"></i>
+              <span>موتور تحلیل ریاضی، تفکیک خطوط و ویرایش پارامتریک قالب SVG</span>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="DieCutImporter.applyToProject(); go('studio');">
-              <i class="ph ph-check"></i> اعمال در استودیو
-            </button>
-          </div>
-
-          <div class="dropzone" id="dropzone-main" onclick="document.getElementById('file-diecut-main').click()" ondragover="event.preventDefault(); this.classList.add('dragover');" ondragleave="this.classList.remove('dragover');" ondrop="DieCutImporter.handleDrop(event)">
-            <i class="ph ph-cloud-arrow-up"></i>
-            <div style="font-weight:800; font-size:1rem; margin-bottom:4px;">فایل خط تیغ خود را اینجا رها کنید</div>
-            <div style="font-size:0.78rem; color:var(--text-muted);">پشتیبانی از فایل‌های Illustrator (.ai)، SVG و PDF برداری</div>
-            <input type="file" id="file-diecut-main" accept=".svg,.ai,.eps,.pdf" style="display:none;" onchange="DieCutImporter.handleFileSelect(event)">
-          </div>
-
-          <div style="margin-top:16px;">
-            <label class="field-label">پیش‌نمایش زنده خطوط و کالیبراسیون مقیاس</label>
-            <div style="width:100%; height:260px; background:#151F32; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center;">
-              <canvas id="diecut-preview-canvas" width="750" height="250"></canvas>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-outline btn-sm" onclick="ParametricDieEngine.exportCleanSvg()">
+                <i class="ph ph-download-simple"></i> دانلود خروجی SVG
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="ParametricDieEngine.syncWithGlobalLemonPack(); go('studio');">
+                <i class="ph ph-check-circle"></i> اعمال و انتقال به استودیو
+              </button>
             </div>
           </div>
 
-          <div style="margin-top:16px;">
-            <label class="field-label">جدول تفکیک و تطبیق لایه‌های تیغ و خط تا</label>
-            <table class="layer-table">
+          <!-- Drag and Drop & Preset Bar -->
+          <div style="display:grid; grid-template-columns: 1fr auto; gap:12px; align-items:stretch; margin-bottom:14px;">
+            <div class="dropzone" id="dropzone-main" onclick="document.getElementById('file-diecut-main').click()" ondragover="event.preventDefault(); this.classList.add('dragover');" ondragleave="this.classList.remove('dragover');" ondrop="DieCutImporter.handleDrop(event)">
+              <i class="ph ph-cloud-arrow-up" style="font-size:1.6rem; color:var(--brand-primary); margin-bottom:4px;"></i>
+              <div style="font-weight:800; font-size:0.92rem;">فایل SVG خط تیغ خود را اینجا رها کنید یا کلیک کنید</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">تبدیل فوری تمام خطوط وکتور به متغیرهای ریاضی، لبه چسب، درپوش و گوشواره</div>
+              <input type="file" id="file-diecut-main" accept=".svg,.ai,.eps,.pdf" style="display:none;" onchange="DieCutImporter.handleFileSelect(event)">
+            </div>
+            
+            <div style="background:var(--surface-base); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:10px 14px; display:flex; flex-direction:column; justify-content:center; gap:6px;">
+              <span style="font-size:0.75rem; font-weight:800; color:var(--graphite-text);">الگوهای آماده مهندسی:</span>
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <button class="btn btn-outline btn-sm" style="font-size:0.74rem; justify-content:flex-start; padding:4px 8px;" onclick="ParametricDieEngine.loadTemplate('tuck_end')">
+                  <i class="ph ph-package"></i> دارویی Tuck-End
+                </button>
+                <button class="btn btn-outline btn-sm" style="font-size:0.74rem; justify-content:flex-start; padding:4px 8px;" onclick="ParametricDieEngine.loadTemplate('mailer_0427')">
+                  <i class="ph ph-envelope-simple"></i> کیبوردی 0427
+                </button>
+                <button class="btn btn-outline btn-sm" style="font-size:0.74rem; justify-content:flex-start; padding:4px 8px;" onclick="ParametricDieEngine.loadTemplate('lock_bottom')">
+                  <i class="ph ph-lock-key"></i> ته‌قفلی خودکار
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interactive SVG Blueprint Canvas Viewport -->
+          <div style="position:relative; width:100%; height:320px; background:#0F172A; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--border-color); display:flex; align-items:center; justify-content:center;">
+            <canvas id="diecut-preview-canvas" width="1100" height="320" style="width:100%; height:100%;"></canvas>
+            <div style="position:absolute; bottom:10px; right:10px; display:flex; gap:6px; background:rgba(15,23,42,0.85); padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
+              <span style="font-size:0.72rem; color:#94A3B8; display:flex; align-items:center; gap:4px;">
+                <span style="width:8px; height:8px; border-radius:2px; background:#DC2626; display:inline-block;"></span> تیغ برش (Cut)
+              </span>
+              <span style="font-size:0.72rem; color:#94A3B8; display:flex; align-items:center; gap:4px; margin-right:8px;">
+                <span style="width:8px; height:8px; border-radius:2px; background:#2563EB; display:inline-block;"></span> خط تا (Crease)
+              </span>
+              <span style="font-size:0.72rem; color:#94A3B8; display:flex; align-items:center; gap:4px; margin-right:8px;">
+                <span style="width:8px; height:8px; border-radius:2px; background:#10B981; display:inline-block;"></span> لبه چسب (Glue)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2-Column Mathematical Parameter & Formula Studio -->
+        <div class="diecut-grid">
+          
+          <!-- Column 1: Parametric Features Table -->
+          <div class="card">
+            <div class="card-title">
+              <div class="card-title-left">
+                <i class="ph ph-sliders"></i>
+                <span>اجزای هندسی شناسایی‌شده و ویرایش همزمان خطوط</span>
+              </div>
+            </div>
+            <div style="font-size:0.76rem; color:var(--text-muted); margin-bottom:10px;">
+              با تغییر هر عدد، تمام خطوط متقارن، ابعاد گسترده و ابعاد ۳بعدی جعبه خودکار بازتولید می‌شوند:
+            </div>
+            <table class="layer-table" style="font-size:0.8rem;">
               <thead>
                 <tr>
-                  <th>رنگ / خط‌استروک</th>
-                  <th>تعداد مسیر</th>
-                  <th>نقش در خط تولید</th>
-                  <th>نمایش</th>
+                  <th>جزء ساختاری و نام خط</th>
+                  <th>فرمول</th>
+                  <th>اندازه (mm)</th>
+                  <th>تعداد خطوط متناظر</th>
                 </tr>
               </thead>
-              <tbody id="layer-tbody">
-                <tr>
-                  <td colspan="4" style="color:var(--text-muted);">هنوز فایلی انتخاب نشده است (از دراپ‌زون بالا فایل قالب را بارگذاری کنید)</td>
-                </tr>
+              <tbody id="diecut-features-tbody">
+                <!-- Dynamically Populated by ParametricDieEngine -->
               </tbody>
             </table>
           </div>
+
+          <!-- Column 2: Extracted Mathematical Formulas & Relations -->
+          <div class="card">
+            <div class="card-title">
+              <div class="card-title-left">
+                <i class="ph ph-function"></i>
+                <span>روابط ریاضی و فرمول‌های استخراج‌شده ابعاد</span>
+              </div>
+            </div>
+            <div style="font-size:0.76rem; color:var(--text-muted); margin-bottom:12px;">
+              فرمول‌های تحلیلی محاسبه گسترده شیت، دورریز و مساحت هندسی مقوا:
+            </div>
+            <div id="diecut-formulas-container">
+              <!-- Dynamically Populated by ParametricDieEngine -->
+            </div>
+          </div>
+
         </div>
+
       </div>
     </div>
 
@@ -765,6 +847,7 @@
 <script src="./js/audio.js?v=3.0.0"></script>
 <script src="./js/persian-utils.js?v=3.0.0"></script>
 <script src="./js/cad-engine.js?v=3.0.0"></script>
+<script src="./js/parametric-die-engine.js?v=3.0.0"></script>
 <script src="./js/diecut-importer.js?v=3.0.0"></script>
 <script src="./js/nesting-engine.js?v=3.0.0"></script>
 <script src="./js/cost-engine.js?v=3.0.0"></script>

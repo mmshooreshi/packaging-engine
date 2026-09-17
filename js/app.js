@@ -78,8 +78,14 @@ window.App = {
       window.CadEngine.init();
       window.CadEngine.recalculateFlatDimensions();
     }
+    if (window.NestingEngine) {
+      window.NestingEngine.init();
+    }
     if (window.InvoiceEngine) {
       window.InvoiceEngine.init();
+    }
+    if (window.ParametricDieEngine) {
+      window.ParametricDieEngine.init();
     }
     this.recalculate();
     this.setupPwa();
@@ -359,7 +365,9 @@ window.go = function(tabId) {
       window.InvoiceEngine.render();
     }
   } else if (tabId === 'diecut') {
-    if (window.DieCutImporter) {
+    if (window.ParametricDieEngine) {
+      window.ParametricDieEngine.render();
+    } else if (window.DieCutImporter) {
       window.DieCutImporter.renderPreviewCanvas();
     }
   }

@@ -38,6 +38,29 @@ window.NestingEngine = {
   currentPage: 0,
   pageSize: 3,
   selectedOptionIndex: 0,
+  hoverPoint: null,
+
+  init() {
+    this.setupNestingHover();
+  },
+
+  setupNestingHover() {
+    const canvas = document.getElementById('nesting-canvas');
+    if (!canvas) return;
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+      this.hoverPoint = { x: mouseX, y: mouseY };
+      this.renderCanvas();
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      this.hoverPoint = null;
+      this.renderCanvas();
+    });
+  },
 
   optimize() {
     const cad = window.LemonPack.cad;
@@ -296,14 +319,30 @@ window.NestingEngine = {
     let boxIndex = 1;
     const pUtils = window.PersianUtils || { e2p: function(v){ return v; } };
 
+    let activeHoverCell = null;
+    const mouse = this.hoverPoint;
+
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const bx = startX + 8 + (c * pieceW);
         const by = startY + 8 + (r * pieceH);
         const cellW = pieceW - 3;
         const cellH = pieceH - 3;
+        const currentBoxIdx = boxIndex++;
 
-        ctx.fillStyle = 'rgba(217, 119, 6, 0.06)';
+        // Hover detection on cell
+        if (mouse && mouse.x >= bx && mouse.x <= bx + cellW && mouse.y >= by && mouse.y <= by + cellH) {
+          activeHoverCell = {
+            index: currentBoxIdx,
+            row: r + 1,
+            col: c + 1,
+            text: `جعبه ${pUtils.e2p(currentBoxIdx)} (ردیف ${pUtils.e2p(r+1)}، ستون ${pUtils.e2p(c+1)}) | گسترده: ${pUtils.e2p(cad.flatL)}×${pUtils.e2p(cad.flatW)} mm`
+          };
+          ctx.fillStyle = 'rgba(217, 119, 6, 0.22)';
+        } else {
+          ctx.fillStyle = 'rgba(217, 119, 6, 0.06)';
+        }
+
         ctx.fillRect(bx, by, cellW, cellH);
 
         // If custom SVG diecut is active, draw miniature vector contours in each nested cell
@@ -372,7 +411,7 @@ window.NestingEngine = {
         ctx.fillStyle = '#1E293B';
         ctx.font = 'bold 10px Peyda, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(pUtils.e2p(boxIndex++), bx + (cellW / 2), by + (cellH / 2) + 3);
+        ctx.fillText(pUtils.e2p(currentBoxIdx), bx + (cellW / 2), by + (cellH / 2) + 3);
       }
     }
 
@@ -380,5 +419,10 @@ window.NestingEngine = {
     ctx.font = '10px Peyda, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('ابعاد شیت انتخابی: ' + pUtils.e2p(nest.sheetL) + ' × ' + pUtils.e2p(nest.sheetW) + ' سانتی‌متر', w / 2, h - 8);
+
+    // Render Floating Hover Badge
+    if (mouse && activeHoverCell && window.CadEngine && window.CadEngine.drawHoverBadge) {
+      window.CadEngine.drawHoverBadge(ctx, mouse.x, mouse.y, activeHoverCell.text);
+    }
   }
 };

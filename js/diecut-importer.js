@@ -41,12 +41,15 @@ window.DieCutImporter = {
     
     reader.onload = (e) => {
       const content = e.target.result;
-      if (typeof content === 'string') {
-        this.parseVectorData(content, isAi);
-      } else {
-        const text = new TextDecoder('utf-8', { fatal: false }).decode(content);
-        this.parseVectorData(text, isAi);
+      const text = typeof content === 'string' ? content : new TextDecoder('utf-8', { fatal: false }).decode(content);
+      if (text.includes('<svg') && window.ParametricDieEngine) {
+        try {
+          window.ParametricDieEngine.parseSvgString(text);
+        } catch(err) {
+          console.warn('Parametric parse fallback:', err);
+        }
       }
+      this.parseVectorData(text, isAi);
     };
 
     if (isAi) {
@@ -57,6 +60,11 @@ window.DieCutImporter = {
   },
 
   parseSvgString(svgText) {
+    if (window.ParametricDieEngine) {
+      try {
+        window.ParametricDieEngine.parseSvgString(svgText);
+      } catch (err) {}
+    }
     this.parseVectorData(svgText, false);
   },
 
