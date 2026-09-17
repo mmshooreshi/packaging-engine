@@ -1,0 +1,321 @@
+/* ============================================================
+   OFFICIAL IRANIAN INDUSTRIAL COMMERCIAL INVOICE & JOB TICKET STYLES
+   ============================================================ */
+
+.doc-switcher {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.doc-tab {
+  flex: 1;
+  padding: 8px 12px;
+  text-align: center;
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-color);
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.15s;
+}
+
+.doc-tab.active {
+  background: var(--brand-primary);
+  color: #FFFFFF;
+  border-color: var(--brand-primary);
+  box-shadow: 0 2px 6px var(--brand-glow);
+}
+
+/* Official Document Container */
+.official-doc {
+  background: #FFFFFF;
+  color: #0F172A;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 4px;
+  padding: 16px;
+  position: relative;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+[data-theme="dark"] .official-doc {
+  background: #FFFFFF;
+  color: #0F172A;
+}
+
+/* Document Header Matrix */
+.doc-header-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+.doc-header-table td {
+  border: 1px solid #94A3B8;
+  padding: 6px 10px;
+  vertical-align: middle;
+}
+
+.doc-title-main {
+  font-size: 13px;
+  font-weight: 900;
+  color: #0F172A;
+  text-align: center;
+  letter-spacing: -0.3px;
+}
+
+.doc-title-sub {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #475569;
+  text-align: center;
+}
+
+.doc-meta-cell {
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.doc-meta-cell strong {
+  color: #0F172A;
+}
+
+/* 2-Row Party Matrix (Seller & Buyer) */
+.party-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+.party-table th {
+  background: #F1F5F9;
+  font-weight: 900;
+  font-size: 10.5px;
+  text-align: right;
+  padding: 4px 8px;
+  border: 1px solid #94A3B8;
+  color: #1E293B;
+}
+
+.party-table td {
+  border: 1px solid #94A3B8;
+  padding: 4px 8px;
+  font-size: 10px;
+}
+
+/* Packaging Technical Specification Matrix */
+.specs-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+.specs-table th {
+  background: #F8FAFC;
+  font-weight: 800;
+  font-size: 9.5px;
+  padding: 4px 6px;
+  border: 1px solid #94A3B8;
+  text-align: center;
+}
+
+.specs-table td {
+  border: 1px solid #94A3B8;
+  padding: 4px 6px;
+  font-size: 9.5px;
+  text-align: center;
+}
+
+/* Financial Itemized Table */
+.fin-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+.fin-table th {
+  background: #E2E8F0;
+  font-weight: 900;
+  font-size: 10px;
+  padding: 6px 8px;
+  border: 1px solid #64748B;
+  text-align: center;
+}
+
+.fin-table td {
+  border: 1px solid #94A3B8;
+  padding: 5px 8px;
+  font-size: 10px;
+  text-align: center;
+}
+
+.fin-table td.text-right {
+  text-align: right;
+}
+
+.fin-table td.text-left {
+  text-align: left;
+}
+
+.fin-table tfoot td {
+  font-weight: 800;
+  background: #F8FAFC;
+}
+
+/* Tiered Runs Comparison Table */
+.tier-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+.tier-table th {
+  background: #F1F5F9;
+  font-weight: 800;
+  font-size: 9.5px;
+  padding: 4px 6px;
+  border: 1px solid #94A3B8;
+  text-align: center;
+}
+
+.tier-table td {
+  border: 1px solid #CBD5E1;
+  padding: 4px 6px;
+  font-size: 9.5px;
+  text-align: center;
+}
+
+.tier-table tr.current-tier td {
+  background: #FEF3C7;
+  font-weight: 900;
+  color: #92400E;
+  border: 1.5px solid #D97706;
+}
+
+/* Totals and Persian Words Block */
+.total-words-box {
+  border: 1.5px solid #94A3B8;
+  background: #F8FAFC;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.words-text {
+  font-weight: 800;
+  font-size: 10.5px;
+  color: #1E293B;
+}
+
+.grand-num-text {
+  font-weight: 900;
+  font-size: 13px;
+  color: #B45309;
+}
+
+/* Legal Trade Terms */
+.terms-box {
+  border: 1px solid #CBD5E1;
+  padding: 6px 10px;
+  font-size: 8.5px;
+  color: #475569;
+  margin-bottom: 12px;
+  line-height: 1.5;
+  background: #FAFAFA;
+}
+
+.terms-box ol {
+  padding-right: 14px;
+}
+
+/* Signature and Stamp Blocks */
+.sign-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.sign-box {
+  border: 1px dashed #94A3B8;
+  height: 80px;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: center;
+  font-size: 9.5px;
+  font-weight: 700;
+  position: relative;
+}
+
+.stamp-badge {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-5deg);
+  border: 1.5px solid #DC2626;
+  color: #DC2626;
+  font-size: 8px;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 3px;
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+/* Print Specific Rules */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 8mm 8mm 8mm;
+  }
+  
+  html, body, #app {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    overflow: visible !important;
+    height: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .hdr, .bnav, .doc-switcher, .no-print, #update-banner, #pwa-bar, #toast, .drawer, .drawer-overlay, .modal-overlay, .studio-col:not(:has(.official-doc)) {
+    display: none !important;
+  }
+  
+  .studio-grid {
+    display: block !important;
+    padding: 0 !important;
+  }
+  
+  .views-container, .view {
+    position: static !important;
+    display: block !important;
+    opacity: 1 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  
+  .official-doc {
+    border: 1px solid #000 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  table, tr, td, th {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}

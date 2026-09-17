@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lemonpack-pro-v2.0.0';
+const CACHE_NAME = 'lemonpack-pro-v2.5.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -25,7 +25,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE).catch((err) => {
-        console.warn('SW: pre-caching partial failure, proceeding anyway', err);
+        console.warn('SW: pre-caching partial failure', err);
       });
     })
   );
@@ -41,15 +41,7 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    }).then(() => {
-      return self.clients.claim();
-    }).then(() => {
-      return self.clients.matchAll({ type: 'window' }).then((clients) => {
-        clients.forEach((client) => {
-          client.postMessage({ type: 'APP_UPDATE_AVAILABLE' });
-        });
-      });
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
@@ -60,13 +52,8 @@ self.addEventListener('message', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://')) {
-    return;
-  }
-
-  if (event.request.method !== 'GET') {
-    return;
-  }
+  if (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://')) return;
+  if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
@@ -87,15 +74,11 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+      if (cachedResponse) return cachedResponse;
       return fetch(event.request).then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
           const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
         }
         return networkResponse;
       }).catch(() => caches.match('./index.html'));
